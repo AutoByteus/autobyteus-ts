@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+dist-examples/
+
+# Logs and runtime outputs
+logs/
+*.log
+poem_writer_output/
+poems/
+
+# Local env files
+.env
+.env.*
+
+# Temporary tool artifacts
+tmp-*/
+mcp-config-*/
+
+# Misc
+.vite/

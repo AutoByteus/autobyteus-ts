@@ -1,0 +1,88 @@
+import { randomUUID } from 'node:crypto';
+import { StreamingResponseHandler } from './streaming_response_handler.js';
+import { SegmentEvent, SegmentType } from '../segments/segment_events.js';
+import { ToolInvocation } from '../../tool_invocation.js';
+import { ChunkResponse } from '../../../llm/utils/response_types.js';
+
+export class PassThroughStreamingResponseHandler extends StreamingResponseHandler {
+  private onSegmentEvent?: (event: SegmentEvent) => void;
+  private segmentIdPrefix: string;
+  private segmentId: string;
+  private isActive = false;
+  private isFinalized = false;
+  private allEvents: SegmentEvent[] = [];
+
+  constructor(options?: {
+    on_segment_event?: (event: SegmentEvent) => void;
+    on_tool_invocation?: (invocation: ToolInvocation) => void;
+    segment_id_prefix?: string;
+  }) {
+    super();
+    this.onSegmentEvent = options?.on_segment_event;
+    this.segmentIdPrefix = options?.segment_id_prefix ?? `pt_${randomUUID().replace(/-/g, '')}:`;
+    this.segmentId = `${this.segmentIdPrefix}text_0`;
+  }
+
+  feed(chunk: ChunkResponse): SegmentEvent[] {
+    if (this.isFinalized) {
+      throw new Error('Handler has been finalized, cannot feed more chunks.');
+    }
+
+    const textContent = chunk instanceof ChunkResponse ? chunk.content : (chunk as any);
+    if (!textContent) {
+      return [];
+    }
+
+    const events: SegmentEvent[] = [];
+    if (!this.isActive) {
+      this.isActive = true;
+      events.push(SegmentEvent.start(this.segmentId, SegmentType.TEXT));
+    }
+
+    events.push(SegmentEvent.content(this.segmentId, textContent));
+    this.processEvents(events);
+    return events;
+  }
+
+  finalize(): SegmentEvent[] {
+    if (this.isFinalized) {
+      return [];
+    }
+    this.isFinalized = true;
+    const events: SegmentEvent[] = [];
+    if (this.isActive) {
+      events.push(SegmentEvent.end(this.segmentId));
+      this.isActive = false;
+    }
+    this.processEvents(events);
+    return events;
+  }
+
+  private processEvents(events: SegmentEvent[]): void {
+    for (const event of events) {
+      this.allEvents.push(event);
+      if (this.onSegmentEvent) {
+        try {
+          this.onSegmentEvent(event);
+        } catch (error) {
+          console.error(`Error in on_segment_event callback: ${error}`);
+        }
+      }
+    }
+  }
+
+  get_all_events(): SegmentEvent[] {
+    return [...this.allEvents];
+  }
+
+  get_all_invocations(): ToolInvocation[] {
+    return [];
+  }
+
+  reset(): void {
+    this.segmentId = `${this.segmentIdPrefix}text_${randomUUID().replace(/-/g, '')}`;
+    this.isActive = false;
+    this.isFinalized = false;
+    this.allEvents = [];
+  }
+}

@@ -1,0 +1,19 @@
+import { BaseSchemaFormatter } from './base_formatter.js';
+import { ToolDefinition } from '../../registry/tool_definition.js';
+
+export class MistralJsonSchemaFormatter implements BaseSchemaFormatter {
+  provide(tool: ToolDefinition): Record<string, any> {
+    const parameters = tool.argumentSchema
+      ? tool.argumentSchema.toJsonSchema()
+      : { type: 'object', properties: {}, required: [] };
+
+    return {
+      type: 'function',
+      function: {
+        name: tool.name,
+        description: tool.description,
+        parameters
+      }
+    };
+  }
+}

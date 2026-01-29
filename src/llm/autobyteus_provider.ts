@@ -1,0 +1,231 @@
+import { AutobyteusClient } from '../clients/autobyteus_client.js';
+import { LLMConfig } from './utils/llm_config.js';
+import { LLMModel } from './models.js';
+import { LLMProvider } from './providers.js';
+import { LLMRuntime } from './runtimes.js';
+import { AutobyteusLLM } from './api/autobyteus_llm.js';
+
+type ModelInfoPayload = Record<string, any>;
+
+export class AutobyteusModelProvider {
+  static readonly DEFAULT_SERVER_URL = 'https://localhost:8000';
+
+  static getHosts(): string[] {
+    const hostsStr = process.env.AUTOBYTEUS_LLM_SERVER_HOSTS;
+    if (hostsStr) {
+      return hostsStr.split(',').map((host) => host.trim()).filter(Boolean);
+    }
+
+    const legacyHost = process.env.AUTOBYTEUS_LLM_SERVER_URL;
+    if (legacyHost) {
+      return [legacyHost];
+    }
+
+    return [];
+  }
+
+  static isValidUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      return Boolean(parsed.protocol && parsed.host);
+    } catch {
+      return false;
+    }
+  }
+
+  static async getModels(): Promise<LLMModel[]> {
+    const hosts = AutobyteusModelProvider.getHosts();
+    if (!hosts.length) {
+      console.info('No Autobyteus LLM server hosts configured. Skipping discovery.');
+      return [];
+    }
+
+    const allModels: LLMModel[] = [];
+
+    for (const hostUrl of hosts) {
+      if (!AutobyteusModelProvider.isValidUrl(hostUrl)) {
+        console.error(`Invalid Autobyteus host URL: ${hostUrl}, skipping.`);
+        continue;
+      }
+
+      console.info(`Discovering Autobyteus models from host: ${hostUrl}`);
+      let client: AutobyteusClient | null = null;
+
+      try {
+        client = new AutobyteusClient(hostUrl);
+        const response = await client.getAvailableLlmModelsSync();
+
+        if (!AutobyteusModelProvider.validateServerResponse(response)) {
+          continue;
+        }
+
+        const models: ModelInfoPayload[] = response.models ?? [];
+        for (const modelInfo of models) {
+          const validation = AutobyteusModelProvider.validateModelInfo(modelInfo);
+          if (!validation.valid) {
+            console.warn(validation.message);
+            continue;
+          }
+
+          const llmConfig = AutobyteusModelProvider.parseLLMConfig(modelInfo.config);
+          if (!llmConfig) {
+            continue;
+          }
+
+          try {
+            const provider = AutobyteusModelProvider.parseProvider(modelInfo.provider);
+            const llmModel = new LLMModel({
+              name: modelInfo.name,
+              value: modelInfo.value,
+              provider,
+              llm_class: AutobyteusLLM,
+              canonical_name: modelInfo.canonical_name ?? modelInfo.name,
+              runtime: LLMRuntime.AUTOBYTEUS,
+              host_url: hostUrl,
+              default_config: llmConfig
+            });
+            allModels.push(llmModel);
+          } catch (error: any) {
+            console.error(
+              `Failed to create LLMModel for '${modelInfo?.name ?? 'unknown'}' from ${hostUrl}: ${error?.message ?? error}`
+            );
+          }
+        }
+      } catch (error: any) {
+        console.warn(`Could not connect or fetch models from Autobyteus server at ${hostUrl}: ${error?.message ?? error}`);
+      } finally {
+        if (client) {
+          await client.close();
+        }
+      }
+    }
+
+    return allModels;
+  }
+
+  static async discoverAndRegister(): Promise<number> {
+    try {
+      const { LLMFactory } = await import('./llm_factory.js');
+      const discoveredModels = await AutobyteusModelProvider.getModels();
+      let registeredCount = 0;
+
+      for (const model of discoveredModels) {
+        try {
+          LLMFactory.registerModel(model);
+          registeredCount += 1;
+        } catch (error: any) {
+          console.warn(`Failed to register Autobyteus model '${model.name}': ${error?.message ?? error}`);
+        }
+      }
+
+      if (registeredCount > 0) {
+        console.info(`Finished Autobyteus discovery. Total models registered: ${registeredCount}`);
+      }
+
+      return registeredCount;
+    } catch (error: any) {
+      console.error(`Unexpected error during Autobyteus model discovery: ${error?.message ?? error}`);
+      return 0;
+    }
+  }
+
+  private static validateServerResponse(response: any): boolean {
+    if (typeof response !== 'object' || response === null) {
+      console.error('Invalid server response format');
+      return false;
+    }
+
+    if (!('models' in response)) {
+      console.error("Missing 'models' field in response");
+      return false;
+    }
+
+    if (!Array.isArray(response.models)) {
+      console.error("Models field must be a list");
+      return false;
+    }
+
+    return true;
+  }
+
+  private static validateModelInfo(modelInfo: ModelInfoPayload): { valid: boolean; message: string } {
+    const requiredFields = ['name', 'value', 'provider', 'config'];
+    for (const field of requiredFields) {
+      if (!(field in modelInfo)) {
+        return { valid: false, message: `Missing required field '${field}' in model info` };
+      }
+      if (!modelInfo[field]) {
+        return { valid: false, message: `Empty value for required field '${field}'` };
+      }
+    }
+
+    const providerValue = String(modelInfo.provider ?? '');
+    if (!AutobyteusModelProvider.isProviderValue(providerValue)) {
+      return { valid: false, message: `Invalid provider '${providerValue}'` };
+    }
+
+    if (typeof modelInfo.config !== 'object' || modelInfo.config === null || Array.isArray(modelInfo.config)) {
+      return { valid: false, message: 'Config must be a dictionary' };
+    }
+
+    return { valid: true, message: '' };
+  }
+
+  private static parseLLMConfig(configData: Record<string, any>): LLMConfig | null {
+    try {
+      const pricingData = configData?.pricing_config ?? {};
+      if (!AutobyteusModelProvider.validatePricingConfig(pricingData)) {
+        throw new Error('Invalid pricing configuration');
+      }
+
+      const llmConfig = LLMConfig.fromDict(configData);
+
+      if (!llmConfig.token_limit || llmConfig.token_limit < 1) {
+        console.warn('Setting default token limit (8192)');
+        llmConfig.token_limit = 8192;
+      }
+
+      if (llmConfig.temperature < 0 || llmConfig.temperature > 2) {
+        console.warn('Temperature out of range, resetting to 0.7');
+        llmConfig.temperature = 0.7;
+      }
+
+      return llmConfig;
+    } catch (error: any) {
+      console.error(`Config parsing failed: ${error?.message ?? error}`);
+      return null;
+    }
+  }
+
+  private static validatePricingConfig(pricingData: Record<string, any>): boolean {
+    const requiredKeys = ['input_token_pricing', 'output_token_pricing'];
+
+    for (const key of requiredKeys) {
+      if (!(key in pricingData)) {
+        console.error(`Missing pricing key: ${key}`);
+        return false;
+      }
+      if (typeof pricingData[key] !== 'number') {
+        console.error(`Invalid pricing type for ${key}`);
+        return false;
+      }
+      if (pricingData[key] < 0) {
+        console.error(`Negative pricing for ${key}`);
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private static isProviderValue(provider: string): boolean {
+    return Object.values(LLMProvider).includes(provider as LLMProvider);
+  }
+
+  private static parseProvider(provider: string): LLMProvider {
+    if (!AutobyteusModelProvider.isProviderValue(provider)) {
+      throw new Error(`Invalid provider '${provider}'`);
+    }
+    return provider as LLMProvider;
+  }
+}

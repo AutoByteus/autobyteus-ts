@@ -1,0 +1,52 @@
+import { BaseTool } from '../../../tools/base_tool.js';
+import { ToolCategory } from '../../../tools/tool_category.js';
+import { TaskDefinitionSchema } from '../../schemas/task_definition.js';
+import { TaskStatus } from '../../base_task_plan.js';
+
+export class GetMyTasks extends BaseTool {
+  static CATEGORY = ToolCategory.TASK_MANAGEMENT;
+
+  static getName(): string {
+    return 'get_my_tasks';
+  }
+
+  static getDescription(): string {
+    return (
+      'Retrieves the list of tasks currently assigned to you from the team\'s shared task plan. ' +
+      'This is your personal to-do list. Use this to understand your current workload and decide what to do next.'
+    );
+  }
+
+  static getArgumentSchema() {
+    return null;
+  }
+
+  protected async _execute(context: any): Promise<string> {
+    const agentName = context?.config?.name ?? 'Unknown';
+    const teamContext = context?.custom_data?.team_context;
+    if (!teamContext) {
+      return 'Error: Team context is not available. Cannot access the task plan.';
+    }
+
+    const taskPlan = teamContext.state?.task_plan;
+    if (!taskPlan) {
+      return 'Error: Task plan has not been initialized for this team.';
+    }
+
+    const myTasks = (taskPlan.tasks ?? []).filter(
+      (task: any) => task.assignee_name === agentName && taskPlan.task_statuses?.[task.task_id] === TaskStatus.QUEUED
+    );
+
+    if (myTasks.length === 0) {
+      return 'Your personal task queue is empty. You have no new tasks assigned and ready to be started.';
+    }
+
+    try {
+      const tasksForLLM = myTasks.map((task: any) => TaskDefinitionSchema.parse(task));
+      return JSON.stringify(tasksForLLM, null, 2);
+    } catch (error) {
+      const details = error instanceof Error ? error.message : String(error);
+      return `Error: An unexpected error occurred while formatting your tasks: ${details}`;
+    }
+  }
+}

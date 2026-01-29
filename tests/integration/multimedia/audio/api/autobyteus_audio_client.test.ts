@@ -1,0 +1,33 @@
+import { describe, it, expect } from 'vitest';
+import { AutobyteusAudioModelProvider } from '../../../../../src/multimedia/audio/autobyteus_audio_provider.js';
+import { AudioClientFactory } from '../../../../../src/multimedia/audio/audio_client_factory.js';
+import { MultimediaRuntime } from '../../../../../src/multimedia/runtimes.js';
+
+const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
+const hasKey = Boolean(process.env.AUTOBYTEUS_API_KEY);
+const allowClientTests = process.env.AUTOBYTEUS_RUN_CLIENT_TESTS === '1';
+const runIntegration = hasHosts && hasKey && allowClientTests ? describe : describe.skip;
+
+runIntegration('AutobyteusAudioClient integration', () => {
+  it(
+    'generates speech via Autobyteus server',
+    { timeout: 60000 },
+    async () => {
+      await AutobyteusAudioModelProvider.discoverAndRegister();
+
+      const models = AudioClientFactory.listModels().filter(
+        (model) => model.runtime === MultimediaRuntime.AUTOBYTEUS
+      );
+      expect(models.length).toBeGreaterThan(0);
+
+      const model = models[0];
+      const client = AudioClientFactory.createAudioClient(model.modelIdentifier);
+      const response = await client.generateSpeech('Hello from the Autobyteus audio integration test.');
+
+      expect(Array.isArray(response.audio_urls)).toBe(true);
+      expect(response.audio_urls.length).toBeGreaterThan(0);
+
+      await client.cleanup();
+    }
+  );
+});

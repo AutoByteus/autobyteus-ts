@@ -1,0 +1,268 @@
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { LLMCompleteResponseReceivedEventHandler } from '../../../../src/agent/handlers/llm_complete_response_received_event_handler.js';
+import {
+  LLMCompleteResponseReceivedEvent,
+  PendingToolInvocationEvent
+} from '../../../../src/agent/events/agent_events.js';
+import { ToolInvocation } from '../../../../src/agent/tool_invocation.js';
+import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/response_types.js';
+import { AgentContext } from '../../../../src/agent/context/agent_context.js';
+import { AgentConfig } from '../../../../src/agent/context/agent_config.js';
+import { AgentRuntimeState } from '../../../../src/agent/context/agent_runtime_state.js';
+import { BaseLLM } from '../../../../src/llm/base.js';
+import { LLMModel } from '../../../../src/llm/models.js';
+import { LLMProvider } from '../../../../src/llm/providers.js';
+import { LLMConfig } from '../../../../src/llm/utils/llm_config.js';
+import { LLMUserMessage } from '../../../../src/llm/user_message.js';
+import { BaseLLMResponseProcessor } from '../../../../src/agent/llm_response_processor/base_processor.js';
+
+class DummyLLM extends BaseLLM {
+  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+    return new CompleteResponse({ content: 'ok' });
+  }
+
+  protected async *_streamUserMessageToLLM(
+    _userMessage: LLMUserMessage
+  ): AsyncGenerator<ChunkResponse, void, unknown> {
+    yield new ChunkResponse({ content: 'ok', is_complete: true });
+  }
+}
+
+const makeContext = () => {
+  const model = new LLMModel({
+    name: 'dummy',
+    value: 'dummy',
+    canonical_name: 'dummy',
+    provider: LLMProvider.OPENAI
+  });
+  const llm = new DummyLLM(model, new LLMConfig());
+  const config = new AgentConfig('name', 'role', 'desc', llm);
+  const state = new AgentRuntimeState('agent-1');
+  const inputQueues = { enqueue_tool_invocation_request: vi.fn(async () => undefined) } as any;
+  state.input_event_queues = inputQueues;
+  const notifier = {
+    notify_agent_data_assistant_complete_response: vi.fn(),
+    notify_agent_error_output_generation: vi.fn()
+  };
+  state.status_manager_ref = { notifier } as any;
+  const context = new AgentContext('agent-1', config, state);
+  return { context, inputQueues, notifier };
+};
+
+class MockLLMResponseProcessor extends BaseLLMResponseProcessor {
+  private shouldHandle = false;
+  processedText: string | null = null;
+
+  static get_name(): string {
+    return 'mock_processor';
+  }
+
+  static get_order(): number {
+    return 100;
+  }
+
+  setShouldHandle(value: boolean) {
+    this.shouldHandle = value;
+  }
+
+  async process_response(
+    response: CompleteResponse,
+    context: AgentContext,
+    _triggeringEvent: LLMCompleteResponseReceivedEvent
+  ): Promise<boolean> {
+    this.processedText = response.content;
+    if (this.shouldHandle) {
+      const mockInvocation = new ToolInvocation('processed_tool', {}, 'test-tool-id');
+      await (context.input_event_queues as any).enqueue_tool_invocation_request(
+        new PendingToolInvocationEvent(mockInvocation)
+      );
+      return true;
+    }
+    return false;
+  }
+
+  reset() {
+    this.shouldHandle = false;
+    this.processedText = null;
+  }
+}
+
+describe('LLMCompleteResponseReceivedEventHandler', () => {
+  let infoSpy: ReturnType<typeof vi.spyOn>;
+  let debugSpy: ReturnType<typeof vi.spyOn>;
+  let errorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
+    debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => undefined);
+    errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  afterEach(() => {
+    infoSpy.mockRestore();
+    debugSpy.mockRestore();
+    errorSpy.mockRestore();
+  });
+
+  it('handles response processed by a processor', async () => {
+    const handler = new LLMCompleteResponseReceivedEventHandler();
+    const { context, inputQueues, notifier } = makeContext();
+    const processor = new MockLLMResponseProcessor();
+    processor.setShouldHandle(true);
+    context.config.llm_response_processors = [processor];
+
+    const responseText = 'LLM response with tool call <tool>...';
+    const usage = { prompt_tokens: 10, completion_tokens: 20, total_tokens: 30 };
+    const completeResponse = new CompleteResponse({ content: responseText, usage });
+    const event = new LLMCompleteResponseReceivedEvent(completeResponse);
+
+    await handler.handle(event, context);
+
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes(
+          `Response Length: ${responseText.length}, Reasoning Length: 0, IsErrorFlagged: false, TokenUsage: ${usage}`
+        )
+      )
+    ).toBe(true);
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes("LLMResponseProcessor 'mock_processor' handled the response.")
+      )
+    ).toBe(true);
+    expect(processor.processedText).toBe(responseText);
+    expect(notifier.notify_agent_data_assistant_complete_response).toHaveBeenCalledTimes(1);
+
+    expect(inputQueues.enqueue_tool_invocation_request).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueue_tool_invocation_request.mock.calls[0][0];
+    expect(enqueued).toBeInstanceOf(PendingToolInvocationEvent);
+    expect(enqueued.tool_invocation.name).toBe('processed_tool');
+  });
+
+  it('handles response not processed by any processor', async () => {
+    const handler = new LLMCompleteResponseReceivedEventHandler();
+    const { context, notifier } = makeContext();
+    const processor = new MockLLMResponseProcessor();
+    processor.setShouldHandle(false);
+    context.config.llm_response_processors = [processor];
+
+    const responseText = 'Final LLM answer, no tools.';
+    const completeResponse = new CompleteResponse({ content: responseText });
+    const event = new LLMCompleteResponseReceivedEvent(completeResponse);
+
+    await handler.handle(event, context);
+
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes('No LLMResponseProcessor handled the response')
+      )
+    ).toBe(true);
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes('Emitting the full LLM response as a final answer')
+      )
+    ).toBe(true);
+    expect(processor.processedText).toBe(responseText);
+    expect(notifier.notify_agent_data_assistant_complete_response).toHaveBeenCalledWith(
+      completeResponse
+    );
+  });
+
+  it('skips processors for error responses', async () => {
+    const handler = new LLMCompleteResponseReceivedEventHandler();
+    const { context, notifier } = makeContext();
+    const processor = new MockLLMResponseProcessor();
+    processor.setShouldHandle(false);
+    context.config.llm_response_processors = [processor];
+
+    const completeResponse = new CompleteResponse({ content: 'An error occurred in a previous stage.' });
+    const event = new LLMCompleteResponseReceivedEvent(completeResponse, true);
+
+    await handler.handle(event, context);
+
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes('LLMCompleteResponseReceivedEvent was marked as an error response')
+      )
+    ).toBe(true);
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) => String(msg).includes('Skipping LLMResponseProcessor attempts'))
+    ).toBe(true);
+    expect(processor.processedText).toBeNull();
+    expect(notifier.notify_agent_data_assistant_complete_response).toHaveBeenCalledWith(
+      completeResponse
+    );
+  });
+
+  it('handles no processors configured', async () => {
+    const handler = new LLMCompleteResponseReceivedEventHandler();
+    const { context, notifier } = makeContext();
+    context.config.llm_response_processors = [];
+
+    const completeResponse = new CompleteResponse({ content: 'Response when no processors are configured.' });
+    const event = new LLMCompleteResponseReceivedEvent(completeResponse);
+
+    await handler.handle(event, context);
+
+    expect(
+      debugSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes('No LLM response processors configured in agent config')
+      )
+    ).toBe(true);
+    expect(notifier.notify_agent_data_assistant_complete_response).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips invalid processors and still emits response', async () => {
+    const handler = new LLMCompleteResponseReceivedEventHandler();
+    const { context, notifier } = makeContext();
+    class NotAProcessor {}
+    context.config.llm_response_processors = [new NotAProcessor() as any];
+
+    const completeResponse = new CompleteResponse({ content: 'Response with invalid processor.' });
+    const event = new LLMCompleteResponseReceivedEvent(completeResponse);
+
+    await handler.handle(event, context);
+
+    expect(
+      errorSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes('Invalid LLM response processor type in config')
+      )
+    ).toBe(true);
+    expect(notifier.notify_agent_data_assistant_complete_response).toHaveBeenCalledTimes(1);
+  });
+
+  it('notifies when processor throws', async () => {
+    const handler = new LLMCompleteResponseReceivedEventHandler();
+    const { context, notifier } = makeContext();
+    const processor = new MockLLMResponseProcessor();
+    processor.process_response = vi.fn(async () => {
+      throw new Error('Simulated processor error');
+    });
+    context.config.llm_response_processors = [processor as any];
+
+    const completeResponse = new CompleteResponse({ content: 'Response that causes processor error.' });
+    const event = new LLMCompleteResponseReceivedEvent(completeResponse);
+
+    await handler.handle(event, context);
+
+    expect(
+      errorSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes("Error while using LLMResponseProcessor 'mock_processor': Error: Simulated processor error")
+      )
+    ).toBe(true);
+    expect(notifier.notify_agent_data_assistant_complete_response).toHaveBeenCalledTimes(1);
+    expect(notifier.notify_agent_error_output_generation).toHaveBeenCalledWith(
+      'LLMResponseProcessor.mock_processor',
+      'Error: Simulated processor error'
+    );
+  });
+
+  it('logs initialization', () => {
+    new LLMCompleteResponseReceivedEventHandler();
+    expect(
+      infoSpy.mock.calls.some(([msg]: [unknown]) =>
+        String(msg).includes('LLMCompleteResponseReceivedEventHandler initialized.')
+      )
+    ).toBe(true);
+  });
+});
