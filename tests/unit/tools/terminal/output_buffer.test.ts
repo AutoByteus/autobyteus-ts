@@ -7,7 +7,7 @@ describe('OutputBuffer', () => {
     buffer.append(Buffer.from('Hello\n'));
     buffer.append(Buffer.from('World\n'));
 
-    expect(buffer.get_all()).toBe('Hello\nWorld\n');
+    expect(buffer.getAll()).toBe('Hello\nWorld\n');
   });
 
   it('ignores empty data', () => {
@@ -15,7 +15,7 @@ describe('OutputBuffer', () => {
     buffer.append(Buffer.from(''));
     buffer.append(Buffer.from('test\n'));
 
-    expect(buffer.get_all()).toBe('test\n');
+    expect(buffer.getAll()).toBe('test\n');
   });
 
   it('returns last n lines', () => {
@@ -24,7 +24,7 @@ describe('OutputBuffer', () => {
       buffer.append(Buffer.from(`line ${i}\n`));
     }
 
-    const result = buffer.get_lines(3);
+    const result = buffer.getLines(3);
     expect(result).toContain('line 7\n');
     expect(result).toContain('line 8\n');
     expect(result).toContain('line 9\n');
@@ -36,7 +36,7 @@ describe('OutputBuffer', () => {
     buffer.append(Buffer.from('line 1\n'));
     buffer.append(Buffer.from('line 2\n'));
 
-    expect(buffer.get_lines(100)).toBe('line 1\nline 2\n');
+    expect(buffer.getLines(100)).toBe('line 1\nline 2\n');
   });
 
   it('clears content and resets size', () => {
@@ -46,7 +46,7 @@ describe('OutputBuffer', () => {
 
     buffer.clear();
     expect(buffer.size).toBe(0);
-    expect(buffer.get_all()).toBe('');
+    expect(buffer.getAll()).toBe('');
   });
 
   it('tracks size in bytes', () => {
@@ -62,7 +62,7 @@ describe('OutputBuffer', () => {
     buffer.append(Buffer.from('line 2\n'));
     buffer.append(Buffer.from('line 3\n'));
 
-    expect(buffer.line_count).toBe(3);
+    expect(buffer.lineCount).toBe(3);
   });
 
   it('respects max_bytes limit by discarding old data', () => {
@@ -73,21 +73,21 @@ describe('OutputBuffer', () => {
     }
 
     expect(buffer.size).toBeLessThanOrEqual(50);
-    expect(buffer.get_all()).toContain('line 19\n');
+    expect(buffer.getAll()).toContain('line 19\n');
   });
 
   it('handles unicode input', () => {
     const buffer = new OutputBuffer();
     buffer.append(Buffer.from('Hello 世界\n', 'utf8'));
 
-    expect(buffer.get_all()).toContain('世界');
+    expect(buffer.getAll()).toContain('世界');
   });
 
   it('handles invalid utf-8 bytes without throwing', () => {
     const buffer = new OutputBuffer();
     buffer.append(Buffer.from([0xff, 0xfe, 0x20, 0x69, 0x6e, 0x76, 0x61, 0x6c, 0x69, 0x64]));
 
-    expect(buffer.get_all().length).toBeGreaterThan(0);
+    expect(buffer.getAll().length).toBeGreaterThan(0);
   });
 
   it('handles concurrent-style appends', async () => {
@@ -101,6 +101,6 @@ describe('OutputBuffer', () => {
     });
 
     await Promise.all(tasks);
-    expect(buffer.line_count).toBe(500);
+    expect(buffer.lineCount).toBe(500);
   });
 });

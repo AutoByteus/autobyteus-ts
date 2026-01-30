@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { ParserConfig } from '../../../../../src/agent/streaming/parser/parser_context.js';
-import { StreamingParser, extract_segments } from '../../../../../src/agent/streaming/parser/streaming_parser.js';
+import { StreamingParser, extractSegments } from '../../../../../src/agent/streaming/parser/streaming_parser.js';
 
 describe('Sentinel parsing', () => {
   it('parses sentinel write_file segment', () => {
-    const config = new ParserConfig({ strategy_order: ['sentinel'] });
+    const config = new ParserConfig({ strategyOrder: ['sentinel'] });
     const parser = new StreamingParser(config);
 
     const text =
@@ -12,8 +12,8 @@ describe('Sentinel parsing', () => {
       'print("hi")' +
       '[[SEG_END]]';
 
-    const events = parser.feed_and_finalize(text);
-    const segments = extract_segments(events);
+    const events = parser.feedAndFinalize(text);
+    const segments = extractSegments(events);
 
     const writeFileSegments = segments.filter((s) => s.type === 'write_file');
     expect(writeFileSegments).toHaveLength(1);
@@ -22,7 +22,7 @@ describe('Sentinel parsing', () => {
   });
 
   it('handles header split across chunks', () => {
-    const config = new ParserConfig({ strategy_order: ['sentinel'] });
+    const config = new ParserConfig({ strategyOrder: ['sentinel'] });
     const parser = new StreamingParser(config);
 
     const chunks = ['[[SEG_START {"type":"run_terminal_cmd","path":"/x"', '}]]echo hi[[SEG_END]]'];
@@ -32,19 +32,19 @@ describe('Sentinel parsing', () => {
     }
     events.push(...parser.finalize());
 
-    const segments = extract_segments(events);
+    const segments = extractSegments(events);
     const cmdSegments = segments.filter((s) => s.type === 'run_bash');
     expect(cmdSegments).toHaveLength(1);
     expect(cmdSegments[0].content).toBe('echo hi');
   });
 
   it('falls back to text on invalid header', () => {
-    const config = new ParserConfig({ strategy_order: ['sentinel'] });
+    const config = new ParserConfig({ strategyOrder: ['sentinel'] });
     const parser = new StreamingParser(config);
 
     const text = '[[SEG_START not-json]]oops[[SEG_END]]';
-    const events = parser.feed_and_finalize(text);
-    const segments = extract_segments(events);
+    const events = parser.feedAndFinalize(text);
+    const segments = extractSegments(events);
 
     const textSegments = segments.filter((s) => s.type === 'text');
     expect(textSegments.length).toBeGreaterThanOrEqual(1);

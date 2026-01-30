@@ -5,7 +5,7 @@ import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { BaseAgentWorkspace } from '../../../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../../../src/agent/workspace/workspace_config.js';
 import { AgentTeamBuilder } from '../../../src/agent_team/agent_team_builder.js';
-import { run_agent_team_cli } from '../../../src/cli/index.js';
+import { runAgentTeamCli } from '../../../src/cli/index.js';
 import { SendMessageTo } from '../../../src/agent/message/send_message_to.js';
 import { CreateTasks } from '../../../src/task_management/tools/task_tools/create_tasks.js';
 import { GetTaskPlanStatus } from '../../../src/task_management/tools/task_tools/get_task_plan_status.js';
@@ -23,10 +23,6 @@ class SimpleWorkspace extends BaseAgentWorkspace {
   constructor(rootPath: string) {
     super(new WorkspaceConfig({ root_path: rootPath }));
     this.rootPath = rootPath;
-  }
-
-  get_base_path(): string {
-    return this.rootPath;
   }
 
   getBasePath(): string {
@@ -148,14 +144,14 @@ async function main(): Promise<void> {
   );
 
   const team = new AgentTeamBuilder('SoftwareDevTeam', 'A team for writing, reviewing, and testing code.')
-    .set_coordinator(coordinatorConfig)
-    .add_agent_node(engineerConfig)
-    .add_agent_node(reviewerConfig)
-    .add_agent_node(testerConfig)
+    .setCoordinator(coordinatorConfig)
+    .addAgentNode(engineerConfig)
+    .addAgentNode(reviewerConfig)
+    .addAgentNode(testerConfig)
     .build();
 
   try {
-    await run_agent_team_cli(team);
+    await runAgentTeamCli(team);
   } finally {
     await coordinatorLlm.cleanup();
     await engineerLlm.cleanup();

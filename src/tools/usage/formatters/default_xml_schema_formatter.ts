@@ -77,7 +77,7 @@ export class DefaultXmlSchemaFormatter extends BaseXmlSchemaFormatter {
           const itemType = (itemSchema as any).type || 'string';
           lines.push(`${indent}    <items type="${itemType}">`);
           if (itemType === 'object' && (itemSchema as any).properties) {
-            const nested = this.jsonSchemaPropsToParamDefs(itemSchema as Record<string, any>);
+            const nested = this.jsonSchemaPropsToParamDefs(itemSchema as Record<string, unknown>);
             lines.push(...this.formatParamsRecursively(nested, indentLevel + 2));
           }
           lines.push(`${indent}    </items>`);
@@ -92,10 +92,11 @@ export class DefaultXmlSchemaFormatter extends BaseXmlSchemaFormatter {
     return lines;
   }
 
-  private jsonSchemaPropsToParamDefs(schemaDict: Record<string, any>): ParameterDefinition[] {
+  private jsonSchemaPropsToParamDefs(schemaDict: Record<string, unknown>): ParameterDefinition[] {
     const paramDefs: ParameterDefinition[] = [];
-    const properties = schemaDict.properties || {};
-    const requiredFields: string[] = schemaDict.required || [];
+    const properties = (schemaDict as { properties?: Record<string, unknown> }).properties || {};
+    const requiredRaw = (schemaDict as { required?: unknown }).required;
+    const requiredFields: string[] = Array.isArray(requiredRaw) ? (requiredRaw as string[]) : [];
 
     for (const [propName, propSchema] of Object.entries(properties)) {
       if (!propSchema || typeof propSchema !== 'object') {
@@ -107,13 +108,20 @@ export class DefaultXmlSchemaFormatter extends BaseXmlSchemaFormatter {
 
       let objectSchema: ParameterSchema | undefined;
       if (paramType === ParameterType.OBJECT && (propSchema as any).properties) {
-        const nested = this.jsonSchemaPropsToParamDefs(propSchema as Record<string, any>);
+        const nested = this.jsonSchemaPropsToParamDefs(propSchema as Record<string, unknown>);
         objectSchema = new ParameterSchema(nested);
       }
 
-      let arrayItemSchema: any = undefined;
+      let arrayItemSchema: ParameterType | ParameterSchema | Record<string, unknown> | undefined;
       if (paramType === ParameterType.ARRAY && (propSchema as any).items) {
-        arrayItemSchema = (propSchema as any).items;
+        const items = (propSchema as any).items;
+        if (items instanceof ParameterSchema) {
+          arrayItemSchema = items;
+        } else if (typeof items === 'string' && Object.values(ParameterType).includes(items as ParameterType)) {
+          arrayItemSchema = items as ParameterType;
+        } else if (items && typeof items === 'object' && !Array.isArray(items)) {
+          arrayItemSchema = items as Record<string, unknown>;
+        }
       }
 
       paramDefs.push(

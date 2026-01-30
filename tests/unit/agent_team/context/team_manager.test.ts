@@ -7,18 +7,18 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../../src/agent/utils/wait_for_idle.js', () => ({
-  wait_for_agent_to_be_idle: mocks.waitForAgent
+  waitForAgentToBeIdle: mocks.waitForAgent
 }));
 
 vi.mock('../../../../src/agent_team/utils/wait_for_idle.js', () => ({
-  wait_for_team_to_be_idle: mocks.waitForTeam
+  waitForTeamToBeIdle: mocks.waitForTeam
 }));
 
 (vi.mock as any)(
   '../../../../src/agent_team/factory/agent_team_factory.js',
   () => ({
     AgentTeamFactory: vi.fn().mockImplementation(function (this: any) {
-      this.create_team = mocks.createTeam;
+      this.createTeam = mocks.createTeam;
     })
   }),
   { virtual: true }
@@ -54,7 +54,7 @@ const makeAgentConfig = (name: string) => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -63,40 +63,40 @@ const makeAgentConfig = (name: string) => {
 
 const makeSubTeamConfig = (name: string) => {
   const coordinator = makeAgentConfig(`${name}_Coordinator`);
-  const coordinatorNode = new TeamNodeConfig({ node_definition: coordinator });
+  const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinator });
   return new AgentTeamConfig({
     name,
     description: `${name} desc`,
     nodes: [coordinatorNode],
-    coordinator_node: coordinatorNode
+    coordinatorNode: coordinatorNode
   });
 };
 
 const makeRuntime = () => {
   const context = {
-    get_node_config_by_name: vi.fn(),
+    getNodeConfigByName: vi.fn(),
     state: {
-      final_agent_configs: {} as Record<string, AgentConfig>
+      finalAgentConfigs: {} as Record<string, AgentConfig>
     }
   } as any;
-  return { context, submit_event: vi.fn(async () => undefined) } as any;
+  return { context, submitEvent: vi.fn(async () => undefined) } as any;
 };
 
 const makeMultiplexer = () => ({
-  start_bridging_agent_events: vi.fn(),
-  start_bridging_team_events: vi.fn()
+  startBridgingAgentEvents: vi.fn(),
+  startBridgingTeamEvents: vi.fn()
 });
 
-const makeMockAgentInstance = (agent_id: string, running: boolean = false) => {
+const makeMockAgentInstance = (agentId: string, running: boolean = false) => {
   const agent = Object.assign(Object.create(Agent.prototype), {
-    agent_id,
+    agentId,
     start: vi.fn(),
     setRunning: (value: boolean) => {
       isRunning = value;
     }
   });
   let isRunning = running;
-  Object.defineProperty(agent, 'is_running', {
+  Object.defineProperty(agent, 'isRunning', {
     get: () => isRunning,
     configurable: true
   });
@@ -111,7 +111,7 @@ const makeMockTeamInstance = (running: boolean = false) => {
     }
   });
   let isRunning = running;
-  Object.defineProperty(team, 'is_running', {
+  Object.defineProperty(team, 'isRunning', {
     get: () => isRunning,
     configurable: true
   });
@@ -135,25 +135,25 @@ describe('TeamManager', () => {
     const manager = new TeamManager('test_team', runtime, multiplexer as any);
 
     const mockAgent = makeMockAgentInstance('agent_123');
-    const mockAgentFactory = { create_agent: vi.fn(() => mockAgent) } as any;
-    manager._agent_factory = mockAgentFactory;
+    const mockAgentFactory = { createAgent: vi.fn(() => mockAgent) } as any;
+    (manager as any).agentFactory = mockAgentFactory;
 
     const nodeName = 'test_agent';
     const premadeConfig = makeAgentConfig(nodeName);
-    runtime.context.state.final_agent_configs[nodeName] = premadeConfig;
+    runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
 
-    const nodeConfigWrapper = new TeamNodeConfig({ node_definition: premadeConfig });
-    runtime.context.get_node_config_by_name.mockReturnValue(nodeConfigWrapper);
+    const nodeConfigWrapper = new TeamNodeConfig({ nodeDefinition: premadeConfig });
+    runtime.context.getNodeConfigByName.mockReturnValue(nodeConfigWrapper);
 
-    const agent = await manager.ensure_node_is_ready(nodeName);
+    const agent = await manager.ensureNodeIsReady(nodeName);
 
     expect(agent).toBe(mockAgent);
-    expect(runtime.context.get_node_config_by_name).toHaveBeenCalledWith(nodeName);
-    expect(mockAgentFactory.create_agent).toHaveBeenCalledWith(premadeConfig);
-    expect(manager._nodes_cache.get(nodeName)).toBe(mockAgent);
-    expect(manager._agent_id_to_name_map.get(mockAgent.agent_id)).toBe(nodeName);
-    expect(multiplexer.start_bridging_agent_events).toHaveBeenCalledWith(mockAgent, nodeName);
-    expect(multiplexer.start_bridging_team_events).not.toHaveBeenCalled();
+    expect(runtime.context.getNodeConfigByName).toHaveBeenCalledWith(nodeName);
+    expect(mockAgentFactory.createAgent).toHaveBeenCalledWith(premadeConfig);
+    expect((manager as any).nodesCache.get(nodeName)).toBe(mockAgent);
+    expect((manager as any).agentIdToNameMap.get(mockAgent.agentId)).toBe(nodeName);
+    expect(multiplexer.startBridgingAgentEvents).toHaveBeenCalledWith(mockAgent, nodeName);
+    expect(multiplexer.startBridgingTeamEvents).not.toHaveBeenCalled();
     expect(mockAgent.start).toHaveBeenCalledOnce();
     expect(mocks.waitForAgent).toHaveBeenCalledWith(mockAgent, 60.0);
   });
@@ -165,20 +165,20 @@ describe('TeamManager', () => {
 
     const subTeamConfig = makeSubTeamConfig('test_sub_team');
     const nodeConfigWrapper = {
-      is_sub_team: true,
-      node_definition: subTeamConfig
+      isSubTeam: true,
+      nodeDefinition: subTeamConfig
     } as any;
-    runtime.context.get_node_config_by_name.mockReturnValue(nodeConfigWrapper);
+    runtime.context.getNodeConfigByName.mockReturnValue(nodeConfigWrapper);
 
     const mockSubTeam = makeMockTeamInstance();
     mocks.createTeam.mockReturnValue(mockSubTeam);
 
-    const subTeam = await manager.ensure_node_is_ready('test_sub_team');
+    const subTeam = await manager.ensureNodeIsReady('test_sub_team');
 
     expect(subTeam).toBe(mockSubTeam);
     expect(mocks.createTeam).toHaveBeenCalledWith(subTeamConfig);
-    expect(multiplexer.start_bridging_team_events).toHaveBeenCalledWith(mockSubTeam, 'test_sub_team');
-    expect(multiplexer.start_bridging_agent_events).not.toHaveBeenCalled();
+    expect(multiplexer.startBridgingTeamEvents).toHaveBeenCalledWith(mockSubTeam, 'test_sub_team');
+    expect(multiplexer.startBridgingAgentEvents).not.toHaveBeenCalled();
     expect(mockSubTeam.start).toHaveBeenCalledOnce();
     expect(mocks.waitForTeam).toHaveBeenCalledWith(mockSubTeam, 120.0);
   });
@@ -190,9 +190,9 @@ describe('TeamManager', () => {
 
     const mockAgent = makeMockAgentInstance('cached_agent_id');
     (mockAgent as any).setRunning(true);
-    manager._nodes_cache.set('cached_agent', mockAgent);
+    (manager as any).nodesCache.set('cached_agent', mockAgent);
 
-    const agent = await manager.ensure_node_is_ready('cached_agent');
+    const agent = await manager.ensureNodeIsReady('cached_agent');
 
     expect(agent).toBe(mockAgent);
     expect(mockAgent.start).not.toHaveBeenCalled();
@@ -205,22 +205,22 @@ describe('TeamManager', () => {
     const manager = new TeamManager('test_team', runtime, multiplexer as any);
 
     const mockAgent = makeMockAgentInstance('agent_abc_123');
-    manager._agent_id_to_name_map.set('agent_abc_123', 'my_agent');
-    manager._nodes_cache.set('my_agent', mockAgent);
+    (manager as any).agentIdToNameMap.set('agent_abc_123', 'my_agent');
+    (manager as any).nodesCache.set('my_agent', mockAgent);
 
-    const agent = await manager.ensure_node_is_ready('agent_abc_123');
+    const agent = await manager.ensureNodeIsReady('agent_abc_123');
 
     expect(agent).toBe(mockAgent);
-    expect(runtime.context.get_node_config_by_name).not.toHaveBeenCalled();
+    expect(runtime.context.getNodeConfigByName).not.toHaveBeenCalled();
   });
 
   it('throws TeamNodeNotFoundException for unknown nodes', async () => {
     const runtime = makeRuntime();
     const multiplexer = makeMultiplexer();
     const manager = new TeamManager('test_team', runtime, multiplexer as any);
-    runtime.context.get_node_config_by_name.mockReturnValue(null);
+    runtime.context.getNodeConfigByName.mockReturnValue(null);
 
-    await expect(manager.ensure_node_is_ready('unknown_agent')).rejects.toBeInstanceOf(TeamNodeNotFoundException);
+    await expect(manager.ensureNodeIsReady('unknown_agent')).rejects.toBeInstanceOf(TeamNodeNotFoundException);
   });
 
   it('throws when premade config missing', async () => {
@@ -228,10 +228,10 @@ describe('TeamManager', () => {
     const multiplexer = makeMultiplexer();
     const manager = new TeamManager('test_team', runtime, multiplexer as any);
 
-    const nodeConfigWrapper = new TeamNodeConfig({ node_definition: makeAgentConfig('forgotten_agent') });
-    runtime.context.get_node_config_by_name.mockReturnValue(nodeConfigWrapper);
+    const nodeConfigWrapper = new TeamNodeConfig({ nodeDefinition: makeAgentConfig('forgotten_agent') });
+    runtime.context.getNodeConfigByName.mockReturnValue(nodeConfigWrapper);
 
-    await expect(manager.ensure_node_is_ready('forgotten_agent')).rejects.toThrow(
+    await expect(manager.ensureNodeIsReady('forgotten_agent')).rejects.toThrow(
       'No pre-prepared agent configuration found'
     );
   });

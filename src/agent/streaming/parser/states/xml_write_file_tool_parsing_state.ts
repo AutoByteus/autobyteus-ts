@@ -31,11 +31,11 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
       return;
     }
 
-    if (!this.context.has_more_chars()) {
+    if (!this.context.hasMoreChars()) {
       return;
     }
 
-    const chunk = this.context.consume_remaining();
+    const chunk = this.context.consumeRemaining();
 
     if (!this.foundContentStart) {
       this.contentBuffering += chunk;
@@ -45,8 +45,8 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
         if (pathMatch) {
           this.capturedPath = pathMatch[1].trim();
           if (this.deferStart && !this.segmentStarted) {
-            const meta = { ...this._get_start_metadata(), path: this.capturedPath };
-            this.context.emit_segment_start((this.constructor as typeof XmlWriteFileToolParsingState).SEGMENT_TYPE, meta);
+            const meta = { ...this._getStartMetadata(), path: this.capturedPath };
+            this.context.emitSegmentStart((this.constructor as typeof XmlWriteFileToolParsingState).SEGMENT_TYPE, meta);
             this.segmentStarted = true;
             this.deferStart = false;
           }
@@ -59,12 +59,12 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
         const endOfTag = contentMatch.index + contentMatch[0].length;
 
         if (!this.segmentStarted) {
-          this.context.emit_segment_start((this.constructor as typeof XmlWriteFileToolParsingState).SEGMENT_TYPE, this._get_start_metadata());
+          this.context.emitSegmentStart((this.constructor as typeof XmlWriteFileToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
           this.segmentStarted = true;
         }
 
         if (this.capturedPath) {
-          this.context.update_current_segment_metadata({ path: this.capturedPath });
+          this.context.updateCurrentSegmentMetadata({ path: this.capturedPath });
         }
 
         const realContent = this.contentBuffering.slice(endOfTag);
@@ -79,12 +79,12 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
 
       if (this.contentBuffering.includes('</tool>')) {
         if (!this.segmentStarted) {
-          this.context.emit_segment_start((this.constructor as typeof XmlWriteFileToolParsingState).SEGMENT_TYPE, this._get_start_metadata());
+          this.context.emitSegmentStart((this.constructor as typeof XmlWriteFileToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
           this.segmentStarted = true;
         }
-        this._on_segment_complete();
-        this.context.emit_segment_end();
-        this.context.transition_to(new TextState(this.context));
+        this._onSegmentComplete();
+        this.context.emitSegmentEnd();
+        this.context.transitionTo(new TextState(this.context));
       }
 
       return;
@@ -159,7 +159,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
     if (idx !== -1) {
       const actualContent = combined.slice(0, idx);
       if (actualContent) {
-        this.context.emit_segment_content(actualContent);
+        this.context.emitSegmentContent(actualContent);
       }
 
       this.tail = '';
@@ -174,7 +174,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
     if (combined.length > holdbackLen) {
       const safe = combined.slice(0, -holdbackLen);
       if (safe) {
-        this.context.emit_segment_content(safe);
+        this.context.emitSegmentContent(safe);
       }
       this.tail = combined.slice(-holdbackLen);
     } else {
@@ -198,7 +198,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
       if (/^\s*<\/arg>/.test(remainderAfterMarker)) {
         const actualContent = combined.slice(0, idx);
         if (actualContent) {
-          this.context.emit_segment_content(actualContent);
+          this.context.emitSegmentContent(actualContent);
         }
 
         this.markerTail = '';
@@ -213,7 +213,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
         if (idx > 0) {
           const safeContent = combined.slice(0, idx);
           if (safeContent) {
-            this.context.emit_segment_content(safeContent);
+            this.context.emitSegmentContent(safeContent);
           }
           this.markerTail = combined.slice(idx);
         } else {
@@ -244,7 +244,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
         }
 
         if (actualContent) {
-          this.context.emit_segment_content(actualContent);
+          this.context.emitSegmentContent(actualContent);
         }
 
         this.markerTail = '';
@@ -260,7 +260,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
     if (combined.length > maxHoldback) {
       const safe = combined.slice(0, -maxHoldback);
       if (safe) {
-        this.context.emit_segment_content(safe);
+        this.context.emitSegmentContent(safe);
       }
       this.markerTail = combined.slice(-maxHoldback);
     } else {
@@ -269,18 +269,18 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
   }
 
   private handleSwallowing(): void {
-    this.contentBuffering += this.context.consume_remaining();
+    this.contentBuffering += this.context.consumeRemaining();
 
     const closingTag = '</tool>';
     const idx = this.contentBuffering.indexOf(closingTag);
     if (idx !== -1) {
       const remainder = this.contentBuffering.slice(idx + closingTag.length);
-      this._on_segment_complete();
-      this.context.emit_segment_end();
+      this._onSegmentComplete();
+      this.context.emitSegmentEnd();
       if (remainder) {
-        this.context.rewind_by(remainder.length);
+        this.context.rewindBy(remainder.length);
       }
-      this.context.transition_to(new TextState(this.context));
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
@@ -290,7 +290,7 @@ export class XmlWriteFileToolParsingState extends XmlToolParsingState {
     }
   }
 
-  protected _on_segment_complete(): void {
+  protected _onSegmentComplete(): void {
     return;
   }
 }

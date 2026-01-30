@@ -6,12 +6,12 @@ import { SenderType } from '../sender_type.js';
 import type { AgentContext } from '../context/agent_context.js';
 
 type InputProcessorLike = {
-  get_name: () => string;
-  get_order: () => number;
+  getName: () => string;
+  getOrder: () => number;
   process: (
     message: AgentInputUserMessage,
     context: AgentContext,
-    triggering_event: UserMessageReceivedEvent
+    triggeringEvent: UserMessageReceivedEvent
   ) => Promise<AgentInputUserMessage>;
 };
 
@@ -21,8 +21,8 @@ function isInputProcessor(value: unknown): value is InputProcessorLike {
   }
   const candidate = value as InputProcessorLike;
   return (
-    typeof candidate.get_name === 'function' &&
-    typeof candidate.get_order === 'function' &&
+    typeof candidate.getName === 'function' &&
+    typeof candidate.getOrder === 'function' &&
     typeof candidate.process === 'function'
   );
 }
@@ -46,19 +46,19 @@ export class UserInputMessageEventHandler extends AgentEventHandler {
       return;
     }
 
-    const originalMessage = event.agent_input_user_message;
+    const originalMessage = event.agentInputUserMessage;
 
-    if (originalMessage.sender_type === SenderType.SYSTEM) {
-      const statusManager: any = context.status_manager;
+    if (originalMessage.senderType === SenderType.SYSTEM) {
+      const statusManager: any = context.statusManager;
       const notifier = statusManager?.notifier;
-      if (notifier?.notify_agent_data_system_task_notification_received) {
+      if (notifier?.notifyAgentDataSystemTaskNotificationReceived) {
         const notificationData = {
           sender_id: originalMessage.metadata?.sender_id ?? 'system',
           content: originalMessage.content
         };
-        notifier.notify_agent_data_system_task_notification_received(notificationData);
+        notifier.notifyAgentDataSystemTaskNotificationReceived(notificationData);
         console.info(
-          `Agent '${context.agent_id}' emitted system task notification for TUI based on SYSTEM sender_type.`
+          `Agent '${context.agentId}' emitted system task notification for TUI based on SYSTEM senderType.`
         );
       }
     }
@@ -66,11 +66,11 @@ export class UserInputMessageEventHandler extends AgentEventHandler {
     let processedMessage = cloneAgentInputUserMessage(originalMessage);
 
     console.info(
-      `Agent '${context.agent_id}' handling UserMessageReceivedEvent (type: ${originalMessage.sender_type}): ` +
+      `Agent '${context.agentId}' handling UserMessageReceivedEvent (type: ${originalMessage.senderType}): ` +
         `'${originalMessage.content}'`
     );
 
-    const processorInstances = context.config.input_processors as unknown[];
+    const processorInstances = context.config.inputProcessors as unknown[];
     if (processorInstances && processorInstances.length > 0) {
       const validProcessors: InputProcessorLike[] = [];
       for (const processor of processorInstances) {
@@ -78,26 +78,26 @@ export class UserInputMessageEventHandler extends AgentEventHandler {
           validProcessors.push(processor);
         } else {
           console.error(
-            `Agent '${context.agent_id}': Invalid input processor type in config: ${processor?.constructor?.name ?? typeof processor}. Skipping.`
+            `Agent '${context.agentId}': Invalid input processor type in config: ${processor?.constructor?.name ?? typeof processor}. Skipping.`
           );
         }
       }
 
       const sortedProcessors = validProcessors.sort(
-        (left, right) => left.get_order() - right.get_order()
+        (left, right) => left.getOrder() - right.getOrder()
       );
-      const processorNames = sortedProcessors.map((processor) => processor.get_name());
+      const processorNames = sortedProcessors.map((processor) => processor.getName());
       console.debug(
-        `Agent '${context.agent_id}': Applying input processors in order: ${JSON.stringify(processorNames)}`
+        `Agent '${context.agentId}': Applying input processors in order: ${JSON.stringify(processorNames)}`
       );
 
       for (const processor of sortedProcessors) {
         let messageBeforeProcessor = processedMessage;
         let processorName = 'unknown';
         try {
-          processorName = processor.get_name();
+          processorName = processor.getName();
           console.debug(
-            `Agent '${context.agent_id}': Applying input processor '${processorName}'.`
+            `Agent '${context.agentId}': Applying input processor '${processorName}'.`
           );
           messageBeforeProcessor = processedMessage;
           processedMessage = await processor.process(
@@ -106,26 +106,26 @@ export class UserInputMessageEventHandler extends AgentEventHandler {
             event
           );
           console.info(
-            `Agent '${context.agent_id}': Input processor '${processorName}' applied successfully.`
+            `Agent '${context.agentId}': Input processor '${processorName}' applied successfully.`
           );
         } catch (error) {
           console.error(
-            `Agent '${context.agent_id}': Error applying input processor '${processorName}': ${error}. ` +
+            `Agent '${context.agentId}': Error applying input processor '${processorName}': ${error}. ` +
               'Skipping this processor and continuing with message from before this processor.'
           );
           processedMessage = messageBeforeProcessor;
         }
       }
     } else {
-      console.debug(`Agent '${context.agent_id}': No input processors configured in agent config.`);
+      console.debug(`Agent '${context.agentId}': No input processors configured in agent config.`);
     }
 
     const llmUserMessage = buildLLMUserMessage(processedMessage);
     const llmUserMessageReadyEvent = new LLMUserMessageReadyEvent(llmUserMessage);
-    await context.input_event_queues.enqueue_internal_system_event(llmUserMessageReadyEvent);
+    await context.inputEventQueues.enqueueInternalSystemEvent(llmUserMessageReadyEvent);
 
     console.info(
-      `Agent '${context.agent_id}' processed AgentInputUserMessage and enqueued LLMUserMessageReadyEvent.`
+      `Agent '${context.agentId}' processed AgentInputUserMessage and enqueued LLMUserMessageReadyEvent.`
     );
   }
 }

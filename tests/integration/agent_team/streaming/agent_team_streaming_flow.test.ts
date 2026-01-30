@@ -6,22 +6,18 @@ import path from 'node:path';
 import { AgentTeamBuilder } from '../../../../src/agent_team/agent_team_builder.js';
 import { AgentConfig } from '../../../../src/agent/context/agent_config.js';
 import { AgentInputUserMessage } from '../../../../src/agent/message/agent_input_user_message.js';
-import { OpenAILLM } from '../../../../src/llm/api/openai_llm.js';
-import { LLMModel } from '../../../../src/llm/models.js';
-import { LLMProvider } from '../../../../src/llm/providers.js';
-import type { ChunkResponse } from '../../../../src/llm/utils/response_types.js';
-import type { LLMUserMessage } from '../../../../src/llm/user_message.js';
 import { registerWriteFileTool } from '../../../../src/tools/file/write_file.js';
 import { BaseAgentWorkspace } from '../../../../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../../../../src/agent/workspace/workspace_config.js';
 import { SkillRegistry } from '../../../../src/skills/registry.js';
-import { wait_for_team_to_be_idle } from '../../../../src/agent_team/utils/wait_for_idle.js';
+import { waitForTeamToBeIdle } from '../../../../src/agent_team/utils/wait_for_idle.js';
 import { AgentFactory } from '../../../../src/agent/factory/agent_factory.js';
 import { AgentTeamFactory } from '../../../../src/agent_team/factory/agent_team_factory.js';
 import { AgentTeamEventStream } from '../../../../src/agent_team/streaming/agent_team_event_stream.js';
 import { AgentTeamStreamEvent } from '../../../../src/agent_team/streaming/agent_team_stream_events.js';
 import { AgentTeamStatus } from '../../../../src/agent_team/status/agent_team_status.js';
 import type { AgentTeam } from '../../../../src/agent_team/agent_team.js';
+import { createLmstudioLLM, hasLmstudioConfig } from '../../helpers/lmstudio_llm_helper.js';
 
 class SimpleWorkspace extends BaseAgentWorkspace {
   private rootPath: string;
@@ -31,22 +27,8 @@ class SimpleWorkspace extends BaseAgentWorkspace {
     this.rootPath = rootPath;
   }
 
-  get_base_path(): string {
-    return this.rootPath;
-  }
-
   getBasePath(): string {
     return this.rootPath;
-  }
-}
-
-class RequiredToolOpenAILLM extends OpenAILLM {
-  async *streamUserMessage(
-    userMessage: LLMUserMessage,
-    kwargs: Record<string, any> = {}
-  ): AsyncGenerator<ChunkResponse, void, unknown> {
-    const nextKwargs = { ...kwargs, tool_choice: 'required' };
-    yield* super.streamUserMessage(userMessage, nextKwargs);
   }
 }
 
@@ -65,7 +47,7 @@ const waitForFile = async (filePath: string, timeoutMs = 20000, intervalMs = 100
 
 const collectEvents = async (stream: AgentTeamEventStream, timeoutMs = 15000): Promise<AgentTeamStreamEvent[]> => {
   const events: AgentTeamStreamEvent[] = [];
-  const iterator = stream.all_events();
+  const iterator = stream.allEvents();
   const start = Date.now();
 
   while (Date.now() - start < timeoutMs) {
@@ -93,14 +75,15 @@ const resetFactories = () => {
   (AgentTeamFactory as any).instance = undefined;
 };
 
-const apiKey = process.env.OPENAI_API_KEY;
-const runIntegration = apiKey ? describe : describe.skip;
+const runIntegration = hasLmstudioConfig() ? describe : describe.skip;
 
-runIntegration('Agent team streaming integration (OpenAI, api_tool_call)', () => {
+runIntegration('Agent team streaming integration (LM Studio, api_tool_call)', () => {
   let tempDirCoordinator: string;
   let tempDirWorker: string;
   let originalParserEnv: string | undefined;
   let team: AgentTeam | null = null;
+  let coordinatorLlm: any = null;
+  let workerLlm: any = null;
 
   beforeEach(async () => {
     originalParserEnv = process.env.AUTOBYTEUS_STREAM_PARSER;
@@ -115,6 +98,14 @@ runIntegration('Agent team streaming integration (OpenAI, api_tool_call)', () =>
     if (team) {
       await team.stop(10.0);
       team = null;
+    }
+    if (coordinatorLlm) {
+      await coordinatorLlm.cleanup();
+      coordinatorLlm = null;
+    }
+    if (workerLlm) {
+      await workerLlm.cleanup();
+      workerLlm = null;
     }
     if (originalParserEnv === undefined) {
       delete process.env.AUTOBYTEUS_STREAM_PARSER;
@@ -131,18 +122,16 @@ runIntegration('Agent team streaming integration (OpenAI, api_tool_call)', () =>
     const tool = registerWriteFileTool();
     const toolArgs = { path: 'stream_output.txt', content: 'Team streaming output.' };
 
-    const model = new LLMModel({
-      name: 'gpt-5.2',
-      value: 'gpt-5.2',
-      canonical_name: 'gpt-5.2',
-      provider: LLMProvider.OPENAI
-    });
+    coordinatorLlm = await createLmstudioLLM({ requireToolChoice: true });
+    if (!coordinatorLlm) return;
+    workerLlm = await createLmstudioLLM({ requireToolChoice: true });
+    if (!workerLlm) return;
 
     const coordinatorConfig = new AgentConfig(
       'Coordinator',
       'Coordinator',
       'Team coordinator',
-      new RequiredToolOpenAILLM(model),
+      coordinatorLlm,
       null,
       [tool],
       true,
@@ -158,7 +147,7 @@ runIntegration('Agent team streaming integration (OpenAI, api_tool_call)', () =>
       'Worker',
       'Worker',
       'Team worker',
-      new RequiredToolOpenAILLM(model),
+      workerLlm,
       null,
       [tool],
       true,
@@ -171,16 +160,16 @@ runIntegration('Agent team streaming integration (OpenAI, api_tool_call)', () =>
     );
 
     const builder = new AgentTeamBuilder('StreamingTeam', 'Agent team streaming integration test');
-    builder.set_coordinator(coordinatorConfig);
-    builder.add_agent_node(workerConfig);
+    builder.setCoordinator(coordinatorConfig);
+    builder.addAgentNode(workerConfig);
     team = builder.build();
 
     team.start();
-    await wait_for_team_to_be_idle(team, 60.0);
+    await waitForTeamToBeIdle(team, 60.0);
 
     const stream = new AgentTeamEventStream(team);
 
-    await team.post_message(
+    await team.postMessage(
       new AgentInputUserMessage(
         `Use the write_file tool to write "${toolArgs.content}" to "${toolArgs.path}". ` +
           'Do not respond with plain text.'
@@ -192,7 +181,7 @@ runIntegration('Agent team streaming integration (OpenAI, api_tool_call)', () =>
     const created = await waitForFile(filePath, 20000, 100);
     expect(created).toBe(true);
 
-    await wait_for_team_to_be_idle(team, 120.0);
+    await waitForTeamToBeIdle(team, 120.0);
 
     const events = await collectEvents(stream, 8000);
     await stream.close();

@@ -270,8 +270,11 @@ export class InteractiveCliDisplay {
       segmentType = this.segmentTypesById.get(segmentEvent.segment_id);
     }
 
-    const payload = typeof segmentEvent.payload === 'object' && segmentEvent.payload !== null ? segmentEvent.payload : {};
-    const metadata = (payload as Record<string, any>).metadata ?? {};
+    const payload =
+      typeof segmentEvent.payload === 'object' && segmentEvent.payload !== null
+        ? (segmentEvent.payload as Record<string, unknown>)
+        : {};
+    const metadata = (payload.metadata as Record<string, unknown> | undefined) ?? {};
 
     if (eventType === SegmentEventType.START) {
       if (segmentType !== undefined) {
@@ -323,7 +326,7 @@ export class InteractiveCliDisplay {
     }
 
     if (eventType === SegmentEventType.CONTENT) {
-      const delta = (payload as Record<string, any>).delta;
+      const delta = (payload as Record<string, unknown>).delta;
       if (segmentType === SegmentType.REASONING) {
         if (!this.isThinking) {
           this.ensureAgentPrefix();

@@ -4,30 +4,30 @@ import type { AgentTeamContext } from '../context/agent_team_context.js';
 
 export class ToolApprovalTeamEventHandler extends BaseAgentTeamEventHandler {
   async handle(event: ToolApprovalTeamEvent, context: AgentTeamContext): Promise<void> {
-    const team_id = context.team_id;
-    const team_manager: any = context.team_manager;
+    const teamId = context.teamId;
+    const teamManager = context.teamManager;
 
-    if (!team_manager) {
+    if (!teamManager) {
       const message =
-        `Team '${team_id}': TeamManager not found. Cannot route approval for agent '${event.agent_name}'.`;
+        `Team '${teamId}': TeamManager not found. Cannot route approval for agent '${event.agentName}'.`;
       console.error(message);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(message, 'TeamManager is not initialized.')
         );
       }
       return;
     }
 
-    const target_node = await team_manager.ensure_node_is_ready(event.agent_name);
-    if (!target_node || typeof target_node.post_tool_execution_approval !== 'function') {
-      const message = `Team '${team_id}': Target node '${event.agent_name}' for approval is not an agent.`;
+    const targetNode = await teamManager.ensureNodeIsReady(event.agentName);
+    if (!targetNode || typeof (targetNode as { postToolExecutionApproval?: unknown }).postToolExecutionApproval !== 'function') {
+      const message = `Team '${teamId}': Target node '${event.agentName}' for approval is not an agent.`;
       console.error(message);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(
             message,
-            `Node '${event.agent_name}' is not an agent.`
+            `Node '${event.agentName}' is not an agent.`
           )
         );
       }
@@ -35,13 +35,14 @@ export class ToolApprovalTeamEventHandler extends BaseAgentTeamEventHandler {
     }
 
     console.info(
-      `Team '${team_id}': Posting tool approval (Approved: ${event.is_approved}) ` +
-      `to agent '${event.agent_name}' for invocation '${event.tool_invocation_id}'.`
+      `Team '${teamId}': Posting tool approval (Approved: ${event.isApproved}) ` +
+      `to agent '${event.agentName}' for invocation '${event.toolInvocationId}'.`
     );
-    await target_node.post_tool_execution_approval(
-      event.tool_invocation_id,
-      event.is_approved,
-      event.reason
-    );
+    await (targetNode as { postToolExecutionApproval: (id: string, approved: boolean, reason?: string) => Promise<void> })
+      .postToolExecutionApproval(
+        event.toolInvocationId,
+        event.isApproved,
+        event.reason
+      );
   }
 }

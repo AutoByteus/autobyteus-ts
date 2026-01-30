@@ -11,10 +11,10 @@ describe('XmlRunBashToolParsingState', () => {
     ctx.append(signature + content);
 
     const state = new XmlRunBashToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].segment_type).toBe(SegmentType.RUN_BASH);
@@ -48,14 +48,14 @@ describe('XmlRunBashToolParsingState', () => {
 
     ctx.append(signature);
     const state = new XmlRunBashToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
 
     for (const chunk of chunks) {
       ctx.append(chunk);
       state.run();
     }
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
     expect(fullContent).toContain('ls -la /var/log');
@@ -73,14 +73,14 @@ describe('XmlRunBashToolParsingState', () => {
 
     ctx.append(fullText);
     const state = new XmlRunBashToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    while (ctx.has_more_chars()) {
-      ctx.current_state.run();
+    while (ctx.hasMoreChars()) {
+      ctx.currentState.run();
     }
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const fullDump = events.filter((e) => e.event_type === SegmentEventType.CONTENT).map((e) => e.payload.delta).join('');
 
     expect(fullDump).toContain('echo test');

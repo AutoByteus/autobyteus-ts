@@ -79,8 +79,8 @@ function discoverTransitions(autoExecuteTools: boolean): Transition[] {
     for (const eventFactory of eventFactories) {
       const deriver = new AgentStatusDeriver(status as AgentStatus);
       const [oldStatus, newStatus] = deriver.apply(eventFactory.make(), {
-        agent_id: 'status_discovery',
-        auto_execute_tools: autoExecuteTools
+        agentId: 'status_discovery',
+        autoExecuteTools
       });
       if (oldStatus !== newStatus) {
         transitions.push({

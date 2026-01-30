@@ -33,13 +33,13 @@ runIntegration('TerminalSessionManager Integration', () => {
 
   it('executes echo command', async () => {
     await withTempDir(async (tempDir) => {
-      const manager = new TerminalSessionManagerClass();
+        const manager = new TerminalSessionManagerClass();
       try {
-        await manager.ensure_started(tempDir);
-        const result = await manager.execute_command("echo 'test output'");
+        await manager.ensureStarted(tempDir);
+        const result = await manager.executeCommand("echo 'test output'");
 
         expect(result.stdout).toContain('test output');
-        expect(result.timed_out).toBe(false);
+        expect(result.timedOut).toBe(false);
       } finally {
         await manager.close();
       }
@@ -53,9 +53,9 @@ runIntegration('TerminalSessionManager Integration', () => {
 
       const manager = new TerminalSessionManagerClass();
       try {
-        await manager.ensure_started(tempDir);
-        await manager.execute_command('cd subdir');
-        const result = await manager.execute_command('pwd');
+        await manager.ensureStarted(tempDir);
+        await manager.executeCommand('cd subdir');
+        const result = await manager.executeCommand('pwd');
 
         expect(result.stdout).toContain('subdir');
       } finally {
@@ -68,10 +68,10 @@ runIntegration('TerminalSessionManager Integration', () => {
     await withTempDir(async (tempDir) => {
       const manager = new TerminalSessionManagerClass();
       try {
-        await manager.ensure_started(tempDir);
-        const result = await manager.execute_command('sleep 10', 1);
+        await manager.ensureStarted(tempDir);
+        const result = await manager.executeCommand('sleep 10', 1);
 
-        expect(result.timed_out).toBe(true);
+        expect(result.timedOut).toBe(true);
       } finally {
         await manager.close();
       }

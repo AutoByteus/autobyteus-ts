@@ -10,8 +10,8 @@ import {
   ToolCategory,
   ToolFormattingRegistry,
   ToolFormatterPair,
-  register_tool_formatter,
-  register_tools,
+  registerToolFormatter,
+  registerTools,
   Search,
   GenerateImageTool,
   EditImageTool,
@@ -33,8 +33,8 @@ describe('tools index exports', () => {
     expect(typeof ToolCategory).toBe('object');
     expect(typeof ToolFormattingRegistry).toBe('function');
     expect(typeof ToolFormatterPair).toBe('function');
-    expect(typeof register_tool_formatter).toBe('function');
-    expect(typeof register_tools).toBe('function');
+    expect(typeof registerToolFormatter).toBe('function');
+    expect(typeof registerTools).toBe('function');
   });
 
   it('exposes class-based tools', () => {

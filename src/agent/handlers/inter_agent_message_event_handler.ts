@@ -20,29 +20,29 @@ export class InterAgentMessageReceivedEventHandler extends AgentEventHandler {
       return;
     }
 
-    const interAgentMsg: InterAgentMessage = event.inter_agent_message;
+    const interAgentMsg: InterAgentMessage = event.interAgentMessage;
 
     console.info(
-      `Agent '${context.agent_id}' handling InterAgentMessageReceivedEvent from sender ` +
-        `'${interAgentMsg.sender_agent_id}', type '${interAgentMsg.message_type.value}'. ` +
+      `Agent '${context.agentId}' handling InterAgentMessageReceivedEvent from sender ` +
+        `'${interAgentMsg.senderAgentId}', type '${interAgentMsg.messageType.value}'. ` +
         `Content: '${interAgentMsg.content}'`
     );
 
-    const notifier = context.status_manager?.notifier;
-    if (notifier?.notify_agent_data_inter_agent_message_received) {
-      notifier.notify_agent_data_inter_agent_message_received({
-        sender_agent_id: interAgentMsg.sender_agent_id,
-        recipient_role_name: interAgentMsg.recipient_role_name,
+    const notifier = context.statusManager?.notifier;
+    if (notifier?.notifyAgentDataInterAgentMessageReceived) {
+      notifier.notifyAgentDataInterAgentMessageReceived({
+        sender_agent_id: interAgentMsg.senderAgentId,
+        recipient_role_name: interAgentMsg.recipientRoleName,
         content: interAgentMsg.content,
-        message_type: interAgentMsg.message_type.value
+        message_type: interAgentMsg.messageType.value
       });
     }
 
     const contentForLlm =
       'You have received a message from another agent.\n' +
-      `Sender Agent ID: ${interAgentMsg.sender_agent_id}\n` +
-      `Message Type: ${interAgentMsg.message_type.value}\n` +
-      `Recipient Role Name (intended for you): ${interAgentMsg.recipient_role_name}\n` +
+      `Sender Agent ID: ${interAgentMsg.senderAgentId}\n` +
+      `Message Type: ${interAgentMsg.messageType.value}\n` +
+      `Recipient Role Name (intended for you): ${interAgentMsg.recipientRoleName}\n` +
       '--- Message Content ---\n' +
       `${interAgentMsg.content}\n` +
       '--- End of Message Content ---\n' +
@@ -53,16 +53,16 @@ export class InterAgentMessageReceivedEventHandler extends AgentEventHandler {
       SenderType.AGENT,
       null,
       {
-        sender_agent_id: interAgentMsg.sender_agent_id,
-        original_message_type: interAgentMsg.message_type.value
+        sender_agent_id: interAgentMsg.senderAgentId,
+        original_message_type: interAgentMsg.messageType.value
       }
     );
 
     const userMessageReceivedEvent = new UserMessageReceivedEvent(agentInputUserMessage);
-    await context.input_event_queues.enqueue_user_message(userMessageReceivedEvent);
+    await context.inputEventQueues.enqueueUserMessage(userMessageReceivedEvent);
 
     console.info(
-      `Agent '${context.agent_id}' processed InterAgentMessage from sender '${interAgentMsg.sender_agent_id}' ` +
+      `Agent '${context.agentId}' processed InterAgentMessage from sender '${interAgentMsg.senderAgentId}' ` +
         'and enqueued UserMessageReceivedEvent to route through input pipeline.'
     );
   }

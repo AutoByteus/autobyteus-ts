@@ -12,7 +12,7 @@ export class JsonToolSignatureChecker {
     this.patterns = patterns ?? ParserConfig.DEFAULT_JSON_PATTERNS;
   }
 
-  check_signature(buffer: string): 'match' | 'partial' | 'no_match' {
+  checkSignature(buffer: string): 'match' | 'partial' | 'no_match' {
     const normalized = buffer.replace(/[\s]/g, '');
 
     for (const pattern of this.patterns) {
@@ -43,41 +43,41 @@ export class JsonInitializationState extends BaseState {
 
   constructor(context: ParserContext) {
     super(context);
-    const trigger = this.context.peek_char();
+    const trigger = this.context.peekChar();
     this.context.advance();
     this.signatureBuffer = trigger ?? '';
-    this.checker = new JsonToolSignatureChecker(context.json_tool_patterns);
+    this.checker = new JsonToolSignatureChecker(context.jsonToolPatterns);
   }
 
   run(): void {
-    while (this.context.has_more_chars()) {
-      const char = this.context.peek_char();
+    while (this.context.hasMoreChars()) {
+      const char = this.context.peekChar();
       if (char === undefined) {
         break;
       }
       this.signatureBuffer += char;
       this.context.advance();
 
-      const match = this.checker.check_signature(this.signatureBuffer);
+      const match = this.checker.checkSignature(this.signatureBuffer);
 
       if (match === 'match') {
-        if (this.context.parse_tool_calls) {
-          if (this.context.get_current_segment_type() === SegmentType.TEXT) {
-            this.context.emit_segment_end();
+        if (this.context.parseToolCalls) {
+          if (this.context.getCurrentSegmentType() === SegmentType.TEXT) {
+            this.context.emitSegmentEnd();
           }
-          this.context.transition_to(
+          this.context.transitionTo(
             new JsonToolParsingState(this.context, this.signatureBuffer, true)
           );
         } else {
-          this.context.append_text_segment(this.signatureBuffer);
-          this.context.transition_to(new TextState(this.context));
+          this.context.appendTextSegment(this.signatureBuffer);
+          this.context.transitionTo(new TextState(this.context));
         }
         return;
       }
 
       if (match === 'no_match') {
-        this.context.append_text_segment(this.signatureBuffer);
-        this.context.transition_to(new TextState(this.context));
+        this.context.appendTextSegment(this.signatureBuffer);
+        this.context.transitionTo(new TextState(this.context));
         return;
       }
     }
@@ -85,9 +85,9 @@ export class JsonInitializationState extends BaseState {
 
   finalize(): void {
     if (this.signatureBuffer) {
-      this.context.append_text_segment(this.signatureBuffer);
+      this.context.appendTextSegment(this.signatureBuffer);
       this.signatureBuffer = '';
     }
-    this.context.transition_to(new TextState(this.context));
+    this.context.transitionTo(new TextState(this.context));
   }
 }

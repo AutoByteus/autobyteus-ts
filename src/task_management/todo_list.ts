@@ -2,27 +2,27 @@ import { ToDo, ToDoSchema, ToDoStatus } from './todo.js';
 import type { ToDoDefinition } from './schemas/todo_definition.js';
 
 export class ToDoList {
-  agent_id: string;
+  agentId: string;
   todos: ToDo[] = [];
   private todoMap: Map<string, ToDo> = new Map();
   private idCounter = 0;
 
-  constructor(agent_id: string) {
-    this.agent_id = agent_id;
+  constructor(agentId: string) {
+    this.agentId = agentId;
   }
 
-  private generate_next_id(): string {
+  private generateNextId(): string {
     this.idCounter += 1;
     return `todo_${String(this.idCounter).padStart(4, '0')}`;
   }
 
-  add_todos(todo_definitions: ToDoDefinition[]): ToDo[] {
+  addTodos(todoDefinitions: ToDoDefinition[]): ToDo[] {
     const newTodos: ToDo[] = [];
 
-    for (const definition of todo_definitions) {
-      const todo_id = this.generate_next_id();
+    for (const definition of todoDefinitions) {
+      const todoId = this.generateNextId();
       const todo = ToDoSchema.parse({
-        todo_id,
+        todo_id: todoId,
         description: definition.description,
         status: ToDoStatus.PENDING
       });
@@ -39,17 +39,17 @@ export class ToDoList {
     return newTodos;
   }
 
-  add_todo(todo_definition: ToDoDefinition): ToDo {
-    const todos = this.add_todos([todo_definition]);
+  addTodo(todoDefinition: ToDoDefinition): ToDo {
+    const todos = this.addTodos([todoDefinition]);
     return todos[0];
   }
 
-  get_todo_by_id(todo_id: string): ToDo | undefined {
-    return this.todoMap.get(todo_id);
+  getTodoById(todoId: string): ToDo | undefined {
+    return this.todoMap.get(todoId);
   }
 
-  update_todo_status(todo_id: string, status: ToDoStatus): boolean {
-    const todo = this.get_todo_by_id(todo_id);
+  updateTodoStatus(todoId: string, status: ToDoStatus): boolean {
+    const todo = this.getTodoById(todoId);
     if (!todo) {
       return false;
     }
@@ -58,7 +58,7 @@ export class ToDoList {
     return true;
   }
 
-  get_all_todos(): ToDo[] {
+  getAllTodos(): ToDo[] {
     return this.todos;
   }
 

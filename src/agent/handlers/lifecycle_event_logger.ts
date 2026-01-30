@@ -12,8 +12,8 @@ import type { AgentContext } from '../context/agent_context.js';
 
 export class LifecycleEventLogger extends AgentEventHandler {
   async handle(event: BaseEvent, context: AgentContext): Promise<void> {
-    const agentId = context.agent_id;
-    const currentStatus = context.current_status ?? 'None (Status not set)';
+    const agentId = context.agentId;
+    const currentStatus = context.currentStatus ?? 'None (Status not set)';
 
     if (event instanceof AgentReadyEvent) {
       console.info(
@@ -33,8 +33,8 @@ export class LifecycleEventLogger extends AgentEventHandler {
       );
     } else if (event instanceof AgentErrorEvent) {
       console.error(
-        `Agent '${agentId}' Logged AgentErrorEvent: ${event.error_message}. ` +
-          `Details: ${event.exception_details}. Current agent status: ${currentStatus}`
+        `Agent '${agentId}' Logged AgentErrorEvent: ${event.errorMessage}. ` +
+          `Details: ${event.exceptionDetails}. Current agent status: ${currentStatus}`
       );
     } else if (event instanceof LifecycleEvent) {
       const eventType = event?.constructor?.name ?? typeof event;

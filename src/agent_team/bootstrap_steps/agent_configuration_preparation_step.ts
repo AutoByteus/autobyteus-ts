@@ -1,63 +1,67 @@
 import { BaseAgentTeamBootstrapStep } from './base_agent_team_bootstrap_step.js';
 import { AgentConfig } from '../../agent/context/agent_config.js';
 import type { AgentTeamContext } from '../context/agent_team_context.js';
+import type { TeamManager } from '../context/team_manager.js';
 
 export class AgentConfigurationPreparationStep extends BaseAgentTeamBootstrapStep {
   async execute(context: AgentTeamContext): Promise<boolean> {
-    const team_id = context.team_id;
+    const teamId = context.teamId;
     console.info(
-      `Team '${team_id}': Executing AgentConfigurationPreparationStep to prepare all agent configurations.`
+      `Team '${teamId}': Executing AgentConfigurationPreparationStep to prepare all agent configurations.`
     );
 
-    const team_manager = context.team_manager as any;
-    if (!team_manager) {
-      console.error(`Team '${team_id}': TeamManager not found in context during agent config preparation.`);
+    const teamManager = context.teamManager as TeamManager | null;
+    if (!teamManager) {
+      console.error(`Team '${teamId}': TeamManager not found in context during agent config preparation.`);
       return false;
     }
 
     try {
-      for (const node_config_wrapper of context.config.nodes) {
-        if (node_config_wrapper.is_sub_team) {
+      for (const nodeConfigWrapper of context.config.nodes) {
+        if (nodeConfigWrapper.isSubTeam) {
           continue;
         }
 
-        const unique_name = node_config_wrapper.name;
-        const node_definition = node_config_wrapper.node_definition;
+        const uniqueName = nodeConfigWrapper.name;
+        const nodeDefinition = nodeConfigWrapper.nodeDefinition;
 
-        if (!(node_definition instanceof AgentConfig)) {
+        if (!(nodeDefinition instanceof AgentConfig)) {
           console.warn(
-            `Team '${team_id}': Node '${unique_name}' has an unexpected definition type and will be skipped: ` +
-            `${typeof node_definition}`
+            `Team '${teamId}': Node '${uniqueName}' has an unexpected definition type and will be skipped: ` +
+            `${typeof nodeDefinition}`
           );
           continue;
         }
 
-        const final_config = node_definition.copy();
+        const finalConfig = nodeDefinition.copy();
 
-        if (!final_config.initial_custom_data) {
-          final_config.initial_custom_data = {};
+        if (!finalConfig.initialCustomData) {
+          finalConfig.initialCustomData = {};
         }
-        final_config.initial_custom_data.team_context = context;
+        finalConfig.initialCustomData.teamContext = context;
         console.debug(
-          `Team '${team_id}': Injected shared team_context into initial_custom_data for agent '${unique_name}'.`
+          `Team '${teamId}': Injected shared teamContext into initialCustomData for agent '${uniqueName}'.`
         );
 
-        const prepared_prompt = context.state.prepared_agent_prompts[unique_name];
-        if (prepared_prompt) {
-          final_config.system_prompt = prepared_prompt;
-          console.info(`Team '${team_id}': Applied dynamic prompt to agent '${unique_name}'.`);
+        const preparedPrompt = context.state.preparedAgentPrompts[uniqueName];
+        if (preparedPrompt) {
+          finalConfig.systemPrompt = preparedPrompt;
+          console.info(`Team '${teamId}': Applied dynamic prompt to agent '${uniqueName}'.`);
         }
 
-        context.state.final_agent_configs[unique_name] = final_config;
-        const tool_names = final_config.tools.map((tool: any) => tool.constructor?.getName?.() ?? tool.constructor?.name ?? 'unknown');
+        context.state.finalAgentConfigs[uniqueName] = finalConfig;
+        const toolNames = finalConfig.tools.map((tool) => {
+          const ctor = tool.constructor as { getName?: () => string; name?: string };
+          return ctor.getName?.() ?? ctor.name ?? 'unknown';
+        });
         console.info(
-          `Team '${team_id}': Prepared final config for agent '${unique_name}' with user-defined tools: ${tool_names}`
+          `Team '${teamId}': Prepared final config for agent '${uniqueName}' with user-defined tools: ${toolNames}`
         );
       }
 
       return true;
     } catch (error) {
-      console.error(`Team '${team_id}': Failed during agent configuration preparation: ${error}`);
+      console.error(`Team '${teamId}': Failed during agent configuration preparation: ${error}`);
       return false;
     }
   }

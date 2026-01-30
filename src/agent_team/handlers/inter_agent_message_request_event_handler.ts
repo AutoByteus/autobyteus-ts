@@ -6,35 +6,35 @@ import type { AgentTeamContext } from '../context/agent_team_context.js';
 
 export class InterAgentMessageRequestEventHandler extends BaseAgentTeamEventHandler {
   async handle(event: InterAgentMessageRequestEvent, context: AgentTeamContext): Promise<void> {
-    const team_id = context.team_id;
-    const team_manager: any = context.team_manager;
+    const teamId = context.teamId;
+    const teamManager = context.teamManager;
 
-    if (!team_manager) {
+    if (!teamManager) {
       const message =
-        `Team '${team_id}': TeamManager not found. Cannot route message from ` +
-        `'${event.sender_agent_id}' to '${event.recipient_name}'.`;
+        `Team '${teamId}': TeamManager not found. Cannot route message from ` +
+        `'${event.senderAgentId}' to '${event.recipientName}'.`;
       console.error(message);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(message, 'TeamManager is not initialized.')
         );
       }
       return;
     }
 
-    let target_node: any;
+    let targetNode: unknown;
     try {
-      target_node = await team_manager.ensure_node_is_ready(event.recipient_name);
+      targetNode = await teamManager.ensureNodeIsReady(event.recipientName);
     } catch (error) {
       const msg =
-        `Recipient node '${event.recipient_name}' not found or failed to start ` +
-        `for message from '${event.sender_agent_id}'. Error: ${error}`;
-      console.error(`Team '${team_id}': ${msg}`);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+        `Recipient node '${event.recipientName}' not found or failed to start ` +
+        `for message from '${event.senderAgentId}'. Error: ${error}`;
+      console.error(`Team '${teamId}': ${msg}`);
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(
-            `Team '${team_id}': ${msg}`,
-            `Node '${event.recipient_name}' not found or failed to start.`
+            `Team '${teamId}': ${msg}`,
+            `Node '${event.recipientName}' not found or failed to start.`
           )
         );
       }
@@ -42,44 +42,50 @@ export class InterAgentMessageRequestEventHandler extends BaseAgentTeamEventHand
     }
 
     try {
-      if (target_node && typeof target_node.post_message === 'function') {
-        const message_for_team = new AgentInputUserMessage(event.content);
-        await target_node.post_message(message_for_team);
+      if (targetNode && typeof (targetNode as { postMessage?: unknown }).postMessage === 'function') {
+        const messageForTeam = new AgentInputUserMessage(event.content);
+        await (targetNode as { postMessage: (message: AgentInputUserMessage) => Promise<void> })
+          .postMessage(messageForTeam);
         console.info(
-          `Team '${team_id}': Successfully posted message from ` +
-          `'${event.sender_agent_id}' to sub-team '${event.recipient_name}'.`
+          `Team '${teamId}': Successfully posted message from ` +
+          `'${event.senderAgentId}' to sub-team '${event.recipientName}'.`
         );
         return;
       }
 
-      if (target_node && typeof target_node.post_inter_agent_message === 'function') {
-        const recipient_role = target_node.context?.config?.role ?? '';
-        const recipient_agent_id = target_node.agent_id ?? '';
-        const message_for_agent = InterAgentMessage.createWithDynamicMessageType(
-          recipient_role,
-          recipient_agent_id,
+      if (targetNode && typeof (targetNode as { postInterAgentMessage?: unknown }).postInterAgentMessage === 'function') {
+        const targetAgent = targetNode as {
+          context?: { config?: { role?: string } };
+          agentId?: string;
+          postInterAgentMessage: (message: InterAgentMessage) => Promise<void>;
+        };
+        const recipientRole = targetAgent.context?.config?.role ?? '';
+        const recipientAgentId = targetAgent.agentId ?? '';
+        const messageForAgent = InterAgentMessage.createWithDynamicMessageType(
+          recipientRole,
+          recipientAgentId,
           event.content,
-          event.message_type,
-          event.sender_agent_id
+          event.messageType,
+          event.senderAgentId
         );
-        await target_node.post_inter_agent_message(message_for_agent);
+        await targetAgent.postInterAgentMessage(messageForAgent);
         console.info(
-          `Team '${team_id}': Successfully posted message from ` +
-          `'${event.sender_agent_id}' to agent '${event.recipient_name}'.`
+          `Team '${teamId}': Successfully posted message from ` +
+          `'${event.senderAgentId}' to agent '${event.recipientName}'.`
         );
         return;
       }
 
       throw new TypeError(
-        `Target node '${event.recipient_name}' is of an unsupported type: ${typeof target_node}`
+        `Target node '${event.recipientName}' is of an unsupported type: ${typeof targetNode}`
       );
     } catch (error) {
-      const msg = `Error posting message to node '${event.recipient_name}': ${error}`;
-      console.error(`Team '${team_id}': ${msg}`);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      const msg = `Error posting message to node '${event.recipientName}': ${error}`;
+      console.error(`Team '${teamId}': ${msg}`);
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(
-            `Team '${team_id}': ${msg}`,
+            `Team '${teamId}': ${msg}`,
             'Message delivery failed.'
           )
         );

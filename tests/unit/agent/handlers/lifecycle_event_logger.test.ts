@@ -35,7 +35,7 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -66,7 +66,7 @@ describe('LifecycleEventLogger', () => {
   it('logs AgentReadyEvent', async () => {
     const handler = new LifecycleEventLogger();
     const context = makeContext();
-    context.current_status = AgentStatus.IDLE;
+    context.currentStatus = AgentStatus.IDLE;
 
     await handler.handle(new AgentReadyEvent(), context);
 
@@ -82,7 +82,7 @@ describe('LifecycleEventLogger', () => {
   it('logs AgentStoppedEvent', async () => {
     const handler = new LifecycleEventLogger();
     const context = makeContext();
-    context.current_status = AgentStatus.SHUTDOWN_COMPLETE;
+    context.currentStatus = AgentStatus.SHUTDOWN_COMPLETE;
 
     await handler.handle(new AgentStoppedEvent(), context);
 
@@ -98,7 +98,7 @@ describe('LifecycleEventLogger', () => {
   it('logs AgentErrorEvent', async () => {
     const handler = new LifecycleEventLogger();
     const context = makeContext();
-    context.current_status = AgentStatus.ERROR;
+    context.currentStatus = AgentStatus.ERROR;
     const event = new AgentErrorEvent('A test error occurred.', 'Traceback here.');
 
     await handler.handle(event, context);
@@ -112,7 +112,7 @@ describe('LifecycleEventLogger', () => {
   it('logs unhandled LifecycleEvent subclasses', async () => {
     const handler = new LifecycleEventLogger();
     const context = makeContext();
-    context.current_status = AgentStatus.PROCESSING_USER_INPUT;
+    context.currentStatus = AgentStatus.PROCESSING_USER_INPUT;
     const event = new UnhandledRealLifecycleEvent();
 
     await handler.handle(event, context);
@@ -127,7 +127,7 @@ describe('LifecycleEventLogger', () => {
   it('logs non-lifecycle events', async () => {
     const handler = new LifecycleEventLogger();
     const context = makeContext();
-    context.current_status = AgentStatus.IDLE;
+    context.currentStatus = AgentStatus.IDLE;
     const event = new UserMessageReceivedEvent(new AgentInputUserMessage('test'));
 
     await handler.handle(event, context);
@@ -142,7 +142,7 @@ describe('LifecycleEventLogger', () => {
   it('logs when status is uninitialized', async () => {
     const handler = new LifecycleEventLogger();
     const context = makeContext();
-    context.current_status = AgentStatus.UNINITIALIZED;
+    context.currentStatus = AgentStatus.UNINITIALIZED;
 
     await handler.handle(new AgentReadyEvent(), context);
 

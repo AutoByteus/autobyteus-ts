@@ -9,6 +9,7 @@ import {
 import { StreamEventType } from '../../agent/streaming/events/stream_events.js';
 import { ToolInvocationApprovalRequestedData } from '../../agent/streaming/events/stream_event_payloads.js';
 import type { StreamEvent } from '../../agent/streaming/stream_events.js';
+import { AgentStatus } from '../../agent/status/status_enum.js';
 import type { Task } from '../../task_management/task.js';
 import { TaskStatus } from '../../task_management/base_task_plan.js';
 import {
@@ -22,7 +23,7 @@ const isAgentEventPayload = (data: unknown): data is AgentEventRebroadcastPayloa
   if (!data || typeof data !== 'object') {
     return false;
   }
-  const candidate = data as Record<string, any>;
+  const candidate = data as Record<string, unknown>;
   return 'agent_name' in candidate && 'agent_event' in candidate;
 };
 
@@ -30,7 +31,7 @@ const isSubTeamEventPayload = (data: unknown): data is SubTeamEventRebroadcastPa
   if (!data || typeof data !== 'object') {
     return false;
   }
-  const candidate = data as Record<string, any>;
+  const candidate = data as Record<string, unknown>;
   return 'sub_team_node_name' in candidate && 'sub_team_event' in candidate;
 };
 
@@ -38,7 +39,7 @@ const isTeamStatusPayload = (data: unknown): data is AgentTeamStatusUpdateData =
   if (!data || typeof data !== 'object') {
     return false;
   }
-  return 'new_status' in (data as Record<string, any>);
+  return 'new_status' in (data as Record<string, unknown>);
 };
 
 export type NodeData = {
@@ -57,103 +58,103 @@ export type HistoryEvent = StreamEvent | UiHistoryEvent;
 type AgentTeamLike = {
   name: string;
   role?: string | null;
-  _runtime?: {
+  runtime?: {
     context?: {
       config?: {
-        nodes?: Array<{ node_definition?: { role?: string | null; name?: string } }>;
+        nodes?: Array<{ nodeDefinition?: { role?: string | null; name?: string } }>;
       };
     };
   };
 };
 
 export class TuiStateStore {
-  team_name: string;
-  team_role: string | null;
-  focused_node_data: NodeData | null = null;
+  teamName: string;
+  teamRole: string | null;
+  focusedNodeData: NodeData | null = null;
   version = 0;
 
-  _node_roles: Record<string, string>;
-  _nodes: Record<string, NodeData>;
-  _agent_statuses: Record<string, any> = {};
-  _team_statuses: Record<string, AgentTeamStatus>;
-  _agent_event_history: Record<string, HistoryEvent[]> = {};
-  _team_event_history: Record<string, AgentTeamStreamEvent[]> = {};
-  _pending_approvals: Record<string, ToolInvocationApprovalRequestedData> = {};
-  _speaking_agents: Record<string, boolean> = {};
-  _task_plans: Record<string, Task[]> = {};
-  _task_statuses: Record<string, Record<string, TaskStatus>> = {};
-  private _dirty = false;
+  nodeRoles: Record<string, string>;
+  nodes: Record<string, NodeData>;
+  agentStatuses: Record<string, AgentStatus> = {};
+  teamStatuses: Record<string, AgentTeamStatus>;
+  agentEventHistory: Record<string, HistoryEvent[]> = {};
+  teamEventHistory: Record<string, AgentTeamStreamEvent[]> = {};
+  pendingApprovals: Record<string, ToolInvocationApprovalRequestedData> = {};
+  speakingAgents: Record<string, boolean> = {};
+  taskPlans: Record<string, Task[]> = {};
+  taskStatuses: Record<string, Record<string, TaskStatus>> = {};
+  private dirty = false;
 
   constructor(team: AgentTeam) {
     const teamLike = team as unknown as AgentTeamLike;
-    this.team_name = teamLike.name;
-    this.team_role = teamLike.role ?? null;
+    this.teamName = teamLike.name;
+    this.teamRole = teamLike.role ?? null;
 
-    this._node_roles = this.extract_node_roles(teamLike);
-    this._nodes = this.initialize_root_node();
-    this._team_statuses = { [this.team_name]: AgentTeamStatus.UNINITIALIZED };
-    this._team_event_history = { [this.team_name]: [] };
+    this.nodeRoles = this.extractNodeRoles(teamLike);
+    this.nodes = this.initializeRootNode();
+    this.teamStatuses = { [this.teamName]: AgentTeamStatus.UNINITIALIZED };
+    this.teamEventHistory = { [this.teamName]: [] };
   }
 
-  process_event(event: AgentTeamStreamEvent): void {
+  processEvent(event: AgentTeamStreamEvent): void {
     this.version += 1;
-    this._dirty = true;
+    this.dirty = true;
 
     if (event.event_source_type === 'TEAM' && isTeamStatusPayload(event.data)) {
-      this._team_statuses[this.team_name] = event.data.new_status as AgentTeamStatus;
+      this.teamStatuses[this.teamName] = event.data.new_status as AgentTeamStatus;
     }
 
-    this.process_event_recursively(event, this.team_name);
+    this.processEventRecursively(event, this.teamName);
   }
 
-  get_tree_data(): Record<string, NodeData> {
-    return JSON.parse(JSON.stringify(this._nodes)) as Record<string, NodeData>;
+  getTreeData(): Record<string, NodeData> {
+    return JSON.parse(JSON.stringify(this.nodes)) as Record<string, NodeData>;
   }
 
-  get_history_for_node(node_name: string, node_type: string): HistoryEvent[] {
-    if (node_type === 'agent') {
-      return this._agent_event_history[node_name] ?? [];
+  getHistoryForNode(nodeName: string, nodeType: string): HistoryEvent[] {
+    if (nodeType === 'agent') {
+      return this.agentEventHistory[nodeName] ?? [];
     }
     return [];
   }
 
-  get_pending_approval_for_agent(agent_name: string): ToolInvocationApprovalRequestedData | null {
-    return this._pending_approvals[agent_name] ?? null;
+  getPendingApprovalForAgent(agentName: string): ToolInvocationApprovalRequestedData | null {
+    return this.pendingApprovals[agentName] ?? null;
   }
 
-  get_task_plan_tasks(team_name: string): Task[] | null {
-    return this._task_plans[team_name] ?? null;
+  getTaskPlanTasks(teamName: string): Task[] | null {
+    return this.taskPlans[teamName] ?? null;
   }
 
-  get_task_plan_statuses(team_name: string): Record<string, TaskStatus> | null {
-    return this._task_statuses[team_name] ?? null;
+  getTaskPlanStatuses(teamName: string): Record<string, TaskStatus> | null {
+    return this.taskStatuses[teamName] ?? null;
   }
 
-  clear_pending_approval(agent_name: string): void {
-    delete this._pending_approvals[agent_name];
+  clearPendingApproval(agentName: string): void {
+    delete this.pendingApprovals[agentName];
   }
 
-  append_user_message(agent_name: string, content: string): void {
+  appendUserMessage(agentName: string, content: string): void {
     if (!content.trim()) {
       return;
     }
-    if (!this._agent_event_history[agent_name]) {
-      this._agent_event_history[agent_name] = [];
-      if (!this.find_node(agent_name)) {
-        const agent_role = this._node_roles[agent_name] ?? 'Agent';
-        this.add_node(agent_name, { type: 'agent', name: agent_name, role: agent_role, children: {} }, this.team_name);
+    if (!this.agentEventHistory[agentName]) {
+      this.agentEventHistory[agentName] = [];
+      if (!this.findNode(agentName)) {
+        const agentRole = this.nodeRoles[agentName] ?? 'Agent';
+        this.addNode(agentName, { type: 'agent', name: agentName, role: agentRole, children: {} }, this.teamName);
       }
     }
-    this._agent_event_history[agent_name].push({
+    this.agentEventHistory[agentName].push({
       event_type: 'ui_user_message',
       data: { content }
     });
     this.version += 1;
-    this._dirty = true;
+    this.dirty = true;
   }
 
-  get_last_user_message(agent_name: string): string | null {
-    const history = this._agent_event_history[agent_name];
+  getLastUserMessage(agentName: string): string | null {
+    const history = this.agentEventHistory[agentName];
     if (!history || history.length === 0) {
       return null;
     }
@@ -166,45 +167,45 @@ export class TuiStateStore {
     return null;
   }
 
-  append_tool_decision(agent_name: string, content: string): void {
+  appendToolDecision(agentName: string, content: string): void {
     if (!content.trim()) {
       return;
     }
-    if (!this._agent_event_history[agent_name]) {
-      this._agent_event_history[agent_name] = [];
-      if (!this.find_node(agent_name)) {
-        const agent_role = this._node_roles[agent_name] ?? 'Agent';
-        this.add_node(agent_name, { type: 'agent', name: agent_name, role: agent_role, children: {} }, this.team_name);
+    if (!this.agentEventHistory[agentName]) {
+      this.agentEventHistory[agentName] = [];
+      if (!this.findNode(agentName)) {
+        const agentRole = this.nodeRoles[agentName] ?? 'Agent';
+        this.addNode(agentName, { type: 'agent', name: agentName, role: agentRole, children: {} }, this.teamName);
       }
     }
-    this._agent_event_history[agent_name].push({
+    this.agentEventHistory[agentName].push({
       event_type: 'ui_tool_decision',
       data: { content }
     });
     this.version += 1;
-    this._dirty = true;
+    this.dirty = true;
   }
 
-  consume_dirty(): boolean {
-    const dirty = this._dirty;
-    this._dirty = false;
+  consumeDirty(): boolean {
+    const dirty = this.dirty;
+    this.dirty = false;
     return dirty;
   }
 
-  mark_dirty(): void {
-    this._dirty = true;
+  markDirty(): void {
+    this.dirty = true;
   }
 
-  set_focused_node(node_data: NodeData | null): void {
-    this.focused_node_data = node_data;
+  setFocusedNode(nodeData: NodeData | null): void {
+    this.focusedNodeData = nodeData;
   }
 
-  private extract_node_roles(team: AgentTeamLike): Record<string, string> {
+  private extractNodeRoles(team: AgentTeamLike): Record<string, string> {
     const roles: Record<string, string> = {};
-    const nodes = team._runtime?.context?.config?.nodes ?? [];
+    const nodes = team.runtime?.context?.config?.nodes ?? [];
     for (const nodeConfig of nodes) {
-      const role = nodeConfig?.node_definition?.role;
-      const name = nodeConfig?.node_definition?.name;
+      const role = nodeConfig?.nodeDefinition?.role;
+      const name = nodeConfig?.nodeDefinition?.name;
       if (role && name) {
         roles[name] = role;
       }
@@ -212,87 +213,87 @@ export class TuiStateStore {
     return roles;
   }
 
-  private initialize_root_node(): Record<string, NodeData> {
+  private initializeRootNode(): Record<string, NodeData> {
     return {
-      [this.team_name]: {
+      [this.teamName]: {
         type: 'team',
-        name: this.team_name,
-        role: this.team_role,
+        name: this.teamName,
+        role: this.teamRole,
         children: {}
       }
     };
   }
 
-  private process_event_recursively(event: AgentTeamStreamEvent, parent_name: string): void {
-    if (!this._team_event_history[parent_name]) {
-      this._team_event_history[parent_name] = [];
+  private processEventRecursively(event: AgentTeamStreamEvent, parentName: string): void {
+    if (!this.teamEventHistory[parentName]) {
+      this.teamEventHistory[parentName] = [];
     }
-    this._team_event_history[parent_name].push(event);
+    this.teamEventHistory[parentName].push(event);
 
     if (event.event_source_type === 'TASK_PLAN') {
-      this.process_task_plan_event(event.data, parent_name);
+      this.processTaskPlanEvent(event.data, parentName);
       return;
     }
 
     if (isAgentEventPayload(event.data)) {
-      const agent_name = String((event.data as any).agent_name ?? '');
-      const agent_event = (event.data as any).agent_event as StreamEvent;
+      const agentName = String(event.data.agent_name ?? '');
+      const agentEvent = event.data.agent_event as StreamEvent;
 
-      if (!this._agent_event_history[agent_name]) {
-        this._agent_event_history[agent_name] = [];
-        const agent_role = this._node_roles[agent_name] ?? 'Agent';
-        this.add_node(agent_name, { type: 'agent', name: agent_name, role: agent_role, children: {} }, parent_name);
+      if (!this.agentEventHistory[agentName]) {
+        this.agentEventHistory[agentName] = [];
+        const agentRole = this.nodeRoles[agentName] ?? 'Agent';
+        this.addNode(agentName, { type: 'agent', name: agentName, role: agentRole, children: {} }, parentName);
       }
 
-      this._agent_event_history[agent_name].push(agent_event);
+      this.agentEventHistory[agentName].push(agentEvent);
 
-      if (agent_event.event_type === StreamEventType.AGENT_STATUS_UPDATED) {
-        const data = agent_event.data as { new_status?: any };
+      if (agentEvent.event_type === StreamEventType.AGENT_STATUS_UPDATED) {
+        const data = agentEvent.data as { new_status?: AgentStatus };
         if (data?.new_status) {
-          this._agent_statuses[agent_name] = data.new_status;
-          delete this._pending_approvals[agent_name];
+          this.agentStatuses[agentName] = data.new_status;
+          delete this.pendingApprovals[agentName];
         }
-      } else if (agent_event.event_type === StreamEventType.ASSISTANT_CHUNK) {
-        this._speaking_agents[agent_name] = true;
-      } else if (agent_event.event_type === StreamEventType.ASSISTANT_COMPLETE_RESPONSE) {
-        this._speaking_agents[agent_name] = false;
-      } else if (agent_event.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED) {
-        this._pending_approvals[agent_name] = agent_event.data as ToolInvocationApprovalRequestedData;
+      } else if (agentEvent.event_type === StreamEventType.ASSISTANT_CHUNK) {
+        this.speakingAgents[agentName] = true;
+      } else if (agentEvent.event_type === StreamEventType.ASSISTANT_COMPLETE_RESPONSE) {
+        this.speakingAgents[agentName] = false;
+      } else if (agentEvent.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED) {
+        this.pendingApprovals[agentName] = agentEvent.data as ToolInvocationApprovalRequestedData;
       }
       return;
     }
 
     if (isSubTeamEventPayload(event.data)) {
-      const sub_team_name = String((event.data as any).sub_team_node_name ?? '');
-      const sub_team_event = (event.data as any).sub_team_event as AgentTeamStreamEvent | undefined;
-      if (!this.find_node(sub_team_name)) {
-        const role = this._node_roles[sub_team_name] ?? 'Sub-Team';
-        this.add_node(sub_team_name, { type: 'subteam', name: sub_team_name, role, children: {} }, parent_name);
+      const subTeamName = String(event.data.sub_team_node_name ?? '');
+      const subTeamEvent = event.data.sub_team_event as AgentTeamStreamEvent | undefined;
+      if (!this.findNode(subTeamName)) {
+        const role = this.nodeRoles[subTeamName] ?? 'Sub-Team';
+        this.addNode(subTeamName, { type: 'subteam', name: subTeamName, role, children: {} }, parentName);
       }
 
-      if (sub_team_event?.event_source_type === 'TEAM' && isTeamStatusPayload(sub_team_event.data)) {
-        this._team_statuses[sub_team_name] = sub_team_event.data.new_status;
+      if (subTeamEvent?.event_source_type === 'TEAM' && isTeamStatusPayload(subTeamEvent.data)) {
+        this.teamStatuses[subTeamName] = subTeamEvent.data.new_status;
       }
 
-      if (sub_team_event) {
-        this.process_event_recursively(sub_team_event, sub_team_name);
+      if (subTeamEvent) {
+        this.processEventRecursively(subTeamEvent, subTeamName);
       }
     }
   }
 
-  private process_task_plan_event(eventData: unknown, team_name: string): void {
+  private processTaskPlanEvent(eventData: unknown, teamName: string): void {
     const created = TasksCreatedEventSchema.safeParse(eventData);
     if (created.success) {
       const data = created.data as TasksCreatedEvent;
-      if (!this._task_plans[team_name]) {
-        this._task_plans[team_name] = [];
+      if (!this.taskPlans[teamName]) {
+        this.taskPlans[teamName] = [];
       }
-      if (!this._task_statuses[team_name]) {
-        this._task_statuses[team_name] = {};
+      if (!this.taskStatuses[teamName]) {
+        this.taskStatuses[teamName] = {};
       }
-      this._task_plans[team_name].push(...data.tasks);
+      this.taskPlans[teamName].push(...data.tasks);
       for (const task of data.tasks) {
-        this._task_statuses[team_name][task.task_id] = TaskStatus.NOT_STARTED;
+        this.taskStatuses[teamName][task.task_id] = TaskStatus.NOT_STARTED;
       }
       return;
     }
@@ -300,13 +301,13 @@ export class TuiStateStore {
     const updated = TaskStatusUpdatedEventSchema.safeParse(eventData);
     if (updated.success) {
       const data = updated.data as TaskStatusUpdatedEvent;
-      if (!this._task_statuses[team_name]) {
-        this._task_statuses[team_name] = {};
+      if (!this.taskStatuses[teamName]) {
+        this.taskStatuses[teamName] = {};
       }
-      this._task_statuses[team_name][data.task_id] = data.new_status;
+      this.taskStatuses[teamName][data.task_id] = data.new_status;
 
-      if (data.deliverables && this._task_plans[team_name]) {
-        for (const task of this._task_plans[team_name]) {
+      if (data.deliverables && this.taskPlans[teamName]) {
+        for (const task of this.taskPlans[teamName]) {
           if (task.task_id === data.task_id) {
             task.file_deliverables = data.deliverables;
             break;
@@ -316,23 +317,23 @@ export class TuiStateStore {
     }
   }
 
-  private add_node(node_name: string, node_data: NodeData, parent_name: string): void {
-    const parent = this.find_node(parent_name);
+  private addNode(nodeName: string, nodeData: NodeData, parentName: string): void {
+    const parent = this.findNode(parentName);
     if (parent) {
-      parent.children[node_name] = node_data;
+      parent.children[nodeName] = nodeData;
     } else {
-      console.error(`Could not find parent node '${parent_name}' to add child '${node_name}'.`);
+      console.error(`Could not find parent node '${parentName}' to add child '${nodeName}'.`);
     }
   }
 
-  private find_node(node_name: string, tree?: Record<string, NodeData>): NodeData | undefined {
-    const treeData = tree ?? this._nodes;
-    for (const [name, node_data] of Object.entries(treeData)) {
-      if (name === node_name) {
-        return node_data;
+  private findNode(nodeName: string, tree?: Record<string, NodeData>): NodeData | undefined {
+    const treeData = tree ?? this.nodes;
+    for (const [name, nodeData] of Object.entries(treeData)) {
+      if (name === nodeName) {
+        return nodeData;
       }
-      if (Object.keys(node_data.children).length) {
-        const found = this.find_node(node_name, node_data.children);
+      if (Object.keys(nodeData.children).length) {
+        const found = this.findNode(nodeName, nodeData.children);
         if (found) {
           return found;
         }

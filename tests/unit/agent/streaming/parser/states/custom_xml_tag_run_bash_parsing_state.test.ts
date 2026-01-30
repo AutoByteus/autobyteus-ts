@@ -10,10 +10,10 @@ describe('CustomXmlTagRunBashParsingState basics', () => {
     ctx.append('ls -la</run_bash>');
 
     const state = new CustomXmlTagRunBashParsingState(ctx, '<run_bash>');
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].segment_type).toBe(SegmentType.RUN_BASH);
@@ -22,7 +22,7 @@ describe('CustomXmlTagRunBashParsingState basics', () => {
     const content = contentEvents.map((e) => e.payload.delta).join('');
     expect(content).toContain('ls -la');
 
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
   });
 
   it('ignores tag attributes', () => {
@@ -30,10 +30,10 @@ describe('CustomXmlTagRunBashParsingState basics', () => {
     ctx.append('ls -la</run_bash>');
 
     const state = new CustomXmlTagRunBashParsingState(ctx, "<run_bash description='List files'>");
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     const metadata = startEvents[0].payload.metadata;
     expect(metadata === undefined || Object.keys(metadata).length === 0).toBe(true);
@@ -44,10 +44,10 @@ describe('CustomXmlTagRunBashParsingState basics', () => {
     ctx.append('# Install deps\nnpm install</run_bash>');
 
     const state = new CustomXmlTagRunBashParsingState(ctx, '<run_bash>');
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const content = contentEvents.map((e) => e.payload.delta).join('');
     expect(content).toContain('# Install deps');
@@ -61,10 +61,10 @@ describe('CustomXmlTagRunBashParsingState streaming', () => {
     ctx.append('echo hello world command</run');
 
     const state = new CustomXmlTagRunBashParsingState(ctx, '<run_bash>');
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const content = contentEvents.map((e) => e.payload.delta).join('');
     expect(content).toContain('echo hello');
@@ -78,11 +78,11 @@ describe('CustomXmlTagRunBashParsingState finalize', () => {
     ctx.append('partial command');
 
     const state = new CustomXmlTagRunBashParsingState(ctx, '<run_bash>');
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
     state.finalize();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const endEvents = events.filter((e) => e.event_type === SegmentEventType.END);
     expect(endEvents).toHaveLength(1);
   });

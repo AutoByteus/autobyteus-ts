@@ -11,25 +11,25 @@ import {
 } from '../events/agent_team_events.js';
 
 export class AgentTeamStatusDeriver {
-  private currentStatus: AgentTeamStatus;
+  private currentStatusValue: AgentTeamStatus;
 
-  constructor(initial_status: AgentTeamStatus = AgentTeamStatus.UNINITIALIZED) {
-    this.currentStatus = initial_status;
-    console.debug(`AgentTeamStatusDeriver initialized with status '${initial_status}'.`);
+  constructor(initialStatus: AgentTeamStatus = AgentTeamStatus.UNINITIALIZED) {
+    this.currentStatusValue = initialStatus;
+    console.debug(`AgentTeamStatusDeriver initialized with status '${initialStatus}'.`);
   }
 
-  get current_status(): AgentTeamStatus {
-    return this.currentStatus;
+  get currentStatus(): AgentTeamStatus {
+    return this.currentStatusValue;
   }
 
   apply(event: BaseAgentTeamEvent): [AgentTeamStatus, AgentTeamStatus] {
-    const oldStatus = this.currentStatus;
+    const oldStatus = this.currentStatusValue;
     const newStatus = this.reduce(event, oldStatus);
-    this.currentStatus = newStatus;
+    this.currentStatusValue = newStatus;
     return [oldStatus, newStatus];
   }
 
-  private reduce(event: BaseAgentTeamEvent, current_status: AgentTeamStatus): AgentTeamStatus {
+  private reduce(event: BaseAgentTeamEvent, currentStatus: AgentTeamStatus): AgentTeamStatus {
     if (event instanceof AgentTeamBootstrapStartedEvent) {
       return AgentTeamStatus.BOOTSTRAPPING;
     }
@@ -40,14 +40,14 @@ export class AgentTeamStatusDeriver {
       return AgentTeamStatus.IDLE;
     }
     if (event instanceof AgentTeamShutdownRequestedEvent) {
-      if (current_status === AgentTeamStatus.ERROR) {
-        return current_status;
+      if (currentStatus === AgentTeamStatus.ERROR) {
+        return currentStatus;
       }
       return AgentTeamStatus.SHUTTING_DOWN;
     }
     if (event instanceof AgentTeamStoppedEvent) {
-      if (current_status === AgentTeamStatus.ERROR) {
-        return current_status;
+      if (currentStatus === AgentTeamStatus.ERROR) {
+        return currentStatus;
       }
       return AgentTeamStatus.SHUTDOWN_COMPLETE;
     }
@@ -59,6 +59,6 @@ export class AgentTeamStatusDeriver {
       return AgentTeamStatus.PROCESSING;
     }
 
-    return current_status;
+    return currentStatus;
   }
 }

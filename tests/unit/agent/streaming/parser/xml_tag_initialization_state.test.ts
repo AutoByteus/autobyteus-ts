@@ -13,11 +13,11 @@ describe('XmlTagInitializationState constructor', () => {
   it("consumes '<' character", () => {
     const ctx = new ParserContext();
     ctx.append('<tag>');
-    expect(ctx.get_position()).toBe(0);
+    expect(ctx.getPosition()).toBe(0);
 
     const state = new XmlTagInitializationState(ctx);
-    expect(ctx.get_position()).toBe(1);
-    ctx.current_state = state;
+    expect(ctx.getPosition()).toBe(1);
+    ctx.currentState = state;
   });
 });
 
@@ -27,10 +27,10 @@ describe('XmlTagInitializationState write_file detection', () => {
     ctx.append('<write_file path="/test.py">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(CustomXmlTagWriteFileParsingState);
+    expect(ctx.currentState).toBeInstanceOf(CustomXmlTagWriteFileParsingState);
   });
 
   it('is case-insensitive for write_file', () => {
@@ -38,10 +38,10 @@ describe('XmlTagInitializationState write_file detection', () => {
     ctx.append('<WRITE_FILE path="/test.py">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(CustomXmlTagWriteFileParsingState);
+    expect(ctx.currentState).toBeInstanceOf(CustomXmlTagWriteFileParsingState);
   });
 });
 
@@ -51,10 +51,10 @@ describe('XmlTagInitializationState run_bash detection', () => {
     ctx.append('<run_bash>command</run_bash>');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(CustomXmlTagRunBashParsingState);
+    expect(ctx.currentState).toBeInstanceOf(CustomXmlTagRunBashParsingState);
   });
 
   it('supports run_bash tag with attributes', () => {
@@ -62,10 +62,10 @@ describe('XmlTagInitializationState run_bash detection', () => {
     ctx.append("<run_bash description='test'>");
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(CustomXmlTagRunBashParsingState);
+    expect(ctx.currentState).toBeInstanceOf(CustomXmlTagRunBashParsingState);
   });
 });
 
@@ -75,24 +75,24 @@ describe('XmlTagInitializationState tool detection', () => {
     ctx.append("<tool name='test'>");
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(XmlToolParsingState);
+    expect(ctx.currentState).toBeInstanceOf(XmlToolParsingState);
   });
 
-  it('treats tool tag as text when parse_tool_calls is false', () => {
-    const config = new ParserConfig({ parse_tool_calls: false });
+  it('treats tool tag as text when parseToolCalls is false', () => {
+    const config = new ParserConfig({ parseToolCalls: false });
     const ctx = new ParserContext(config);
     ctx.append("<tool name='test'>more text");
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     expect(contentEvents.some((e) => String(e.payload.delta).includes("<tool name='test'>"))).toBe(true);
   });
@@ -104,12 +104,12 @@ describe('XmlTagInitializationState unknown tags', () => {
     ctx.append('<div>content');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     expect(contentEvents.some((e) => String(e.payload.delta).includes('<d'))).toBe(true);
   });
@@ -119,10 +119,10 @@ describe('XmlTagInitializationState unknown tags', () => {
     ctx.append('<xyz>');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
   });
 });
 
@@ -132,10 +132,10 @@ describe('XmlTagInitializationState partial buffers', () => {
     ctx.append('<write_fil');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     expect(events).toHaveLength(0);
   });
 });
@@ -146,12 +146,12 @@ describe('XmlTagInitializationState finalize', () => {
     ctx.append('<tool');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
     state.finalize();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     expect(contentEvents.some((e) => String(e.payload.delta).includes('<tool'))).toBe(true);
   });
@@ -161,10 +161,10 @@ describe('XmlTagInitializationState finalize', () => {
     ctx.append('<tool name="write_file">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(XmlWriteFileToolParsingState);
+    expect(ctx.currentState).toBeInstanceOf(XmlWriteFileToolParsingState);
   });
 
   it('detects write_file tool name case-insensitively', () => {
@@ -172,10 +172,10 @@ describe('XmlTagInitializationState finalize', () => {
     ctx.append('<tool name="WRITE_FILE">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(XmlWriteFileToolParsingState);
+    expect(ctx.currentState).toBeInstanceOf(XmlWriteFileToolParsingState);
   });
 
   it('dispatches other tool names to generic XmlToolParsingState', () => {
@@ -183,10 +183,10 @@ describe('XmlTagInitializationState finalize', () => {
     ctx.append('<tool name="other">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(XmlToolParsingState);
+    expect(ctx.currentState).toBeInstanceOf(XmlToolParsingState);
   });
 
   it('detects run_bash tool name', () => {
@@ -194,10 +194,10 @@ describe('XmlTagInitializationState finalize', () => {
     ctx.append('<tool name="run_bash">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(XmlRunBashToolParsingState);
+    expect(ctx.currentState).toBeInstanceOf(XmlRunBashToolParsingState);
   });
 
   it('detects run_bash tool name case-insensitively', () => {
@@ -205,9 +205,9 @@ describe('XmlTagInitializationState finalize', () => {
     ctx.append('<tool name="RUN_BASH">');
 
     const state = new XmlTagInitializationState(ctx);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    expect(ctx.current_state).toBeInstanceOf(XmlRunBashToolParsingState);
+    expect(ctx.currentState).toBeInstanceOf(XmlRunBashToolParsingState);
   });
 });

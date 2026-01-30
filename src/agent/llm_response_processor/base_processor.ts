@@ -7,44 +7,44 @@ export class BaseLLMResponseProcessor {
     if (new.target === BaseLLMResponseProcessor) {
       throw new Error('BaseLLMResponseProcessor cannot be instantiated directly.');
     }
-    if (this.process_response === BaseLLMResponseProcessor.prototype.process_response) {
-      throw new Error("Subclasses must implement the 'process_response' method.");
+    if (this.processResponse === BaseLLMResponseProcessor.prototype.processResponse) {
+      throw new Error("Subclasses must implement the 'processResponse' method.");
     }
   }
 
-  static get_name(): string {
+  static getName(): string {
     return this.name;
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 500;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return false;
   }
 
-  get_name(): string {
+  getName(): string {
     const ctor = this.constructor as typeof BaseLLMResponseProcessor;
-    return ctor.get_name();
+    return ctor.getName();
   }
 
-  get_order(): number {
+  getOrder(): number {
     const ctor = this.constructor as typeof BaseLLMResponseProcessor;
-    return ctor.get_order();
+    return ctor.getOrder();
   }
 
-  is_mandatory(): boolean {
+  isMandatory(): boolean {
     const ctor = this.constructor as typeof BaseLLMResponseProcessor;
-    return ctor.is_mandatory();
+    return ctor.isMandatory();
   }
 
-  async process_response(
+  async processResponse(
     _response: CompleteResponse,
     _context: AgentContext,
     _triggering_event: LLMCompleteResponseReceivedEvent
   ): Promise<boolean> {
-    throw new Error("Subclasses must implement the 'process_response' method.");
+    throw new Error("Subclasses must implement the 'processResponse' method.");
   }
 
   toString(): string {

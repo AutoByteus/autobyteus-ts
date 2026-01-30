@@ -26,10 +26,10 @@ describe('LLMFactory reload models', () => {
       name: 'old-model',
       value: 'old-model',
       provider: LLMProvider.LMSTUDIO,
-      llm_class: LMStudioLLM,
-      canonical_name: 'old',
+      llmClass: LMStudioLLM,
+      canonicalName: 'old',
       runtime: LLMRuntime.LMSTUDIO,
-      host_url: 'http://local'
+      hostUrl: 'http://local'
     });
     LLMFactory.registerModel(initialModel);
 
@@ -39,19 +39,19 @@ describe('LLMFactory reload models', () => {
       name: 'new-model-1',
       value: 'new-model-1',
       provider: LLMProvider.LMSTUDIO,
-      llm_class: LMStudioLLM,
-      canonical_name: 'new1',
+      llmClass: LMStudioLLM,
+      canonicalName: 'new1',
       runtime: LLMRuntime.LMSTUDIO,
-      host_url: 'http://local'
+      hostUrl: 'http://local'
     });
     const newModel2 = new LLMModel({
       name: 'new-model-2',
       value: 'new-model-2',
       provider: LLMProvider.LMSTUDIO,
-      llm_class: LMStudioLLM,
-      canonical_name: 'new2',
+      llmClass: LMStudioLLM,
+      canonicalName: 'new2',
       runtime: LLMRuntime.LMSTUDIO,
-      host_url: 'http://local'
+      hostUrl: 'http://local'
     });
 
     const fetchSpy = vi
@@ -65,8 +65,8 @@ describe('LLMFactory reload models', () => {
     const currentModels = await LLMFactory.listModelsByProvider(LLMProvider.LMSTUDIO);
     const currentIds = currentModels.map((model) => model.model_identifier);
     expect(currentIds).not.toContain('old-model:lmstudio');
-    expect(currentIds).toContain(newModel1.model_identifier);
-    expect(currentIds).toContain(newModel2.model_identifier);
+    expect(currentIds).toContain(newModel1.modelIdentifier);
+    expect(currentIds).toContain(newModel2.modelIdentifier);
   });
 
   it('reloadModels clears models when fetch fails (fail fast)', async () => {
@@ -74,10 +74,10 @@ describe('LLMFactory reload models', () => {
       name: 'precious-data',
       value: 'precious',
       provider: LLMProvider.OLLAMA,
-      llm_class: LMStudioLLM,
-      canonical_name: 'precious',
+      llmClass: LMStudioLLM,
+      canonicalName: 'precious',
       runtime: LLMRuntime.OLLAMA,
-      host_url: 'http://local'
+      hostUrl: 'http://local'
     });
     LLMFactory.registerModel(initialModel);
 

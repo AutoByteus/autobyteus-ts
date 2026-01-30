@@ -17,27 +17,27 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class AgentWorker {
   context: AgentContext;
-  status_manager: any;
-  worker_event_dispatcher: WorkerEventDispatcher;
-  private _is_active: boolean = false;
+  statusManager: any;
+  workerEventDispatcher: WorkerEventDispatcher;
+  private isActive: boolean = false;
 
   private loopPromise: Promise<void> | null = null;
   private stopRequested = false;
   private stopInitiated = false;
   private doneCallbacks: Array<(result: PromiseSettledResult<void>) => void> = [];
 
-  constructor(context: AgentContext, event_handler_registry: EventHandlerRegistry) {
+  constructor(context: AgentContext, eventHandlerRegistry: EventHandlerRegistry) {
     this.context = context;
-    this.status_manager = this.context.status_manager;
-    if (!this.status_manager) {
-      throw new Error(`AgentWorker for '${this.context.agent_id}': AgentStatusManager not found.`);
+    this.statusManager = this.context.statusManager;
+    if (!this.statusManager) {
+      throw new Error(`AgentWorker for '${this.context.agentId}': AgentStatusManager not found.`);
     }
 
-    this.worker_event_dispatcher = new WorkerEventDispatcher(event_handler_registry);
-    console.info(`AgentWorker initialized for agent_id '${this.context.agent_id}'.`);
+    this.workerEventDispatcher = new WorkerEventDispatcher(eventHandlerRegistry);
+    console.info(`AgentWorker initialized for agent_id '${this.context.agentId}'.`);
   }
 
-  add_done_callback(callback: (result: PromiseSettledResult<void>) => void): void {
+  addDoneCallback(callback: (result: PromiseSettledResult<void>) => void): void {
     if (this.loopPromise) {
       this.loopPromise
         .then(() => callback({ status: 'fulfilled', value: undefined }))
@@ -47,50 +47,50 @@ export class AgentWorker {
     this.doneCallbacks.push(callback);
   }
 
-  is_alive(): boolean {
-    return this._is_active;
+  isAlive(): boolean {
+    return this.isActive;
   }
 
   start(): void {
-    const agent_id = this.context.agent_id;
-    if (this._is_active) {
-      console.warn(`AgentWorker '${agent_id}': Start called, but worker is already active.`);
+    const agentId = this.context.agentId;
+    if (this.isActive) {
+      console.warn(`AgentWorker '${agentId}': Start called, but worker is already active.`);
       return;
     }
 
-    console.info(`AgentWorker '${agent_id}': Starting...`);
-    this._is_active = true;
+    console.info(`AgentWorker '${agentId}': Starting...`);
+    this.isActive = true;
     this.stopRequested = false;
     this.stopInitiated = false;
 
-    this.loopPromise = this.async_run();
+    this.loopPromise = this.asyncRun();
     this.loopPromise
       .then(() => {
-        this._is_active = false;
+        this.isActive = false;
         this.doneCallbacks.forEach((cb) => cb({ status: 'fulfilled', value: undefined }));
         this.doneCallbacks = [];
       })
       .catch((error) => {
-        this._is_active = false;
+        this.isActive = false;
         this.doneCallbacks.forEach((cb) => cb({ status: 'rejected', reason: error }));
         this.doneCallbacks = [];
       });
   }
 
-  private async _initialize(): Promise<boolean> {
-    const agent_id = this.context.agent_id;
-    console.info(`Agent '${agent_id}': Starting internal initialization process using bootstrap events.`);
+  private async initialize(): Promise<boolean> {
+    const agentId = this.context.agentId;
+    console.info(`Agent '${agentId}': Starting internal initialization process using bootstrap events.`);
 
-    await this.context.input_event_queues.enqueue_internal_system_event(new BootstrapStartedEvent());
+    await this.context.inputEventQueues.enqueueInternalSystemEvent(new BootstrapStartedEvent());
 
-    while (![AgentStatus.IDLE, AgentStatus.ERROR].includes(this.context.current_status)) {
+    while (![AgentStatus.IDLE, AgentStatus.ERROR].includes(this.context.currentStatus)) {
       if (this.stopRequested) {
         break;
       }
 
       let queueEvent: [string, BaseEvent] | null = null;
       try {
-        queueEvent = await this.context.state.input_event_queues!.get_next_internal_event();
+        queueEvent = await this.context.state.inputEventQueues!.getNextInternalEvent();
       } catch {
         queueEvent = null;
       }
@@ -100,66 +100,66 @@ export class AgentWorker {
       }
 
       const [, eventObj] = queueEvent;
-      await this.worker_event_dispatcher.dispatch(eventObj, this.context);
+      await this.workerEventDispatcher.dispatch(eventObj, this.context);
       await delay(0);
     }
 
-    return this.context.current_status === AgentStatus.IDLE;
+    return this.context.currentStatus === AgentStatus.IDLE;
   }
 
-  private async _runtime_init(): Promise<boolean> {
-    const agent_id = this.context.agent_id;
+  private async runtimeInit(): Promise<boolean> {
+    const agentId = this.context.agentId;
 
-    if (!this.context.state.event_store) {
-      this.context.state.event_store = new AgentEventStore(agent_id);
-      console.info(`Agent '${agent_id}': Runtime init completed (event store initialized).`);
+    if (!this.context.state.eventStore) {
+      this.context.state.eventStore = new AgentEventStore(agentId);
+      console.info(`Agent '${agentId}': Runtime init completed (event store initialized).`);
     }
 
-    if (!this.context.state.status_deriver) {
-      this.context.state.status_deriver = new AgentStatusDeriver(this.context.current_status);
-      console.info(`Agent '${agent_id}': Runtime init completed (status deriver initialized).`);
+    if (!this.context.state.statusDeriver) {
+      this.context.state.statusDeriver = new AgentStatusDeriver(this.context.currentStatus);
+      console.info(`Agent '${agentId}': Runtime init completed (status deriver initialized).`);
     }
 
-    if (this.context.state.input_event_queues) {
-      console.debug(`Agent '${agent_id}': Runtime init skipped; input event queues already initialized.`);
+    if (this.context.state.inputEventQueues) {
+      console.debug(`Agent '${agentId}': Runtime init skipped; input event queues already initialized.`);
       return true;
     }
 
     try {
-      this.context.state.input_event_queues = new AgentInputEventQueueManager();
-      console.info(`Agent '${agent_id}': Runtime init completed (input queues initialized).`);
+      this.context.state.inputEventQueues = new AgentInputEventQueueManager();
+      console.info(`Agent '${agentId}': Runtime init completed (input queues initialized).`);
       return true;
     } catch (error) {
-      console.error(`Agent '${agent_id}': Runtime init failed while initializing input queues: ${error}`);
+      console.error(`Agent '${agentId}': Runtime init failed while initializing input queues: ${error}`);
       return false;
     }
   }
 
-  async async_run(): Promise<void> {
-    const agent_id = this.context.agent_id;
+  async asyncRun(): Promise<void> {
+    const agentId = this.context.agentId;
 
     try {
-      console.info(`AgentWorker '${agent_id}' async_run(): Starting.`);
+      console.info(`AgentWorker '${agentId}' asyncRun(): Starting.`);
 
-      const runtimeInitSuccess = await this._runtime_init();
+      const runtimeInitSuccess = await this.runtimeInit();
       if (!runtimeInitSuccess) {
-        console.error(`AgentWorker '${agent_id}' failed during runtime init. Worker is shutting down.`);
+        console.error(`AgentWorker '${agentId}' failed during runtime init. Worker is shutting down.`);
         this.stopRequested = true;
         return;
       }
 
-      const initSuccess = await this._initialize();
+      const initSuccess = await this.initialize();
       if (!initSuccess) {
-        console.error(`AgentWorker '${agent_id}' failed to initialize. Worker is shutting down.`);
+        console.error(`AgentWorker '${agentId}' failed to initialize. Worker is shutting down.`);
         this.stopRequested = true;
         return;
       }
 
-      console.info(`AgentWorker '${agent_id}' initialized successfully. Entering main event loop.`);
+      console.info(`AgentWorker '${agentId}' initialized successfully. Entering main event loop.`);
       while (!this.stopRequested) {
         let queueEvent: [string, BaseEvent] | null = null;
         try {
-          queueEvent = await this.context.state.input_event_queues!.get_next_input_event();
+          queueEvent = await this.context.state.inputEventQueues!.getNextInputEvent();
         } catch {
           queueEvent = null;
         }
@@ -170,43 +170,43 @@ export class AgentWorker {
 
         const [, eventObj] = queueEvent;
         try {
-          await this.worker_event_dispatcher.dispatch(eventObj, this.context);
+          await this.workerEventDispatcher.dispatch(eventObj, this.context);
         } catch (error) {
-          console.error(`Fatal error in AgentWorker '${agent_id}' dispatch: ${error}`);
+          console.error(`Fatal error in AgentWorker '${agentId}' dispatch: ${error}`);
           this.stopRequested = true;
         }
 
         await delay(0);
       }
     } catch (error) {
-      console.error(`Fatal error in AgentWorker '${agent_id}' async_run() loop: ${error}`);
+      console.error(`Fatal error in AgentWorker '${agentId}' asyncRun() loop: ${error}`);
     } finally {
-      console.info(`AgentWorker '${agent_id}' async_run() loop has finished.`);
-      console.info(`AgentWorker '${agent_id}': Running shutdown sequence on worker loop.`);
+      console.info(`AgentWorker '${agentId}' asyncRun() loop has finished.`);
+      console.info(`AgentWorker '${agentId}': Running shutdown sequence on worker loop.`);
       const orchestrator = new AgentShutdownOrchestrator();
       const cleanupSuccess = await orchestrator.run(this.context);
 
       if (!cleanupSuccess) {
-        console.error(`AgentWorker '${agent_id}': Shutdown resource cleanup failed.`);
+        console.error(`AgentWorker '${agentId}': Shutdown resource cleanup failed.`);
       } else {
-        console.info(`AgentWorker '${agent_id}': Shutdown resource cleanup completed successfully.`);
+        console.info(`AgentWorker '${agentId}': Shutdown resource cleanup completed successfully.`);
       }
-      console.info(`AgentWorker '${agent_id}': Shutdown sequence completed.`);
+      console.info(`AgentWorker '${agentId}': Shutdown sequence completed.`);
     }
   }
 
   async stop(timeout: number = 10.0): Promise<void> {
-    if (!this._is_active || this.stopInitiated) {
+    if (!this.isActive || this.stopInitiated) {
       return;
     }
 
-    const agent_id = this.context.agent_id;
-    console.info(`AgentWorker '${agent_id}': Stop requested.`);
+    const agentId = this.context.agentId;
+    console.info(`AgentWorker '${agentId}': Stop requested.`);
     this.stopInitiated = true;
     this.stopRequested = true;
 
-    if (this.context.state.input_event_queues) {
-      await this.context.state.input_event_queues.enqueue_internal_system_event(new AgentStoppedEvent());
+    if (this.context.state.inputEventQueues) {
+      await this.context.state.inputEventQueues.enqueueInternalSystemEvent(new AgentStoppedEvent());
     }
 
     if (this.loopPromise) {
@@ -216,10 +216,10 @@ export class AgentWorker {
         delay(timeoutMs).then(() => 'timeout')
       ]);
       if (result === 'timeout') {
-        console.warn(`AgentWorker '${agent_id}': Timeout waiting for worker loop to terminate.`);
+        console.warn(`AgentWorker '${agentId}': Timeout waiting for worker loop to terminate.`);
       }
     }
 
-    this._is_active = false;
+    this.isActive = false;
   }
 }

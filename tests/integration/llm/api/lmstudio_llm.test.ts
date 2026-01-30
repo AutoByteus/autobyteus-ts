@@ -33,15 +33,15 @@ const createLmstudioLLM = (modelId: string) => {
     name: modelId,
     value: modelId,
     provider: LLMProvider.LMSTUDIO,
-    llm_class: LMStudioLLM,
-    canonical_name: modelId,
+    llmClass: LMStudioLLM,
+    canonicalName: modelId,
     runtime: LLMRuntime.LMSTUDIO,
-    host_url: process.env.LMSTUDIO_HOST ?? LMStudioModelProvider.DEFAULT_LMSTUDIO_HOST,
-    default_config: new LLMConfig({
-      pricing_config: new TokenPricingConfig({ input_token_pricing: 0.0, output_token_pricing: 0.0 })
+    hostUrl: process.env.LMSTUDIO_HOST ?? LMStudioModelProvider.DEFAULT_LMSTUDIO_HOST,
+    defaultConfig: new LLMConfig({
+      pricingConfig: new TokenPricingConfig({ inputTokenPricing: 0.0, outputTokenPricing: 0.0 })
     })
   });
-  return new LMStudioLLM(llmModel, llmModel.default_config);
+  return new LMStudioLLM(llmModel, llmModel.defaultConfig);
 };
 
 const getTextLLM = async () => {

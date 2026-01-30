@@ -10,7 +10,7 @@ export class DeepSeekLLM extends OpenAICompatibleLLM {
       new LLMModel({
         name: 'deepseek-chat',
         value: 'deepseek-chat',
-        canonical_name: 'deepseek-chat',
+        canonicalName: 'deepseek-chat',
         provider: LLMProvider.DEEPSEEK
       });
 

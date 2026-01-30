@@ -1,14 +1,14 @@
 import { JsonStringFieldExtractor } from './json_string_field_extractor.js';
 
 export class FileContentStreamUpdate {
-  content_delta: string;
+  contentDelta: string;
   path?: string;
-  content_complete?: string;
+  contentComplete?: string;
 
-  constructor(data: { content_delta?: string; path?: string; content_complete?: string } = {}) {
-    this.content_delta = data.content_delta ?? '';
+  constructor(data: { contentDelta?: string; path?: string; contentComplete?: string } = {}) {
+    this.contentDelta = data.contentDelta ?? '';
     this.path = data.path;
-    this.content_complete = data.content_complete;
+    this.contentComplete = data.contentComplete;
   }
 }
 
@@ -35,9 +35,9 @@ class BaseFileContentStreamer {
     }
 
     return new FileContentStreamUpdate({
-      content_delta: result.deltas[this.contentKey] ?? '',
+      contentDelta: result.deltas[this.contentKey] ?? '',
       path: result.completed['path'],
-      content_complete: result.completed[this.contentKey]
+      contentComplete: result.completed[this.contentKey]
     });
   }
 }

@@ -26,10 +26,10 @@ describe('AgentEventStore', () => {
     store.append(new AgentReadyEvent());
     store.append(new AgentReadyEvent());
 
-    const events = store.all_events();
+    const events = store.allEvents();
     expect(events).toHaveLength(2);
 
     events.length = 0;
-    expect(store.all_events()).toHaveLength(2);
+    expect(store.allEvents()).toHaveLength(2);
   });
 });

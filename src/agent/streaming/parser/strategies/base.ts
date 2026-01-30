@@ -3,6 +3,6 @@ import type { BaseState } from '../states/base_state.js';
 
 export interface DetectionStrategy {
   name: string;
-  next_marker(context: ParserContext, startPos: number): number;
-  create_state(context: ParserContext): BaseState;
+  nextMarker(context: ParserContext, startPos: number): number;
+  createState(context: ParserContext): BaseState;
 }

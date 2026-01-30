@@ -1,4 +1,4 @@
-import type { ProcessUserMessageEvent } from './agent_team_events.js';
+import type { BaseAgentTeamEvent, ProcessUserMessageEvent } from './agent_team_events.js';
 
 class AsyncQueue<T> {
   private items: T[] = [];
@@ -31,21 +31,21 @@ class AsyncQueue<T> {
 }
 
 export class AgentTeamInputEventQueueManager {
-  user_message_queue: AsyncQueue<ProcessUserMessageEvent>;
-  internal_system_event_queue: AsyncQueue<any>;
+  userMessageQueue: AsyncQueue<ProcessUserMessageEvent>;
+  internalSystemEventQueue: AsyncQueue<BaseAgentTeamEvent>;
 
-  constructor(queue_size: number = 0) {
-    void queue_size;
-    this.user_message_queue = new AsyncQueue<ProcessUserMessageEvent>();
-    this.internal_system_event_queue = new AsyncQueue<any>();
+  constructor(queueSize: number = 0) {
+    void queueSize;
+    this.userMessageQueue = new AsyncQueue<ProcessUserMessageEvent>();
+    this.internalSystemEventQueue = new AsyncQueue<BaseAgentTeamEvent>();
     console.info('AgentTeamInputEventQueueManager initialized.');
   }
 
-  async enqueue_user_message(event: ProcessUserMessageEvent): Promise<void> {
-    await this.user_message_queue.put(event);
+  async enqueueUserMessage(event: ProcessUserMessageEvent): Promise<void> {
+    await this.userMessageQueue.put(event);
   }
 
-  async enqueue_internal_system_event(event: any): Promise<void> {
-    await this.internal_system_event_queue.put(event);
+  async enqueueInternalSystemEvent(event: BaseAgentTeamEvent): Promise<void> {
+    await this.internalSystemEventQueue.put(event);
   }
 }

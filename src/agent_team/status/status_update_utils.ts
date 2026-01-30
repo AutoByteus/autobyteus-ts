@@ -2,41 +2,41 @@ import { AgentTeamStatus } from './agent_team_status.js';
 import { AgentTeamErrorEvent, BaseAgentTeamEvent } from '../events/agent_team_events.js';
 import type { AgentTeamContext } from '../context/agent_team_context.js';
 
-export function build_status_update_data(
+export function buildStatusUpdateData(
   event: BaseAgentTeamEvent,
-  new_status: AgentTeamStatus
-): Record<string, any> | null {
-  if (new_status === AgentTeamStatus.ERROR && event instanceof AgentTeamErrorEvent) {
-    return { error_message: event.error_message };
+  newStatus: AgentTeamStatus
+): Record<string, unknown> | null {
+  if (newStatus === AgentTeamStatus.ERROR && event instanceof AgentTeamErrorEvent) {
+    return { error_message: event.errorMessage };
   }
 
   return null;
 }
 
-export async function apply_event_and_derive_status(
+export async function applyEventAndDeriveStatus(
   event: BaseAgentTeamEvent,
   context: AgentTeamContext
 ): Promise<[AgentTeamStatus, AgentTeamStatus]> {
-  if (context.state.event_store) {
+  if (context.state.eventStore) {
     try {
-      context.state.event_store.append(event);
+      context.state.eventStore.append(event);
     } catch (error) {
       console.error(`Failed to append team event to store: ${error}`);
     }
   }
 
-  if (!context.state.status_deriver) {
-    return [context.current_status, context.current_status];
+  if (!context.state.statusDeriver) {
+    return [context.currentStatus, context.currentStatus];
   }
 
-  const [old_status, new_status] = context.state.status_deriver.apply(event);
-  if (old_status !== new_status) {
-    context.current_status = new_status;
-    const additional_data = build_status_update_data(event, new_status);
-    if (context.status_manager) {
-      await context.status_manager.emit_status_update(old_status, new_status, additional_data ?? null);
+  const [oldStatus, newStatus] = context.state.statusDeriver.apply(event);
+  if (oldStatus !== newStatus) {
+    context.currentStatus = newStatus;
+    const additionalData = buildStatusUpdateData(event, newStatus);
+    if (context.statusManager) {
+      await context.statusManager.emitStatusUpdate(oldStatus, newStatus, additionalData ?? null);
     }
   }
 
-  return [old_status, new_status];
+  return [oldStatus, newStatus];
 }

@@ -21,12 +21,12 @@ describe('InterAgentMessage', () => {
       'sender-2'
     );
 
-    expect(msg.message_type.value).toBe('custom_type');
+    expect(msg.messageType.value).toBe('custom_type');
   });
 
   it('renders a readable string', () => {
     const msg = new InterAgentMessage('role', 'agent-1', 'hello', InterAgentMessageType.ERROR, 'sender-1');
     expect(msg.toString()).toContain('InterAgentMessage');
-    expect(msg.toString()).toContain('message_type');
+    expect(msg.toString()).toContain('messageType');
   });
 });

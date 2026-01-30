@@ -17,53 +17,53 @@ export class AgentTeamShutdownRequestedEvent extends LifecycleAgentTeamEvent {}
 export class AgentTeamStoppedEvent extends LifecycleAgentTeamEvent {}
 
 export class AgentTeamErrorEvent extends LifecycleAgentTeamEvent {
-  error_message: string;
-  exception_details?: string;
+  errorMessage: string;
+  exceptionDetails?: string;
 
-  constructor(error_message: string, exception_details?: string) {
+  constructor(errorMessage: string, exceptionDetails?: string) {
     super();
-    this.error_message = error_message;
-    this.exception_details = exception_details;
+    this.errorMessage = errorMessage;
+    this.exceptionDetails = exceptionDetails;
   }
 }
 
 export class ProcessUserMessageEvent extends OperationalAgentTeamEvent {
-  user_message: AgentInputUserMessage;
-  target_agent_name: string;
+  userMessage: AgentInputUserMessage;
+  targetAgentName: string;
 
-  constructor(user_message: AgentInputUserMessage, target_agent_name: string) {
+  constructor(userMessage: AgentInputUserMessage, targetAgentName: string) {
     super();
-    this.user_message = user_message;
-    this.target_agent_name = target_agent_name;
+    this.userMessage = userMessage;
+    this.targetAgentName = targetAgentName;
   }
 }
 
 export class InterAgentMessageRequestEvent extends OperationalAgentTeamEvent {
-  sender_agent_id: string;
-  recipient_name: string;
+  senderAgentId: string;
+  recipientName: string;
   content: string;
-  message_type: string;
+  messageType: string;
 
-  constructor(sender_agent_id: string, recipient_name: string, content: string, message_type: string) {
+  constructor(senderAgentId: string, recipientName: string, content: string, messageType: string) {
     super();
-    this.sender_agent_id = sender_agent_id;
-    this.recipient_name = recipient_name;
+    this.senderAgentId = senderAgentId;
+    this.recipientName = recipientName;
     this.content = content;
-    this.message_type = message_type;
+    this.messageType = messageType;
   }
 }
 
 export class ToolApprovalTeamEvent extends OperationalAgentTeamEvent {
-  agent_name: string;
-  tool_invocation_id: string;
-  is_approved: boolean;
+  agentName: string;
+  toolInvocationId: string;
+  isApproved: boolean;
   reason?: string;
 
-  constructor(agent_name: string, tool_invocation_id: string, is_approved: boolean, reason?: string) {
+  constructor(agentName: string, toolInvocationId: string, isApproved: boolean, reason?: string) {
     super();
-    this.agent_name = agent_name;
-    this.tool_invocation_id = tool_invocation_id;
-    this.is_approved = is_approved;
+    this.agentName = agentName;
+    this.toolInvocationId = toolInvocationId;
+    this.isApproved = isApproved;
     this.reason = reason;
   }
 }

@@ -29,7 +29,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Claude live)', () => {
     const llm = new AnthropicLLM(new LLMModel({
       name: 'claude-4.5-sonnet',
       value: 'claude-4.5-sonnet',
-      canonical_name: 'claude-4.5-sonnet',
+      canonicalName: 'claude-4.5-sonnet',
       provider: LLMProvider.ANTHROPIC
     }));
 
@@ -56,7 +56,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Claude live)', () => {
       await llm.cleanup();
     }
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations.length).toBeGreaterThanOrEqual(1);
 
     const invocation = invocations.find((entry) => entry.name === 'write_file');

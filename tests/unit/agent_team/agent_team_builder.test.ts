@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('../../../src/agent_team/factory/agent_team_factory.js', () => ({
   AgentTeamFactory: vi.fn().mockImplementation(function (this: any) {
-    this.create_team = mocks.createTeam;
+    this.createTeam = mocks.createTeam;
   })
 }));
 
@@ -38,7 +38,7 @@ const makeAgentConfig = (name: string) => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -61,8 +61,8 @@ describe('AgentTeamBuilder', () => {
 
     const builder = new AgentTeamBuilder(name, description);
     const team = builder
-      .set_coordinator(coordinatorConfig)
-      .add_agent_node(memberConfig, [coordinatorConfig])
+      .setCoordinator(coordinatorConfig)
+      .addAgentNode(memberConfig, [coordinatorConfig])
       .build();
 
     expect(team).toBe(mocks.teamInstance);
@@ -73,18 +73,18 @@ describe('AgentTeamBuilder', () => {
     expect(finalTeamConfig.description).toBe(description);
     expect(finalTeamConfig.nodes.length).toBe(2);
 
-    const finalCoordNode = finalTeamConfig.coordinator_node;
-    const finalMemberNode = finalTeamConfig.nodes.find((n) => n.node_definition === memberConfig) as TeamNodeConfig;
+    const finalCoordNode = finalTeamConfig.coordinatorNode;
+    const finalMemberNode = finalTeamConfig.nodes.find((n) => n.nodeDefinition === memberConfig) as TeamNodeConfig;
 
-    expect(finalCoordNode.node_definition).toBe(coordinatorConfig);
-    expect(finalMemberNode.node_definition).toBe(memberConfig);
+    expect(finalCoordNode.nodeDefinition).toBe(coordinatorConfig);
+    expect(finalMemberNode.nodeDefinition).toBe(memberConfig);
     expect(finalMemberNode.dependencies.length).toBe(1);
     expect(finalMemberNode.dependencies[0]).toBe(finalCoordNode);
   });
 
   it('fails to build without coordinator', () => {
     const builder = new AgentTeamBuilder('Test', 'A team without a coordinator');
-    builder.add_agent_node(makeAgentConfig('SomeNode'));
+    builder.addAgentNode(makeAgentConfig('SomeNode'));
 
     expect(() => builder.build()).toThrow('A coordinator must be set');
   });
@@ -94,9 +94,9 @@ describe('AgentTeamBuilder', () => {
     const node2 = makeAgentConfig('DuplicateName');
 
     const builder = new AgentTeamBuilder('Test', 'Test duplicate name');
-    builder.add_agent_node(node1);
+    builder.addAgentNode(node1);
 
-    expect(() => builder.add_agent_node(node2)).toThrow("Duplicate node name 'DuplicateName' detected");
+    expect(() => builder.addAgentNode(node2)).toThrow("Duplicate node name 'DuplicateName' detected");
   });
 
   it('rejects unknown dependency', () => {
@@ -105,7 +105,7 @@ describe('AgentTeamBuilder', () => {
 
     const builder = new AgentTeamBuilder('Test', 'Test unknown dependency');
 
-    expect(() => builder.add_agent_node(nodeConfig, [dependencyConfig])).toThrow(
+    expect(() => builder.addAgentNode(nodeConfig, [dependencyConfig])).toThrow(
       'must be added to the builder before being used'
     );
   });

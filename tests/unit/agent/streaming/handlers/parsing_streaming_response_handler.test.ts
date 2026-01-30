@@ -17,7 +17,7 @@ describe('ParsingStreamingResponseHandler basics', () => {
     handler.feed(chunk('Test message'));
     handler.finalize();
 
-    const allEvents = handler.get_all_events();
+    const allEvents = handler.getAllEvents();
     expect(allEvents.length).toBeGreaterThan(0);
   });
 
@@ -37,10 +37,10 @@ describe('ParsingStreamingResponseHandler basics', () => {
 });
 
 describe('ParsingStreamingResponseHandler callbacks', () => {
-  it('on_segment_event is invoked for each event', () => {
+  it('onSegmentEvent is invoked for each event', () => {
     const received: SegmentEvent[] = [];
     const handler = new ParsingStreamingResponseHandler({
-      on_segment_event: (event) => received.push(event)
+      onSegmentEvent: (event) => received.push(event)
     });
 
     handler.feed(chunk('Hello'));
@@ -50,10 +50,10 @@ describe('ParsingStreamingResponseHandler callbacks', () => {
     expect(received.every((e) => e instanceof SegmentEvent)).toBe(true);
   });
 
-  it('on_tool_invocation is invoked for tool segments', () => {
+  it('onToolInvocation is invoked for tool segments', () => {
     const invocations: any[] = [];
     const handler = new ParsingStreamingResponseHandler({
-      on_tool_invocation: (inv) => invocations.push(inv)
+      onToolInvocation: (inv) => invocations.push(inv)
     });
 
     handler.feed(chunk('<tool name="test_tool"><key>value</key></tool>'));
@@ -65,7 +65,7 @@ describe('ParsingStreamingResponseHandler callbacks', () => {
 
   it('callback errors do not crash handler', () => {
     const handler = new ParsingStreamingResponseHandler({
-      on_segment_event: () => {
+      onSegmentEvent: () => {
         throw new Error('Callback error!');
       }
     });
@@ -83,7 +83,7 @@ describe('ParsingStreamingResponseHandler tool integration', () => {
     handler.feed(chunk('<tool name="read_file"><path>/test.py</path></tool>'));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('read_file');
     expect(invocations[0].arguments).toEqual({ path: '/test.py' });
@@ -95,7 +95,7 @@ describe('ParsingStreamingResponseHandler tool integration', () => {
     handler.feed(chunk(' more text <tool name="tool_b"><b>2</b></tool>'));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(2);
   });
 
@@ -104,8 +104,8 @@ describe('ParsingStreamingResponseHandler tool integration', () => {
     handler.feed(chunk('<tool name="test"></tool>'));
     handler.finalize();
 
-    const events = handler.get_all_events();
-    const invocations = handler.get_all_invocations();
+    const events = handler.getAllEvents();
+    const invocations = handler.getAllInvocations();
 
     const toolStart = events.find((e) => e.segment_type === SegmentType.TOOL_CALL && e.event_type === SegmentEventType.START);
     if (!toolStart) {
@@ -121,14 +121,14 @@ describe('ParsingStreamingResponseHandler reset', () => {
     handler.feed(chunk('test data'));
     handler.finalize();
 
-    expect(handler.get_all_events().length).toBeGreaterThan(0);
+    expect(handler.getAllEvents().length).toBeGreaterThan(0);
 
     handler.reset();
-    expect(handler.get_all_events()).toHaveLength(0);
-    expect(handler.get_all_invocations()).toHaveLength(0);
+    expect(handler.getAllEvents()).toHaveLength(0);
+    expect(handler.getAllInvocations()).toHaveLength(0);
 
     handler.feed(chunk('new data'));
     handler.finalize();
-    expect(handler.get_all_events().length).toBeGreaterThan(0);
+    expect(handler.getAllEvents().length).toBeGreaterThan(0);
   });
 });

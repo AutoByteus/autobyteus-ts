@@ -15,21 +15,21 @@ export class GenericEventHandler extends AgentEventHandler {
       return;
     }
 
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     const payloadText = JSON.stringify(event.payload);
     console.info(
-      `Agent '${agentId}' handling GenericEvent with type_name: '${event.type_name}'. Payload: ${payloadText}`
+      `Agent '${agentId}' handling GenericEvent with type_name: '${event.typeName}'. Payload: ${payloadText}`
     );
 
-    if (event.type_name === 'example_custom_generic_event') {
+    if (event.typeName === 'example_custom_generic_event') {
       console.info(
         `Handling specific generic event 'example_custom_generic_event' for agent '${agentId}'.`
       );
-    } else if (event.type_name === 'another_custom_event') {
+    } else if (event.typeName === 'another_custom_event') {
       console.info(`Handling specific generic event 'another_custom_event' for agent '${agentId}'.`);
     } else {
       console.warn(
-        `Agent '${agentId}' received GenericEvent with unhandled type_name: '${event.type_name}'.`
+        `Agent '${agentId}' received GenericEvent with unhandled type_name: '${event.typeName}'.`
       );
     }
   }

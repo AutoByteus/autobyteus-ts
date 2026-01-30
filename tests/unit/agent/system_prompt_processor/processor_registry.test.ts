@@ -7,36 +7,36 @@ import type { BaseTool } from '../../../../src/tools/base_tool.js';
 type AgentContextLike = unknown;
 
 class ProcA extends BaseSystemPromptProcessor {
-  static get_name(): string { return 'ProcA'; }
-  process(system_prompt: string, _tool_instances: Record<string, BaseTool>, _agent_id: string, _context: AgentContextLike): string { return system_prompt; }
+  static getName(): string { return 'ProcA'; }
+  process(systemPrompt: string, _toolInstances: Record<string, BaseTool>, _agentId: string, _context: AgentContextLike): string { return systemPrompt; }
 }
 
 class ProcB extends BaseSystemPromptProcessor {
-  static get_name(): string { return 'ProcB'; }
-  process(system_prompt: string, _tool_instances: Record<string, BaseTool>, _agent_id: string, _context: AgentContextLike): string { return system_prompt; }
+  static getName(): string { return 'ProcB'; }
+  process(systemPrompt: string, _toolInstances: Record<string, BaseTool>, _agentId: string, _context: AgentContextLike): string { return systemPrompt; }
 }
 
 class ProcWithInitError extends BaseSystemPromptProcessor {
-  static get_name(): string { return 'ProcWithInitError'; }
+  static getName(): string { return 'ProcWithInitError'; }
   constructor() {
     super();
     throw new Error('Init failed');
   }
-  process(system_prompt: string, _tool_instances: Record<string, BaseTool>, _agent_id: string, _context: AgentContextLike): string { return system_prompt; }
+  process(systemPrompt: string, _toolInstances: Record<string, BaseTool>, _agentId: string, _context: AgentContextLike): string { return systemPrompt; }
 }
 
 describe('SystemPromptProcessorRegistry', () => {
   let originalDefinitions: Record<string, SystemPromptProcessorDefinition> = {};
 
   beforeEach(() => {
-    originalDefinitions = defaultSystemPromptProcessorRegistry.get_all_definitions();
+    originalDefinitions = defaultSystemPromptProcessorRegistry.getAllDefinitions();
     defaultSystemPromptProcessorRegistry.clear();
   });
 
   afterEach(() => {
     defaultSystemPromptProcessorRegistry.clear();
     for (const definition of Object.values(originalDefinitions)) {
-      defaultSystemPromptProcessorRegistry.register_processor(definition);
+      defaultSystemPromptProcessorRegistry.registerProcessor(definition);
     }
   });
 
@@ -48,9 +48,9 @@ describe('SystemPromptProcessorRegistry', () => {
 
   it('registers processor definitions', () => {
     const definition = new SystemPromptProcessorDefinition('ProcA', ProcA);
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
 
-    expect(defaultSystemPromptProcessorRegistry.get_processor_definition('ProcA')).toBe(definition);
+    expect(defaultSystemPromptProcessorRegistry.getProcessorDefinition('ProcA')).toBe(definition);
     expect(defaultSystemPromptProcessorRegistry.length()).toBe(1);
   });
 
@@ -58,71 +58,71 @@ describe('SystemPromptProcessorRegistry', () => {
     const definition1 = new SystemPromptProcessorDefinition('ProcOverwrite', ProcA);
     const definition2 = new SystemPromptProcessorDefinition('ProcOverwrite', ProcB);
 
-    defaultSystemPromptProcessorRegistry.register_processor(definition1);
-    defaultSystemPromptProcessorRegistry.register_processor(definition2);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition1);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition2);
 
-    expect(defaultSystemPromptProcessorRegistry.get_processor_definition('ProcOverwrite')).toBe(definition2);
+    expect(defaultSystemPromptProcessorRegistry.getProcessorDefinition('ProcOverwrite')).toBe(definition2);
     expect(defaultSystemPromptProcessorRegistry.length()).toBe(1);
   });
 
   it('rejects invalid definition types', () => {
-    expect(() => defaultSystemPromptProcessorRegistry.register_processor({} as SystemPromptProcessorDefinition)).toThrow(
+    expect(() => defaultSystemPromptProcessorRegistry.registerProcessor({} as SystemPromptProcessorDefinition)).toThrow(
       /Expected SystemPromptProcessorDefinition/
     );
   });
 
   it('handles invalid name lookups', () => {
-    expect(defaultSystemPromptProcessorRegistry.get_processor_definition(null as unknown as string)).toBeUndefined();
-    expect(defaultSystemPromptProcessorRegistry.get_processor_definition(123 as unknown as string)).toBeUndefined();
+    expect(defaultSystemPromptProcessorRegistry.getProcessorDefinition(null as unknown as string)).toBeUndefined();
+    expect(defaultSystemPromptProcessorRegistry.getProcessorDefinition(123 as unknown as string)).toBeUndefined();
   });
 
   it('returns processor instances when available', () => {
     const definition = new SystemPromptProcessorDefinition('ProcA', ProcA);
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
 
-    const instance = defaultSystemPromptProcessorRegistry.get_processor('ProcA');
+    const instance = defaultSystemPromptProcessorRegistry.getProcessor('ProcA');
     expect(instance).toBeInstanceOf(ProcA);
   });
 
   it('returns undefined for missing processor', () => {
-    expect(defaultSystemPromptProcessorRegistry.get_processor('NonExistentProc')).toBeUndefined();
+    expect(defaultSystemPromptProcessorRegistry.getProcessor('NonExistentProc')).toBeUndefined();
   });
 
   it('returns undefined when processor instantiation fails', () => {
     const definition = new SystemPromptProcessorDefinition('ProcWithInitError', ProcWithInitError);
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
 
-    const instance = defaultSystemPromptProcessorRegistry.get_processor('ProcWithInitError');
+    const instance = defaultSystemPromptProcessorRegistry.getProcessor('ProcWithInitError');
     expect(instance).toBeUndefined();
   });
 
   it('lists processor names', () => {
     const definitionA = new SystemPromptProcessorDefinition('ProcA', ProcA);
     const definitionB = new SystemPromptProcessorDefinition('ProcB', ProcB);
-    defaultSystemPromptProcessorRegistry.register_processor(definitionA);
-    defaultSystemPromptProcessorRegistry.register_processor(definitionB);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definitionA);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definitionB);
 
-    const names = defaultSystemPromptProcessorRegistry.list_processor_names().sort();
+    const names = defaultSystemPromptProcessorRegistry.listProcessorNames().sort();
     expect(names).toEqual(['ProcA', 'ProcB']);
   });
 
   it('returns all definitions', () => {
     const definition = new SystemPromptProcessorDefinition('ProcA', ProcA);
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
 
-    const defs = defaultSystemPromptProcessorRegistry.get_all_definitions();
+    const defs = defaultSystemPromptProcessorRegistry.getAllDefinitions();
     expect(Object.keys(defs)).toEqual(['ProcA']);
     expect(defs.ProcA).toBe(definition);
   });
 
   it('clears definitions', () => {
     const definition = new SystemPromptProcessorDefinition('ProcA', ProcA);
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
     expect(defaultSystemPromptProcessorRegistry.length()).toBe(1);
 
     defaultSystemPromptProcessorRegistry.clear();
     expect(defaultSystemPromptProcessorRegistry.length()).toBe(0);
-    expect(defaultSystemPromptProcessorRegistry.get_processor_definition('ProcA')).toBeUndefined();
+    expect(defaultSystemPromptProcessorRegistry.getProcessorDefinition('ProcA')).toBeUndefined();
   });
 
   it('supports contains and length helpers', () => {
@@ -130,7 +130,7 @@ describe('SystemPromptProcessorRegistry', () => {
     expect(defaultSystemPromptProcessorRegistry.contains('ProcA')).toBe(false);
 
     const definition = new SystemPromptProcessorDefinition('ProcA', ProcA);
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
 
     expect(defaultSystemPromptProcessorRegistry.length()).toBe(1);
     expect(defaultSystemPromptProcessorRegistry.contains('ProcA')).toBe(true);

@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
 import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { AgentTeamBuilder } from '../../../src/agent_team/agent_team_builder.js';
-import { run_agent_team_cli } from '../../../src/cli/index.js';
+import { runAgentTeamCli } from '../../../src/cli/index.js';
 import { SendMessageTo } from '../../../src/agent/message/send_message_to.js';
 import { CreateTasks } from '../../../src/task_management/tools/task_tools/create_tasks.js';
 import { GetTaskPlanStatus } from '../../../src/task_management/tools/task_tools/get_task_plan_status.js';
@@ -64,12 +64,12 @@ async function main(): Promise<void> {
   );
 
   const team = new AgentTeamBuilder('TuiDemoTeam', 'Two-agent team for the TUI demo.')
-    .set_coordinator(coordinatorConfig)
-    .add_agent_node(factCheckerConfig)
+    .setCoordinator(coordinatorConfig)
+    .addAgentNode(factCheckerConfig)
     .build();
 
   try {
-    await run_agent_team_cli(team);
+    await runAgentTeamCli(team);
   } finally {
     await llm.cleanup();
   }

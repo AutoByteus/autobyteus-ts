@@ -6,6 +6,8 @@ import crypto from 'node:crypto';
 
 import { BaseAudioClient } from '../base_audio_client.js';
 import { SpeechGenerationResponse } from '../../utils/response_types.js';
+import type { AudioModel } from '../audio_model.js';
+import type { MultimediaConfig } from '../../utils/multimedia_config.js';
 
 const AUDIO_TEMP_DIR = path.join(os.tmpdir(), 'autobyteus_audio');
 
@@ -17,10 +19,10 @@ async function saveAudioBytes(audioBytes: Uint8Array, fileExtension?: string | n
   return filePath;
 }
 
-export class OpenAIAudioClient extends BaseAudioClient {
+  export class OpenAIAudioClient extends BaseAudioClient {
   private client: OpenAI;
 
-  constructor(model: any, config: any) {
+  constructor(model: AudioModel, config: MultimediaConfig) {
     super(model, config);
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -34,18 +36,20 @@ export class OpenAIAudioClient extends BaseAudioClient {
     }
   }
 
-  async generateSpeech(prompt: string, generationConfig?: Record<string, any>): Promise<SpeechGenerationResponse> {
+  async generateSpeech(prompt: string, generationConfig?: Record<string, unknown>): Promise<SpeechGenerationResponse> {
     try {
-      const finalConfig = { ...this.config.toDict?.() } as Record<string, any>;
+      const finalConfig = { ...(this.config.toDict?.() ?? {}) } as Record<string, unknown>;
       if (generationConfig) {
         Object.assign(finalConfig, generationConfig);
       }
 
-      const voice = finalConfig.voice ?? 'alloy';
-      const responseFormat = finalConfig.response_format ?? finalConfig.format ?? 'mp3';
-      const instructions = finalConfig.instructions;
+      const voice = typeof finalConfig.voice === 'string' ? finalConfig.voice : 'alloy';
+      const responseFormat = typeof finalConfig.response_format === 'string'
+        ? finalConfig.response_format
+        : (typeof finalConfig.format === 'string' ? finalConfig.format : 'mp3');
+      const instructions = typeof finalConfig.instructions === 'string' ? finalConfig.instructions : undefined;
 
-      const request: Record<string, any> = {
+      const request: Record<string, unknown> = {
         model: this.model.value,
         voice,
         input: prompt
@@ -60,7 +64,7 @@ export class OpenAIAudioClient extends BaseAudioClient {
       }
 
       const response = await this.client.audio.speech.create(
-        request as OpenAI.Audio.SpeechCreateParams
+        request as unknown as OpenAI.Audio.SpeechCreateParams
       );
       const arrayBuffer = await response.arrayBuffer();
       if (!arrayBuffer || arrayBuffer.byteLength === 0) {

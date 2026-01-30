@@ -7,12 +7,12 @@ import { AgentTeamFactory } from './factory/agent_team_factory.js';
 export type NodeDefinition = AgentConfig | AgentTeamConfig;
 
 export class AgentTeamBuilder {
-  private _name: string;
-  private _description: string;
-  private _role: string | null | undefined;
-  private _nodes: Map<NodeDefinition, NodeDefinition[]> = new Map();
-  private _coordinator_config: AgentConfig | null = null;
-  private _added_node_names: Set<string> = new Set();
+  private name: string;
+  private description: string;
+  private role: string | null | undefined;
+  private nodes: Map<NodeDefinition, NodeDefinition[]> = new Map();
+  private coordinatorConfig: AgentConfig | null = null;
+  private addedNodeNames: Set<string> = new Set();
 
   constructor(name: string, description: string, role?: string | null) {
     if (!name || typeof name !== 'string') {
@@ -22,127 +22,129 @@ export class AgentTeamBuilder {
       throw new Error('Agent team description must be a non-empty string.');
     }
 
-    this._name = name;
-    this._description = description;
-    this._role = role;
-    console.info(`AgentTeamBuilder initialized for team: '${this._name}'.`);
+    this.name = name;
+    this.description = description;
+    this.role = role;
+    console.info(`AgentTeamBuilder initialized for team: '${this.name}'.`);
   }
 
-  add_agent_node(agent_config: AgentConfig, dependencies?: NodeDefinition[]): AgentTeamBuilder {
-    this._add_node_internal(agent_config, dependencies);
+  addAgentNode(agentConfig: AgentConfig, dependencies?: NodeDefinition[]): AgentTeamBuilder {
+    this.addNodeInternal(agentConfig, dependencies);
     return this;
   }
 
-  add_sub_team_node(team_config: AgentTeamConfig, dependencies?: NodeDefinition[]): AgentTeamBuilder {
-    this._add_node_internal(team_config, dependencies);
+  addSubTeamNode(teamConfig: AgentTeamConfig, dependencies?: NodeDefinition[]): AgentTeamBuilder {
+    this.addNodeInternal(teamConfig, dependencies);
     return this;
   }
 
-  private _add_node_internal(node_definition: NodeDefinition, dependencies?: NodeDefinition[]): void {
-    if (!(node_definition instanceof AgentConfig || node_definition instanceof AgentTeamConfig)) {
-      throw new TypeError('node_definition must be an instance of AgentConfig or AgentTeamConfig.');
+  private addNodeInternal(nodeDefinition: NodeDefinition, dependencies?: NodeDefinition[]): void {
+    if (!(nodeDefinition instanceof AgentConfig || nodeDefinition instanceof AgentTeamConfig)) {
+      throw new TypeError('nodeDefinition must be an instance of AgentConfig or AgentTeamConfig.');
     }
 
-    const node_name = node_definition.name;
-    if (this._added_node_names.has(node_name)) {
+    const nodeName = nodeDefinition.name;
+    if (this.addedNodeNames.has(nodeName)) {
       throw new Error(
-        `Duplicate node name '${node_name}' detected. All nodes in a team must have a unique name.`
+        `Duplicate node name '${nodeName}' detected. All nodes in a team must have a unique name.`
       );
     }
 
-    if (this._nodes.has(node_definition) || node_definition === this._coordinator_config) {
+    if (this.nodes.has(nodeDefinition) || nodeDefinition === this.coordinatorConfig) {
       throw new Error(
-        `The exact same node definition object for '${node_name}' has already been added to the team.`
+        `The exact same node definition object for '${nodeName}' has already been added to the team.`
       );
     }
 
     if (dependencies && dependencies.length > 0) {
-      for (const dep_config of dependencies) {
-        if (!this._nodes.has(dep_config) && dep_config !== this._coordinator_config) {
+      for (const depConfig of dependencies) {
+        if (!this.nodes.has(depConfig) && depConfig !== this.coordinatorConfig) {
           throw new Error(
-            `Dependency node '${dep_config.name}' must be added to the builder before being used as a dependency.`
+            `Dependency node '${depConfig.name}' must be added to the builder before being used as a dependency.`
           );
         }
       }
     }
 
-    this._nodes.set(node_definition, dependencies ?? []);
-    this._added_node_names.add(node_name);
+    this.nodes.set(nodeDefinition, dependencies ?? []);
+    this.addedNodeNames.add(nodeName);
 
-    const nodeType = node_definition instanceof AgentTeamConfig ? 'Sub-Team' : 'Agent';
+    const nodeType = nodeDefinition instanceof AgentTeamConfig ? 'Sub-Team' : 'Agent';
     console.debug(
-      `Added ${nodeType} node '${node_name}' to builder with ${(dependencies ?? []).length} dependencies.`
+      `Added ${nodeType} node '${nodeName}' to builder with ${(dependencies ?? []).length} dependencies.`
     );
   }
 
-  set_coordinator(agent_config: AgentConfig): AgentTeamBuilder {
-    if (this._coordinator_config) {
+  setCoordinator(agentConfig: AgentConfig): AgentTeamBuilder {
+    if (this.coordinatorConfig) {
       throw new Error('A coordinator has already been set for this team.');
     }
 
-    if (!(agent_config instanceof AgentConfig)) {
+    if (!(agentConfig instanceof AgentConfig)) {
       throw new TypeError('Coordinator must be an instance of AgentConfig.');
     }
 
-    const node_name = agent_config.name;
-    if (this._added_node_names.has(node_name)) {
+    const nodeName = agentConfig.name;
+    if (this.addedNodeNames.has(nodeName)) {
       throw new Error(
-        `Duplicate node name '${node_name}' detected. The coordinator's name must also be unique within the team.`
+        `Duplicate node name '${nodeName}' detected. The coordinator's name must also be unique within the team.`
       );
     }
 
-    this._coordinator_config = agent_config;
-    this._added_node_names.add(node_name);
-    console.debug(`Set coordinator for team to '${agent_config.name}'.`);
+    this.coordinatorConfig = agentConfig;
+    this.addedNodeNames.add(nodeName);
+    console.debug(`Set coordinator for team to '${agentConfig.name}'.`);
     return this;
   }
 
   build(): AgentTeam {
     console.info('Building AgentTeam from builder...');
-    if (!this._coordinator_config) {
+    if (!this.coordinatorConfig) {
       throw new Error('Cannot build team: A coordinator must be set.');
     }
 
-    const node_map = new Map<NodeDefinition, TeamNodeConfig>();
-    const all_definitions = Array.from(this._nodes.keys());
-    if (!all_definitions.includes(this._coordinator_config)) {
-      all_definitions.push(this._coordinator_config);
+    const nodeMap = new Map<NodeDefinition, TeamNodeConfig>();
+    const allDefinitions = Array.from(this.nodes.keys());
+    if (!allDefinitions.includes(this.coordinatorConfig)) {
+      allDefinitions.push(this.coordinatorConfig);
     }
 
-    for (const definition of all_definitions) {
-      node_map.set(definition, new TeamNodeConfig({ node_definition: definition }));
+    for (const definition of allDefinitions) {
+      nodeMap.set(definition, new TeamNodeConfig({ nodeDefinition: definition }));
     }
 
-    for (const [node_def, dep_defs] of this._nodes.entries()) {
-      if (dep_defs && dep_defs.length > 0) {
-        const current_node = node_map.get(node_def);
-        if (!current_node) {
+    for (const [nodeDef, depDefs] of this.nodes.entries()) {
+      if (depDefs && depDefs.length > 0) {
+        const currentNode = nodeMap.get(nodeDef);
+        if (!currentNode) {
           continue;
         }
-        const dependency_nodes = dep_defs.map((dep_def) => node_map.get(dep_def)).filter(Boolean) as TeamNodeConfig[];
-        current_node.dependencies = dependency_nodes;
+        const dependencyNodes = depDefs
+          .map((depDef) => nodeMap.get(depDef))
+          .filter(Boolean) as TeamNodeConfig[];
+        currentNode.dependencies = dependencyNodes;
       }
     }
 
-    const final_nodes = Array.from(node_map.values());
-    const coordinator_node_instance = node_map.get(this._coordinator_config);
-    if (!coordinator_node_instance) {
+    const finalNodes = Array.from(nodeMap.values());
+    const coordinatorNodeInstance = nodeMap.get(this.coordinatorConfig);
+    if (!coordinatorNodeInstance) {
       throw new Error('Coordinator node configuration was not created.');
     }
 
-    const team_config = new AgentTeamConfig({
-      name: this._name,
-      description: this._description,
-      role: this._role ?? null,
-      nodes: final_nodes,
-      coordinator_node: coordinator_node_instance
+    const teamConfig = new AgentTeamConfig({
+      name: this.name,
+      description: this.description,
+      role: this.role ?? null,
+      nodes: finalNodes,
+      coordinatorNode: coordinatorNodeInstance
     });
 
     console.info(
-      `AgentTeamConfig created successfully. Name: '${team_config.name}'. Total nodes: ${final_nodes.length}. Coordinator: '${coordinator_node_instance.name}'.`
+      `AgentTeamConfig created successfully. Name: '${teamConfig.name}'. Total nodes: ${finalNodes.length}. Coordinator: '${coordinatorNodeInstance.name}'.`
     );
 
     const factory = new AgentTeamFactory();
-    return factory.create_team(team_config);
+    return factory.createTeam(teamConfig);
   }
 }

@@ -3,42 +3,42 @@ import { ProcessUserMessageEvent } from '../events/agent_team_events.js';
 import { SenderType, TASK_NOTIFIER_SENDER_ID } from '../../agent/sender_type.js';
 
 type TeamManagerLike = {
-  team_id: string;
-  ensure_node_is_ready: (name: string) => Promise<unknown>;
-  dispatch_user_message_to_agent: (event: ProcessUserMessageEvent) => Promise<void>;
+  teamId: string;
+  ensureNodeIsReady: (name: string) => Promise<unknown>;
+  dispatchUserMessageToAgent: (event: ProcessUserMessageEvent) => Promise<void>;
 };
 
 export class TaskActivator {
-  _team_manager: TeamManagerLike;
+  private teamManager: TeamManagerLike;
 
-  constructor(team_manager: TeamManagerLike) {
-    if (!team_manager) {
+  constructor(teamManager: TeamManagerLike) {
+    if (!teamManager) {
       throw new Error('TaskActivator requires a valid TeamManager instance.');
     }
-    this._team_manager = team_manager;
-    console.debug(`TaskActivator initialized for team '${this._team_manager.team_id}'.`);
+    this.teamManager = teamManager;
+    console.debug(`TaskActivator initialized for team '${this.teamManager.teamId}'.`);
   }
 
-  async activate_agent(agent_name: string): Promise<void> {
-    const team_id = this._team_manager.team_id;
+  async activateAgent(agentName: string): Promise<void> {
+    const teamId = this.teamManager.teamId;
     try {
-      console.info(`Team '${team_id}': TaskActivator is activating agent '${agent_name}'.`);
+      console.info(`Team '${teamId}': TaskActivator is activating agent '${agentName}'.`);
 
-      await this._team_manager.ensure_node_is_ready(agent_name);
+      await this.teamManager.ensureNodeIsReady(agentName);
 
-      const notification_message = new AgentInputUserMessage(
+      const notificationMessage = new AgentInputUserMessage(
         'You have new tasks in your queue. Please review your task list using your tools and begin your work.',
         SenderType.SYSTEM,
         null,
         { sender_id: TASK_NOTIFIER_SENDER_ID }
       );
 
-      const event = new ProcessUserMessageEvent(notification_message, agent_name);
-      await this._team_manager.dispatch_user_message_to_agent(event);
+      const event = new ProcessUserMessageEvent(notificationMessage, agentName);
+      await this.teamManager.dispatchUserMessageToAgent(event);
 
-      console.info(`Team '${team_id}': Successfully sent activation notification to '${agent_name}'.`);
+      console.info(`Team '${teamId}': Successfully sent activation notification to '${agentName}'.`);
     } catch (error) {
-      console.error(`Team '${team_id}': Failed to activate agent '${agent_name}': ${error}`);
+      console.error(`Team '${teamId}': Failed to activate agent '${agentName}': ${error}`);
     }
   }
 }

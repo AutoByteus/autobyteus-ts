@@ -7,9 +7,9 @@ export abstract class StreamingResponseHandler {
 
   abstract finalize(): SegmentEvent[];
 
-  abstract get_all_invocations(): ToolInvocation[];
+  abstract getAllInvocations(): ToolInvocation[];
 
-  abstract get_all_events(): SegmentEvent[];
+  abstract getAllEvents(): SegmentEvent[];
 
   abstract reset(): void;
 }

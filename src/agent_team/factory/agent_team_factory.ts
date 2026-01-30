@@ -25,75 +25,76 @@ import {
 } from '../events/agent_team_events.js';
 
 export class AgentTeamFactory extends Singleton {
-  private _active_teams: Map<string, AgentTeam> = new Map();
+  protected static instance?: AgentTeamFactory;
+
+  private activeTeams: Map<string, AgentTeam> = new Map();
 
   constructor() {
     super();
-    const existing = (AgentTeamFactory as any).instance as AgentTeamFactory | undefined;
-    if (existing) {
-      return existing;
+    if (AgentTeamFactory.instance) {
+      return AgentTeamFactory.instance;
     }
-    (AgentTeamFactory as any).instance = this;
+    AgentTeamFactory.instance = this;
     initializeLogging();
     console.info('AgentTeamFactory (Singleton) initialized.');
   }
 
-  private _get_default_event_handler_registry(): AgentTeamEventHandlerRegistry {
+  private getDefaultEventHandlerRegistry(): AgentTeamEventHandlerRegistry {
     const registry = new AgentTeamEventHandlerRegistry();
     registry.register(ProcessUserMessageEvent, new ProcessUserMessageEventHandler());
     registry.register(InterAgentMessageRequestEvent, new InterAgentMessageRequestEventHandler());
     registry.register(ToolApprovalTeamEvent, new ToolApprovalTeamEventHandler());
 
-    const lifecycle_handler = new LifecycleAgentTeamEventHandler();
-    registry.register(AgentTeamBootstrapStartedEvent, lifecycle_handler);
-    registry.register(AgentTeamReadyEvent, lifecycle_handler);
-    registry.register(AgentTeamIdleEvent, lifecycle_handler);
-    registry.register(AgentTeamShutdownRequestedEvent, lifecycle_handler);
-    registry.register(AgentTeamStoppedEvent, lifecycle_handler);
-    registry.register(AgentTeamErrorEvent, lifecycle_handler);
+    const lifecycleHandler = new LifecycleAgentTeamEventHandler();
+    registry.register(AgentTeamBootstrapStartedEvent, lifecycleHandler);
+    registry.register(AgentTeamReadyEvent, lifecycleHandler);
+    registry.register(AgentTeamIdleEvent, lifecycleHandler);
+    registry.register(AgentTeamShutdownRequestedEvent, lifecycleHandler);
+    registry.register(AgentTeamStoppedEvent, lifecycleHandler);
+    registry.register(AgentTeamErrorEvent, lifecycleHandler);
     return registry;
   }
 
-  create_team(config: AgentTeamConfig): AgentTeam {
-    let team_id = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
-    while (this._active_teams.has(team_id)) {
-      team_id = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+  createTeam(config: AgentTeamConfig): AgentTeam {
+    let teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+    while (this.activeTeams.has(teamId)) {
+      teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
     }
 
-    const state = new AgentTeamRuntimeState({ team_id });
-    const context = new AgentTeamContext(team_id, config, state);
+    const state = new AgentTeamRuntimeState({ teamId });
+    const context = new AgentTeamContext(teamId, config, state);
 
-    const handler_registry = this._get_default_event_handler_registry();
-    const runtime = new AgentTeamRuntime(context, handler_registry);
+    const handlerRegistry = this.getDefaultEventHandlerRegistry();
+    const runtime = new AgentTeamRuntime(context, handlerRegistry);
 
-    const team_manager = new TeamManager(team_id, runtime, runtime.multiplexer);
-    context.state.team_manager = team_manager;
+    const teamManager = new TeamManager(teamId, runtime, runtime.multiplexer);
+    context.state.teamManager = teamManager;
 
     const team = new AgentTeam(runtime);
-    this._active_teams.set(team_id, team);
-    console.info(`Agent Team '${team_id}' created and stored successfully.`);
+    this.activeTeams.set(teamId, team);
+    console.info(`Agent Team '${teamId}' created and stored successfully.`);
     return team;
   }
 
-  get_team(team_id: string): AgentTeam | undefined {
-    return this._active_teams.get(team_id);
+  getTeam(teamId: string): AgentTeam | undefined {
+    return this.activeTeams.get(teamId);
   }
 
-  async remove_team(team_id: string, shutdown_timeout: number = 10.0): Promise<boolean> {
-    const team = this._active_teams.get(team_id);
+  async removeTeam(teamId: string, shutdownTimeout: number = 10.0): Promise<boolean> {
+    const team = this.activeTeams.get(teamId);
     if (!team) {
-      console.warn(`Agent team with ID '${team_id}' not found for removal.`);
+      console.warn(`Agent team with ID '${teamId}' not found for removal.`);
       return false;
     }
 
-    this._active_teams.delete(team_id);
-    console.info(`Removing agent team '${team_id}'. Attempting graceful shutdown.`);
-    await team.stop(shutdown_timeout);
+    this.activeTeams.delete(teamId);
+    console.info(`Removing agent team '${teamId}'. Attempting graceful shutdown.`);
+    await team.stop(shutdownTimeout);
     return true;
   }
 
-  list_active_team_ids(): string[] {
-    return Array.from(this._active_teams.keys());
+  listActiveTeamIds(): string[] {
+    return Array.from(this.activeTeams.keys());
   }
 }
 

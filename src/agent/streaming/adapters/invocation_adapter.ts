@@ -1,6 +1,6 @@
 import { SegmentEvent, SegmentEventType, SegmentType } from '../segments/segment_events.js';
-import { get_tool_syntax_spec } from './tool_syntax_registry.js';
-import { parse_json_tool_call, parse_xml_arguments, type JsonToolParsingStrategy } from './tool_call_parsing.js';
+import { getToolSyntaxSpec } from './tool_syntax_registry.js';
+import { parseJsonToolCall, parseXmlArguments, type JsonToolParsingStrategy } from './tool_call_parsing.js';
 import { ToolInvocation } from '../../tool_invocation.js';
 
 export class ToolInvocationAdapter {
@@ -11,7 +11,7 @@ export class ToolInvocationAdapter {
     this.jsonToolParser = jsonToolParser;
   }
 
-  process_event(event: SegmentEvent): ToolInvocation | null {
+  processEvent(event: SegmentEvent): ToolInvocation | null {
     if (event.event_type === SegmentEventType.START) {
       this.handleStart(event);
       return null;
@@ -26,10 +26,10 @@ export class ToolInvocationAdapter {
     return null;
   }
 
-  process_events(events: SegmentEvent[]): ToolInvocation[] {
+  processEvents(events: SegmentEvent[]): ToolInvocation[] {
     const invocations: ToolInvocation[] = [];
     for (const event of events) {
-      const result = this.process_event(event);
+      const result = this.processEvent(event);
       if (result) {
         invocations.push(result);
       }
@@ -41,28 +41,28 @@ export class ToolInvocationAdapter {
     this.activeSegments.clear();
   }
 
-  get_active_segment_ids(): string[] {
+  getActiveSegmentIds(): string[] {
     return Array.from(this.activeSegments.keys());
   }
 
   private handleStart(event: SegmentEvent): void {
-    if (event.segment_type !== SegmentType.TOOL_CALL && !get_tool_syntax_spec(event.segment_type!)) {
+    if (event.segment_type !== SegmentType.TOOL_CALL && !getToolSyntaxSpec(event.segment_type!)) {
       return;
     }
 
     const metadata = event.payload?.metadata ?? {};
     let toolName = metadata.tool_name;
-    const syntaxSpec = event.segment_type ? get_tool_syntax_spec(event.segment_type) : undefined;
+    const syntaxSpec = event.segment_type ? getToolSyntaxSpec(event.segment_type) : undefined;
     if (syntaxSpec) {
-      toolName = syntaxSpec.tool_name;
+      toolName = syntaxSpec.toolName;
     }
 
     this.activeSegments.set(event.segment_id, {
-      segment_type: event.segment_type,
-      tool_name: toolName,
-      content_buffer: '',
-      arguments: {},
-      syntax_spec: syntaxSpec,
+      segmentType: event.segment_type,
+      toolName,
+      contentBuffer: '',
+      toolArguments: {},
+      syntaxSpec,
       metadata
     });
   }
@@ -74,7 +74,7 @@ export class ToolInvocationAdapter {
     }
 
     const delta = event.payload?.delta ?? '';
-    segmentData.content_buffer += delta;
+    segmentData.contentBuffer += delta;
   }
 
   private handleEnd(event: SegmentEvent): ToolInvocation | null {
@@ -86,16 +86,16 @@ export class ToolInvocationAdapter {
     this.activeSegments.delete(event.segment_id);
 
     const metadata = event.payload?.metadata ?? {};
-    const segmentType = segmentData.segment_type as SegmentType | undefined;
-    let toolName = metadata.tool_name || segmentData.tool_name;
-    let argumentsValue: Record<string, any> = segmentData.arguments ?? {};
-    const contentBuffer = segmentData.content_buffer ?? '';
+    const segmentType = segmentData.segmentType as SegmentType | undefined;
+    let toolName = metadata.tool_name || segmentData.toolName;
+    let argumentsValue: Record<string, any> = segmentData.toolArguments ?? {};
+    const contentBuffer = segmentData.contentBuffer ?? '';
     const startMetadata = segmentData.metadata ?? {};
-    const syntaxSpec = segmentData.syntax_spec;
+    const syntaxSpec = segmentData.syntaxSpec;
 
     if (syntaxSpec) {
-      toolName = syntaxSpec.tool_name;
-      const args = syntaxSpec.build_arguments({ ...startMetadata, ...metadata }, contentBuffer);
+      toolName = syntaxSpec.toolName;
+      const args = syntaxSpec.buildArguments({ ...startMetadata, ...metadata }, contentBuffer);
       if (!args) {
         console.warn(`Tool segment ${event.segment_id} ended without required arguments for ${toolName}`);
         return null;
@@ -111,9 +111,9 @@ export class ToolInvocationAdapter {
       } else if (metadata.arguments) {
         argumentsValue = metadata.arguments;
       } else if (stripped.startsWith('{') || stripped.startsWith('[')) {
-        parsedCall = parse_json_tool_call(stripped, this.jsonToolParser);
+        parsedCall = parseJsonToolCall(stripped, this.jsonToolParser);
       } else {
-        argumentsValue = parse_xml_arguments(content);
+        argumentsValue = parseXmlArguments(content);
       }
 
       if (parsedCall) {

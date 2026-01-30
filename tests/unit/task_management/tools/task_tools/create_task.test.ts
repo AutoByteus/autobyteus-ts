@@ -6,13 +6,13 @@ import { ParameterType } from '../../../../../src/utils/parameter_schema.js';
 const makeAgentContext = () => ({
   agentId: 'test_agent_create_task',
   config: { name: 'test_agent' },
-  custom_data: {} as Record<string, any>
+  customData: {} as Record<string, any>
 });
 
 const makeTeamContext = () => ({
   state: {
-    task_plan: {
-      add_task: vi.fn()
+    taskPlan: {
+      addTask: vi.fn()
     }
   }
 });
@@ -38,10 +38,10 @@ describe('CreateTask tool', () => {
     const tool = new CreateTask();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
-    const taskPlan = teamContext.state.task_plan;
-    taskPlan.add_task.mockReturnValue({ task_name: 'test_task', task_id: 'task_mock_0001' });
+    const taskPlan = teamContext.state.taskPlan;
+    taskPlan.addTask.mockReturnValue({ task_name: 'test_task', task_id: 'task_mock_0001' });
 
     const taskDef = TaskDefinitionSchema.parse({
       task_name: 'test_task',
@@ -53,9 +53,9 @@ describe('CreateTask tool', () => {
     const result = await (tool as any)._execute(context, taskDef);
 
     expect(result).toBe("Successfully created new task 'test_task' (ID: task_mock_0001) in the task plan.");
-    expect(taskPlan.add_task).toHaveBeenCalledOnce();
+    expect(taskPlan.addTask).toHaveBeenCalledOnce();
 
-    const [addedTask] = taskPlan.add_task.mock.calls[0];
+    const [addedTask] = taskPlan.addTask.mock.calls[0];
     expect(addedTask.task_name).toBe('test_task');
     expect(addedTask.assignee_name).toBe('dev_agent');
     expect(addedTask.dependencies).toEqual(['another_task']);
@@ -77,7 +77,7 @@ describe('CreateTask tool', () => {
   it('returns an error when task plan is missing', async () => {
     const tool = new CreateTask();
     const context = makeAgentContext();
-    context.custom_data.team_context = { state: { task_plan: null } };
+    context.customData.teamContext = { state: { taskPlan: null } };
 
     const result = await (tool as any)._execute(context, {
       task_name: 't',
@@ -92,11 +92,11 @@ describe('CreateTask tool', () => {
     const tool = new CreateTask();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
     const result = await (tool as any)._execute(context, { task_name: 'missing_fields_task' });
 
     expect(result).toContain('Error: Invalid task definition provided');
-    expect(teamContext.state.task_plan.add_task).not.toHaveBeenCalled();
+    expect(teamContext.state.taskPlan.addTask).not.toHaveBeenCalled();
   });
 });

@@ -6,17 +6,16 @@ import { TASK_NOTIFIER_SENDER_ID } from '../../../../src/agent/sender_type.js';
 
 const makeTeamManager = () => {
   return {
-    team_id: 'test_activator_team',
-    ensure_node_is_ready: vi.fn(async () => undefined),
-    dispatch_user_message_to_agent: vi.fn(async () => undefined)
+    teamId: 'test_activator_team',
+    ensureNodeIsReady: vi.fn(async () => undefined),
+    dispatchUserMessageToAgent: vi.fn(async () => undefined)
   };
 };
 
 describe('TaskActivator', () => {
   it('initializes with valid manager', () => {
     const manager = makeTeamManager();
-    const activator = new TaskActivator(manager as any);
-    expect(activator._team_manager).toBe(manager as any);
+    expect(() => new TaskActivator(manager)).not.toThrow();
   });
 
   it('throws when manager is missing', () => {
@@ -25,36 +24,36 @@ describe('TaskActivator', () => {
 
   it('activates agent and dispatches message', async () => {
     const manager = makeTeamManager();
-    const activator = new TaskActivator(manager as any);
-    const agent_name = 'AgentToActivate';
+    const activator = new TaskActivator(manager);
+    const agentName = 'AgentToActivate';
 
-    await activator.activate_agent(agent_name);
+    await activator.activateAgent(agentName);
 
-    expect(manager.ensure_node_is_ready).toHaveBeenCalledWith(agent_name);
-    expect(manager.dispatch_user_message_to_agent).toHaveBeenCalledTimes(1);
+    expect(manager.ensureNodeIsReady).toHaveBeenCalledWith(agentName);
+    expect(manager.dispatchUserMessageToAgent).toHaveBeenCalledTimes(1);
 
-    const dispatched_event = (manager.dispatch_user_message_to_agent as any).mock.calls[0][0];
-    expect(dispatched_event).toBeInstanceOf(ProcessUserMessageEvent);
-    expect(dispatched_event.target_agent_name).toBe(agent_name);
+    const dispatchedEvent = (manager.dispatchUserMessageToAgent as any).mock.calls[0][0];
+    expect(dispatchedEvent).toBeInstanceOf(ProcessUserMessageEvent);
+    expect(dispatchedEvent.targetAgentName).toBe(agentName);
 
-    const user_message = dispatched_event.user_message;
-    expect(user_message).toBeInstanceOf(AgentInputUserMessage);
-    expect(user_message.content).toContain('You have new tasks');
-    expect(user_message.metadata.sender_id).toBe(TASK_NOTIFIER_SENDER_ID);
+    const userMessage = dispatchedEvent.userMessage;
+    expect(userMessage).toBeInstanceOf(AgentInputUserMessage);
+    expect(userMessage.content).toContain('You have new tasks');
+    expect(userMessage.metadata.sender_id).toBe(TASK_NOTIFIER_SENDER_ID);
   });
 
   it('logs error when team manager throws', async () => {
     const manager = makeTeamManager();
-    manager.ensure_node_is_ready = vi.fn(async () => {
+    manager.ensureNodeIsReady = vi.fn(async () => {
       throw new Error('Node failed to start');
     });
-    const activator = new TaskActivator(manager as any);
+    const activator = new TaskActivator(manager);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
-    await activator.activate_agent('AgentThatFails');
+    await activator.activateAgent('AgentThatFails');
 
     expect(errorSpy).toHaveBeenCalled();
-    expect(manager.dispatch_user_message_to_agent).not.toHaveBeenCalled();
+    expect(manager.dispatchUserMessageToAgent).not.toHaveBeenCalled();
 
     errorSpy.mockRestore();
   });

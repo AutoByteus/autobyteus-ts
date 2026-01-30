@@ -17,40 +17,40 @@ type ParserBuilder = (config?: ParserConfig) => StreamingParserProtocol;
 function cloneConfig(
   config: ParserConfig | undefined,
   options: {
-    parse_tool_calls?: boolean;
-    json_tool_patterns?: string[];
-    json_tool_parser?: JsonToolParsingStrategy;
-    strategy_order?: string[];
-    segment_id_prefix?: string;
+    parseToolCalls?: boolean;
+    jsonToolPatterns?: string[];
+    jsonToolParser?: JsonToolParsingStrategy;
+    strategyOrder?: string[];
+    segmentIdPrefix?: string;
   }
 ): ParserConfig {
   const base = config ?? new ParserConfig();
   return new ParserConfig({
-    parse_tool_calls: options.parse_tool_calls ?? base.parse_tool_calls,
-    json_tool_patterns: options.json_tool_patterns ?? [...base.json_tool_patterns],
-    json_tool_parser: options.json_tool_parser ?? base.json_tool_parser,
-    strategy_order: options.strategy_order ?? [...base.strategy_order],
-    segment_id_prefix: options.segment_id_prefix ?? base.segment_id_prefix
+    parseToolCalls: options.parseToolCalls ?? base.parseToolCalls,
+    jsonToolPatterns: options.jsonToolPatterns ?? [...base.jsonToolPatterns],
+    jsonToolParser: options.jsonToolParser ?? base.jsonToolParser,
+    strategyOrder: options.strategyOrder ?? [...base.strategyOrder],
+    segmentIdPrefix: options.segmentIdPrefix ?? base.segmentIdPrefix
   });
 }
 
 function buildXml(config?: ParserConfig): StreamingParserProtocol {
-  const xmlConfig = cloneConfig(config, { parse_tool_calls: true, strategy_order: ['xml_tag'] });
+  const xmlConfig = cloneConfig(config, { parseToolCalls: true, strategyOrder: ['xml_tag'] });
   return new StreamingParser(xmlConfig);
 }
 
 function buildJson(config?: ParserConfig): StreamingParserProtocol {
-  const jsonConfig = cloneConfig(config, { parse_tool_calls: true, strategy_order: ['json_tool'] });
+  const jsonConfig = cloneConfig(config, { parseToolCalls: true, strategyOrder: ['json_tool'] });
   return new StreamingParser(jsonConfig);
 }
 
 function buildApiToolCall(config?: ParserConfig): StreamingParserProtocol {
-  const apiToolCallConfig = cloneConfig(config, { parse_tool_calls: false });
+  const apiToolCallConfig = cloneConfig(config, { parseToolCalls: false });
   return new StreamingParser(apiToolCallConfig);
 }
 
 function buildSentinel(config?: ParserConfig): StreamingParserProtocol {
-  const sentinelConfig = cloneConfig(config, { parse_tool_calls: true, strategy_order: ['sentinel'] });
+  const sentinelConfig = cloneConfig(config, { parseToolCalls: true, strategyOrder: ['sentinel'] });
   return new StreamingParser(sentinelConfig);
 }
 
@@ -61,16 +61,16 @@ export const PARSER_REGISTRY: Record<string, ParserBuilder> = {
   sentinel: buildSentinel
 };
 
-export function resolve_parser_name(explicitName?: string): string {
+export function resolveParserName(explicitName?: string): string {
   const name = explicitName ?? process.env[ENV_PARSER_NAME] ?? DEFAULT_PARSER_NAME;
   return name.trim().toLowerCase();
 }
 
-export function create_streaming_parser(options?: {
+export function createStreamingParser(options?: {
   config?: ParserConfig;
-  parser_name?: string;
+  parserName?: string;
 }): StreamingParserProtocol {
-  const name = resolve_parser_name(options?.parser_name);
+  const name = resolveParserName(options?.parserName);
   const builder = PARSER_REGISTRY[name];
   if (!builder) {
     throw new Error(`Unknown parser strategy '${name}'. Supported: ${Object.keys(PARSER_REGISTRY).sort().join(', ')}.`);

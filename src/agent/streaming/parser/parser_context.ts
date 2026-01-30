@@ -1,7 +1,7 @@
 import { StreamScanner } from './stream_scanner.js';
 import { EventEmitter } from './event_emitter.js';
 import { SegmentEvent, SegmentType } from './events.js';
-import { create_detection_strategies, type DetectionStrategy } from './strategies/registry.js';
+import { createDetectionStrategies, type DetectionStrategy } from './strategies/registry.js';
 
 export class ParserConfig {
   static DEFAULT_JSON_PATTERNS = [
@@ -15,26 +15,26 @@ export class ParserConfig {
     '[{"name"'
   ];
 
-  parse_tool_calls: boolean;
-  json_tool_patterns: string[];
-  json_tool_parser?: any;
-  strategy_order: string[];
-  segment_id_prefix?: string;
+  parseToolCalls: boolean;
+  jsonToolPatterns: string[];
+  jsonToolParser?: any;
+  strategyOrder: string[];
+  segmentIdPrefix?: string;
 
   constructor(options?: {
-    parse_tool_calls?: boolean;
-    json_tool_patterns?: string[];
-    json_tool_parser?: any;
-    strategy_order?: string[];
-    segment_id_prefix?: string;
+    parseToolCalls?: boolean;
+    jsonToolPatterns?: string[];
+    jsonToolParser?: any;
+    strategyOrder?: string[];
+    segmentIdPrefix?: string;
   }) {
-    this.parse_tool_calls = options?.parse_tool_calls ?? true;
-    this.json_tool_patterns = options?.json_tool_patterns
-      ? [...options.json_tool_patterns]
+    this.parseToolCalls = options?.parseToolCalls ?? true;
+    this.jsonToolPatterns = options?.jsonToolPatterns
+      ? [...options.jsonToolPatterns]
       : [...ParserConfig.DEFAULT_JSON_PATTERNS];
-    this.json_tool_parser = options?.json_tool_parser;
-    this.strategy_order = options?.strategy_order ? [...options.strategy_order] : ['xml_tag'];
-    this.segment_id_prefix = options?.segment_id_prefix;
+    this.jsonToolParser = options?.jsonToolParser;
+    this.strategyOrder = options?.strategyOrder ? [...options.strategyOrder] : ['xml_tag'];
+    this.segmentIdPrefix = options?.segmentIdPrefix;
   }
 }
 
@@ -42,57 +42,57 @@ export class ParserContext {
   private configInstance: ParserConfig;
   private scanner: StreamScanner;
   private emitter: EventEmitter;
-  private currentState: any;
+  private currentStateRef: any;
   private strategies: DetectionStrategy[];
 
   constructor(config?: ParserConfig) {
     this.configInstance = config ?? new ParserConfig();
     this.scanner = new StreamScanner();
-    this.emitter = new EventEmitter(this.configInstance.segment_id_prefix);
-    this.currentState = null;
-    this.strategies = create_detection_strategies(this.configInstance.strategy_order);
+    this.emitter = new EventEmitter(this.configInstance.segmentIdPrefix);
+    this.currentStateRef = null;
+    this.strategies = createDetectionStrategies(this.configInstance.strategyOrder);
   }
 
   get config(): ParserConfig {
     return this.configInstance;
   }
 
-  get parse_tool_calls(): boolean {
-    return this.configInstance.parse_tool_calls;
+  get parseToolCalls(): boolean {
+    return this.configInstance.parseToolCalls;
   }
 
-  get json_tool_patterns(): string[] {
-    return this.configInstance.json_tool_patterns;
+  get jsonToolPatterns(): string[] {
+    return this.configInstance.jsonToolPatterns;
   }
 
-  get json_tool_parser(): any {
-    return this.configInstance.json_tool_parser;
+  get jsonToolParser(): any {
+    return this.configInstance.jsonToolParser;
   }
 
-  get detection_strategies(): DetectionStrategy[] {
+  get detectionStrategies(): DetectionStrategy[] {
     return this.strategies;
   }
 
-  get current_state(): any {
-    if (!this.currentState) {
+  get currentState(): any {
+    if (!this.currentStateRef) {
       throw new Error('No current state is set.');
     }
-    return this.currentState;
+    return this.currentStateRef;
   }
 
-  set current_state(state: any) {
-    this.currentState = state;
+  set currentState(state: any) {
+    this.currentStateRef = state;
   }
 
-  transition_to(newState: any): void {
-    this.currentState = newState;
+  transitionTo(newState: any): void {
+    this.currentStateRef = newState;
   }
 
   append(text: string): void {
     this.scanner.append(text);
   }
 
-  peek_char(): string | undefined {
+  peekChar(): string | undefined {
     return this.scanner.peek();
   }
 
@@ -100,27 +100,27 @@ export class ParserContext {
     this.scanner.advance();
   }
 
-  advance_by(count: number): void {
+  advanceBy(count: number): void {
     this.scanner.advanceBy(count);
   }
 
-  has_more_chars(): boolean {
+  hasMoreChars(): boolean {
     return this.scanner.hasMoreChars();
   }
 
-  get_position(): number {
+  getPosition(): number {
     return this.scanner.getPosition();
   }
 
-  get_buffer_length(): number {
+  getBufferLength(): number {
     return this.scanner.getBufferLength();
   }
 
-  set_position(position: number): void {
+  setPosition(position: number): void {
     this.scanner.setPosition(position);
   }
 
-  rewind_by(count: number): void {
+  rewindBy(count: number): void {
     const newPos = Math.max(0, this.scanner.getPosition() - count);
     this.scanner.setPosition(newPos);
   }
@@ -137,7 +137,7 @@ export class ParserContext {
     return this.scanner.consume(count);
   }
 
-  consume_remaining(): string {
+  consumeRemaining(): string {
     return this.scanner.consumeRemaining();
   }
 
@@ -145,47 +145,47 @@ export class ParserContext {
     this.scanner.compact(minPrefix);
   }
 
-  emit_segment_start(segmentType: SegmentType, metadata: Record<string, any> = {}): string {
-    return this.emitter.emit_segment_start(segmentType, metadata);
+  emitSegmentStart(segmentType: SegmentType, metadata: Record<string, any> = {}): string {
+    return this.emitter.emitSegmentStart(segmentType, metadata);
   }
 
-  emit_segment_content(delta: any): void {
-    this.emitter.emit_segment_content(delta);
+  emitSegmentContent(delta: any): void {
+    this.emitter.emitSegmentContent(delta);
   }
 
-  emit_segment_end(): string | undefined {
-    return this.emitter.emit_segment_end();
+  emitSegmentEnd(): string | undefined {
+    return this.emitter.emitSegmentEnd();
   }
 
-  get_current_segment_id(): string | undefined {
-    return this.emitter.get_current_segment_id();
+  getCurrentSegmentId(): string | undefined {
+    return this.emitter.getCurrentSegmentId();
   }
 
-  get_current_segment_type(): SegmentType | undefined {
-    return this.emitter.get_current_segment_type();
+  getCurrentSegmentType(): SegmentType | undefined {
+    return this.emitter.getCurrentSegmentType();
   }
 
-  get_current_segment_content(): string {
-    return this.emitter.get_current_segment_content();
+  getCurrentSegmentContent(): string {
+    return this.emitter.getCurrentSegmentContent();
   }
 
-  get_current_segment_metadata(): Record<string, any> {
-    return this.emitter.get_current_segment_metadata();
+  getCurrentSegmentMetadata(): Record<string, any> {
+    return this.emitter.getCurrentSegmentMetadata();
   }
 
-  update_current_segment_metadata(metadata: Record<string, any>): void {
-    this.emitter.update_current_segment_metadata(metadata);
+  updateCurrentSegmentMetadata(metadata: Record<string, any>): void {
+    this.emitter.updateCurrentSegmentMetadata(metadata);
   }
 
-  get_and_clear_events(): SegmentEvent[] {
-    return this.emitter.get_and_clear_events();
+  getAndClearEvents(): SegmentEvent[] {
+    return this.emitter.getAndClearEvents();
   }
 
-  get_events(): SegmentEvent[] {
-    return this.emitter.get_events();
+  getEvents(): SegmentEvent[] {
+    return this.emitter.getEvents();
   }
 
-  append_text_segment(text: string): void {
-    this.emitter.append_text_segment(text);
+  appendTextSegment(text: string): void {
+    this.emitter.appendTextSegment(text);
   }
 }

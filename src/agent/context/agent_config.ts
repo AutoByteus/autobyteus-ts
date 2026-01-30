@@ -29,75 +29,75 @@ export class AgentConfig {
   name: string;
   role: string;
   description: string;
-  llm_instance: BaseLLM;
-  system_prompt?: string | null;
+  llmInstance: BaseLLM;
+  systemPrompt?: string | null;
   tools: BaseTool[];
   workspace: BaseAgentWorkspace | null;
-  auto_execute_tools: boolean;
-  input_processors: BaseAgentUserInputMessageProcessor[];
-  llm_response_processors: BaseLLMResponseProcessor[];
-  system_prompt_processors: BaseSystemPromptProcessor[];
-  tool_execution_result_processors: BaseToolExecutionResultProcessor[];
-  tool_invocation_preprocessors: BaseToolInvocationPreprocessor[];
-  lifecycle_processors: BaseLifecycleEventProcessor[];
-  initial_custom_data?: Record<string, any> | null;
+  autoExecuteTools: boolean;
+  inputProcessors: BaseAgentUserInputMessageProcessor[];
+  llmResponseProcessors: BaseLLMResponseProcessor[];
+  systemPromptProcessors: BaseSystemPromptProcessor[];
+  toolExecutionResultProcessors: BaseToolExecutionResultProcessor[];
+  toolInvocationPreprocessors: BaseToolInvocationPreprocessor[];
+  lifecycleProcessors: BaseLifecycleEventProcessor[];
+  initialCustomData?: Record<string, any> | null;
   skills: string[];
 
   constructor(
     name: string,
     role: string,
     description: string,
-    llm_instance: BaseLLM,
-    system_prompt: string | null = null,
+    llmInstance: BaseLLM,
+    systemPrompt: string | null = null,
     tools: BaseTool[] | null = null,
-    auto_execute_tools = true,
-    input_processors: BaseAgentUserInputMessageProcessor[] | null = null,
-    llm_response_processors: BaseLLMResponseProcessor[] | null = null,
-    system_prompt_processors: BaseSystemPromptProcessor[] | null = null,
-    tool_execution_result_processors: BaseToolExecutionResultProcessor[] | null = null,
-    tool_invocation_preprocessors: BaseToolInvocationPreprocessor[] | null = null,
+    autoExecuteTools = true,
+    inputProcessors: BaseAgentUserInputMessageProcessor[] | null = null,
+    llmResponseProcessors: BaseLLMResponseProcessor[] | null = null,
+    systemPromptProcessors: BaseSystemPromptProcessor[] | null = null,
+    toolExecutionResultProcessors: BaseToolExecutionResultProcessor[] | null = null,
+    toolInvocationPreprocessors: BaseToolInvocationPreprocessor[] | null = null,
     workspace: BaseAgentWorkspace | null = null,
-    lifecycle_processors: BaseLifecycleEventProcessor[] | null = null,
-    initial_custom_data: Record<string, any> | null = null,
+    lifecycleProcessors: BaseLifecycleEventProcessor[] | null = null,
+    initialCustomData: Record<string, any> | null = null,
     skills: string[] | null = null
   ) {
     this.name = name;
     this.role = role;
     this.description = description;
-    this.llm_instance = llm_instance;
-    this.system_prompt = system_prompt;
+    this.llmInstance = llmInstance;
+    this.systemPrompt = systemPrompt;
     this.tools = tools ?? [];
     this.workspace = workspace;
-    this.auto_execute_tools = auto_execute_tools;
-    this.input_processors = input_processors ?? [];
-    this.llm_response_processors =
-      llm_response_processors !== null && llm_response_processors !== undefined
-        ? llm_response_processors
+    this.autoExecuteTools = autoExecuteTools;
+    this.inputProcessors = inputProcessors ?? [];
+    this.llmResponseProcessors =
+      llmResponseProcessors !== null && llmResponseProcessors !== undefined
+        ? llmResponseProcessors
         : [...AgentConfig.DEFAULT_LLM_RESPONSE_PROCESSORS];
 
-    const default_processors =
-      system_prompt_processors !== null && system_prompt_processors !== undefined
-        ? system_prompt_processors
+    const defaultProcessors =
+      systemPromptProcessors !== null && systemPromptProcessors !== undefined
+        ? systemPromptProcessors
         : [...AgentConfig.DEFAULT_SYSTEM_PROMPT_PROCESSORS];
 
-    this.system_prompt_processors = default_processors;
-    this.tool_execution_result_processors = tool_execution_result_processors ?? [];
-    this.tool_invocation_preprocessors = tool_invocation_preprocessors ?? [];
-    this.lifecycle_processors = lifecycle_processors ?? [];
-    this.initial_custom_data = initial_custom_data ?? undefined;
+    this.systemPromptProcessors = defaultProcessors;
+    this.toolExecutionResultProcessors = toolExecutionResultProcessors ?? [];
+    this.toolInvocationPreprocessors = toolInvocationPreprocessors ?? [];
+    this.lifecycleProcessors = lifecycleProcessors ?? [];
+    this.initialCustomData = initialCustomData ?? undefined;
     this.skills = skills ?? [];
 
-    const tool_call_format = resolveToolCallFormat();
-    if (tool_call_format === 'api_tool_call') {
-      this.system_prompt_processors = default_processors.filter(
+    const toolCallFormat = resolveToolCallFormat();
+    if (toolCallFormat === 'api_tool_call') {
+      this.systemPromptProcessors = defaultProcessors.filter(
         (processor) => !(processor instanceof ToolManifestInjectorProcessor)
       );
     } else {
-      this.system_prompt_processors = default_processors;
+      this.systemPromptProcessors = defaultProcessors;
     }
 
     console.debug(
-      `AgentConfig created for name='${this.name}', role='${this.role}'. Tool call format: ${tool_call_format}`
+      `AgentConfig created for name='${this.name}', role='${this.role}'. Tool call format: ${toolCallFormat}`
     );
   }
 
@@ -106,18 +106,18 @@ export class AgentConfig {
       this.name,
       this.role,
       this.description,
-      this.llm_instance,
-      this.system_prompt ?? null,
+      this.llmInstance,
+      this.systemPrompt ?? null,
       this.tools.slice(),
-      this.auto_execute_tools,
-      this.input_processors.slice(),
-      this.llm_response_processors.slice(),
-      this.system_prompt_processors.slice(),
-      this.tool_execution_result_processors.slice(),
-      this.tool_invocation_preprocessors.slice(),
+      this.autoExecuteTools,
+      this.inputProcessors.slice(),
+      this.llmResponseProcessors.slice(),
+      this.systemPromptProcessors.slice(),
+      this.toolExecutionResultProcessors.slice(),
+      this.toolInvocationPreprocessors.slice(),
       this.workspace,
-      this.lifecycle_processors.slice(),
-      deepClone(this.initial_custom_data ?? null),
+      this.lifecycleProcessors.slice(),
+      deepClone(this.initialCustomData ?? null),
       this.skills.slice()
     );
   }
@@ -125,7 +125,7 @@ export class AgentConfig {
   toString(): string {
     return (
       `AgentConfig(name='${this.name}', role='${this.role}', ` +
-      `llm_instance='${this.llm_instance.constructor.name}', ` +
+      `llmInstance='${this.llmInstance.constructor.name}', ` +
       `workspace_configured=${this.workspace !== null}, skills=${JSON.stringify(this.skills)})`
     );
   }

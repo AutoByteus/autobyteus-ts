@@ -17,13 +17,13 @@ export class AgentReadyEvent extends LifecycleEvent {}
 export class AgentStoppedEvent extends LifecycleEvent {}
 
 export class AgentErrorEvent extends LifecycleEvent {
-  error_message: string;
-  exception_details?: string;
+  errorMessage: string;
+  exceptionDetails?: string;
 
-  constructor(error_message: string, exception_details?: string) {
+  constructor(errorMessage: string, exceptionDetails?: string) {
     super();
-    this.error_message = error_message;
-    this.exception_details = exception_details;
+    this.errorMessage = errorMessage;
+    this.exceptionDetails = exceptionDetails;
   }
 }
 
@@ -34,139 +34,139 @@ export class ShutdownRequestedEvent extends LifecycleEvent {}
 export class BootstrapStartedEvent extends LifecycleEvent {}
 
 export class BootstrapStepRequestedEvent extends LifecycleEvent {
-  step_index: number;
+  stepIndex: number;
 
-  constructor(step_index: number) {
+  constructor(stepIndex: number) {
     super();
-    this.step_index = step_index;
+    this.stepIndex = stepIndex;
   }
 }
 
 export class BootstrapStepCompletedEvent extends LifecycleEvent {
-  step_index: number;
-  step_name: string;
+  stepIndex: number;
+  stepName: string;
   success: boolean;
-  error_message?: string;
+  errorMessage?: string;
 
-  constructor(step_index: number, step_name: string, success: boolean, error_message?: string) {
+  constructor(stepIndex: number, stepName: string, success: boolean, errorMessage?: string) {
     super();
-    this.step_index = step_index;
-    this.step_name = step_name;
+    this.stepIndex = stepIndex;
+    this.stepName = stepName;
     this.success = success;
-    this.error_message = error_message;
+    this.errorMessage = errorMessage;
   }
 }
 
 export class BootstrapCompletedEvent extends LifecycleEvent {
   success: boolean;
-  error_message?: string;
+  errorMessage?: string;
 
-  constructor(success: boolean, error_message?: string) {
+  constructor(success: boolean, errorMessage?: string) {
     super();
     this.success = success;
-    this.error_message = error_message;
+    this.errorMessage = errorMessage;
   }
 }
 
 export class UserMessageReceivedEvent extends AgentOperationalEvent {
-  agent_input_user_message: AgentInputUserMessage;
+  agentInputUserMessage: AgentInputUserMessage;
 
-  constructor(agent_input_user_message: AgentInputUserMessage) {
+  constructor(agentInputUserMessage: AgentInputUserMessage) {
     super();
-    this.agent_input_user_message = agent_input_user_message;
+    this.agentInputUserMessage = agentInputUserMessage;
   }
 }
 
 export class InterAgentMessageReceivedEvent extends AgentOperationalEvent {
-  inter_agent_message: InterAgentMessage;
+  interAgentMessage: InterAgentMessage;
 
-  constructor(inter_agent_message: InterAgentMessage) {
+  constructor(interAgentMessage: InterAgentMessage) {
     super();
-    this.inter_agent_message = inter_agent_message;
+    this.interAgentMessage = interAgentMessage;
   }
 }
 
 export class LLMUserMessageReadyEvent extends AgentOperationalEvent {
-  llm_user_message: LLMUserMessage;
+  llmUserMessage: LLMUserMessage;
 
-  constructor(llm_user_message: LLMUserMessage) {
+  constructor(llmUserMessage: LLMUserMessage) {
     super();
-    this.llm_user_message = llm_user_message;
+    this.llmUserMessage = llmUserMessage;
   }
 }
 
 export class LLMCompleteResponseReceivedEvent extends AgentOperationalEvent {
-  complete_response: CompleteResponse;
-  is_error: boolean;
+  completeResponse: CompleteResponse;
+  isError: boolean;
 
-  constructor(complete_response: CompleteResponse, is_error: boolean = false) {
+  constructor(completeResponse: CompleteResponse, isError: boolean = false) {
     super();
-    this.complete_response = complete_response;
-    this.is_error = is_error;
+    this.completeResponse = completeResponse;
+    this.isError = isError;
   }
 }
 
 export class PendingToolInvocationEvent extends AgentOperationalEvent {
-  tool_invocation: ToolInvocation;
+  toolInvocation: ToolInvocation;
 
-  constructor(tool_invocation: ToolInvocation) {
+  constructor(toolInvocation: ToolInvocation) {
     super();
-    this.tool_invocation = tool_invocation;
+    this.toolInvocation = toolInvocation;
   }
 }
 
 export class ToolResultEvent extends AgentOperationalEvent {
-  tool_name: string;
-  result: any;
-  tool_invocation_id?: string;
+  toolName: string;
+  result: unknown;
+  toolInvocationId?: string;
   error?: string;
-  tool_args?: Record<string, any>;
+  toolArgs?: Record<string, unknown>;
 
   constructor(
-    tool_name: string,
-    result: any,
-    tool_invocation_id?: string,
+    toolName: string,
+    result: unknown,
+    toolInvocationId?: string,
     error?: string,
-    tool_args?: Record<string, any>
+    toolArgs?: Record<string, unknown>
   ) {
     super();
-    this.tool_name = tool_name;
+    this.toolName = toolName;
     this.result = result;
-    this.tool_invocation_id = tool_invocation_id;
+    this.toolInvocationId = toolInvocationId;
     this.error = error;
-    this.tool_args = tool_args;
+    this.toolArgs = toolArgs;
   }
 }
 
 export class ToolExecutionApprovalEvent extends AgentOperationalEvent {
-  tool_invocation_id: string;
-  is_approved: boolean;
+  toolInvocationId: string;
+  isApproved: boolean;
   reason?: string;
 
-  constructor(tool_invocation_id: string, is_approved: boolean, reason?: string) {
+  constructor(toolInvocationId: string, isApproved: boolean, reason?: string) {
     super();
-    this.tool_invocation_id = tool_invocation_id;
-    this.is_approved = is_approved;
+    this.toolInvocationId = toolInvocationId;
+    this.isApproved = isApproved;
     this.reason = reason;
   }
 }
 
 export class ApprovedToolInvocationEvent extends AgentOperationalEvent {
-  tool_invocation: ToolInvocation;
+  toolInvocation: ToolInvocation;
 
-  constructor(tool_invocation: ToolInvocation) {
+  constructor(toolInvocation: ToolInvocation) {
     super();
-    this.tool_invocation = tool_invocation;
+    this.toolInvocation = toolInvocation;
   }
 }
 
 export class GenericEvent extends AgentOperationalEvent {
-  payload: Record<string, any>;
-  type_name: string;
+  payload: Record<string, unknown>;
+  typeName: string;
 
-  constructor(payload: Record<string, any>, type_name: string) {
+  constructor(payload: Record<string, unknown>, typeName: string) {
     super();
     this.payload = payload;
-    this.type_name = type_name;
+    this.typeName = typeName;
   }
 }

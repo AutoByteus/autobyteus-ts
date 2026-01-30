@@ -4,13 +4,13 @@ import type { BaseTool } from '../../../../src/tools/base_tool.js';
 import type { AgentContextLike } from '../../../../src/agent/context/agent_context_like.js';
 
 class MyTestProcessor extends BaseSystemPromptProcessor {
-  process(system_prompt: string, tool_instances: Record<string, BaseTool>, agent_id: string, context: AgentContextLike): string {
-    return `${system_prompt} - Processed by ${this.get_name()} for ${agent_id} with tools: ${Object.keys(tool_instances)} using context config: ${context.config?.name ?? 'unknown'}`;
+  process(systemPrompt: string, toolInstances: Record<string, BaseTool>, agentId: string, context: AgentContextLike): string {
+    return `${systemPrompt} - Processed by ${this.getName()} for ${agentId} with tools: ${Object.keys(toolInstances)} using context config: ${context.config?.name ?? 'unknown'}`;
   }
 }
 
 class MyRenamedTestProcessor extends BaseSystemPromptProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'CustomProcessorName';
   }
 
@@ -22,12 +22,12 @@ class MyRenamedTestProcessor extends BaseSystemPromptProcessor {
 describe('BaseSystemPromptProcessor', () => {
   it('returns default name based on class name', () => {
     const processor = new MyTestProcessor();
-    expect(processor.get_name()).toBe('MyTestProcessor');
+    expect(processor.getName()).toBe('MyTestProcessor');
   });
 
   it('returns overridden name', () => {
     const processor = new MyRenamedTestProcessor();
-    expect(processor.get_name()).toBe('CustomProcessorName');
+    expect(processor.getName()).toBe('CustomProcessorName');
   });
 
   it('throws when subclass does not implement process', () => {

@@ -6,11 +6,11 @@ import type { DetectionStrategy } from './base.js';
 export class XmlTagStrategy implements DetectionStrategy {
   name = 'xml_tag';
 
-  next_marker(context: ParserContext, startPos: number): number {
+  nextMarker(context: ParserContext, startPos: number): number {
     return context.find('<', startPos);
   }
 
-  create_state(context: ParserContext): BaseState {
+  createState(context: ParserContext): BaseState {
     return new XmlTagInitializationState(context);
   }
 }

@@ -7,8 +7,8 @@ export class LLMInstanceCleanupStep extends BaseShutdownStep {
   }
 
   async execute(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
-    const llmInstance: any = context.llm_instance;
+    const agentId = context.agentId;
+    const llmInstance: any = context.llmInstance;
 
     if (!llmInstance) {
       console.debug(`Agent '${agentId}': No LLM instance found in context. Skipping cleanup.`);

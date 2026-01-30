@@ -2,17 +2,19 @@ import { Singleton } from '../../utils/singleton.js';
 import { ToolDefinition } from './tool_definition.js';
 import { ToolConfig } from '../tool_config.js';
 import { ToolOrigin } from '../tool_origin.js';
+import type { BaseTool } from '../base_tool.js';
 
 export class ToolRegistry extends Singleton {
+  protected static instance?: ToolRegistry;
+
   private definitions: Map<string, ToolDefinition> = new Map();
 
   constructor() {
     super();
-    const existing = (ToolRegistry as any).instance as ToolRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (ToolRegistry.instance) {
+      return ToolRegistry.instance;
     }
-    (ToolRegistry as any).instance = this;
+    ToolRegistry.instance = this;
   }
 
   public registerTool(definition: ToolDefinition): void {
@@ -56,7 +58,7 @@ export class ToolRegistry extends Singleton {
     return this.definitions.get(name);
   }
 
-  public createTool(name: string, config?: ToolConfig): any {
+  public createTool(name: string, config?: ToolConfig): BaseTool {
     const def = this.getToolDefinition(name);
     if (!def) {
       throw new Error(`No tool definition found for name '${name}'`);
@@ -65,17 +67,18 @@ export class ToolRegistry extends Singleton {
     try {
       if (def.customFactory) {
         const instance = def.customFactory(config);
-        (instance as any).definition = def;
+        instance.definition = def;
         return instance;
       }
       if (def.toolClass) {
         const instance = new def.toolClass(config);
-        (instance as any).definition = def;
+        instance.definition = def;
         return instance;
       }
       throw new Error(`ToolDefinition for '${name}' is invalid: missing both tool_class and custom_factory.`);
-    } catch (error: any) {
-      throw new TypeError(`Failed to create tool '${name}': ${error?.message ?? error}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new TypeError(`Failed to create tool '${name}': ${message}`);
     }
   }
 
@@ -110,7 +113,7 @@ export class ToolRegistry extends Singleton {
     return Array.from(this.definitions.values()).filter(
       (definition) =>
         definition.origin === ToolOrigin.MCP &&
-        definition.metadata?.mcp_server_id === serverId
+        definition.metadata?.['mcp_server_id'] === serverId
     );
   }
 

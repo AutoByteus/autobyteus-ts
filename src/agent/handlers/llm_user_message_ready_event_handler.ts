@@ -33,25 +33,25 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       return;
     }
 
-    const agentId = context.agent_id;
-    const llmInstance = context.state.llm_instance as LLMInstanceLike | null;
+    const agentId = context.agentId;
+    const llmInstance = context.state.llmInstance as LLMInstanceLike | null;
     if (!llmInstance) {
       const errorMsg = `Agent '${agentId}' received LLMUserMessageReadyEvent but LLM instance is not yet initialized.`;
       console.error(errorMsg);
-      context.status_manager?.notifier?.notify_agent_error_output_generation(
+      context.statusManager?.notifier?.notifyAgentErrorOutputGeneration(
         'LLMUserMessageReadyEventHandler.pre_llm_check',
         errorMsg
       );
       throw new Error(errorMsg);
     }
 
-    const llmUserMessage = event.llm_user_message;
+    const llmUserMessage = event.llmUserMessage;
     console.info(`Agent '${agentId}' handling LLMUserMessageReadyEvent: '${llmUserMessage.content}'`);
     console.debug(
       `Agent '${agentId}' preparing to send full message to LLM:\n---\n${llmUserMessage.content}\n---`
     );
 
-    context.state.add_message_to_history({ role: 'user', content: llmUserMessage.content });
+    context.state.addMessageToHistory({ role: 'user', content: llmUserMessage.content });
 
     let completeResponseText = '';
     let completeReasoningText = '';
@@ -60,7 +60,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     const completeAudioUrls: string[] = [];
     const completeVideoUrls: string[] = [];
 
-    const notifier = context.status_manager?.notifier ?? null;
+    const notifier = context.statusManager?.notifier ?? null;
     if (!notifier) {
       console.error(
         `Agent '${agentId}': Notifier not available in LLMUserMessageReadyEventHandler. Cannot emit segment events.`
@@ -72,23 +72,23 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
         return;
       }
       try {
-        notifier.notify_agent_segment_event(segmentEvent.toDict());
+        notifier.notifyAgentSegmentEvent(segmentEvent.toDict());
       } catch (error) {
         console.error(`Agent '${agentId}': Error notifying segment event: ${error}`);
       }
     };
 
     const toolNames: string[] = [];
-    const toolInstances = context.state.tool_instances;
+    const toolInstances = context.state.toolInstances;
     if (toolInstances && Object.keys(toolInstances).length > 0) {
       toolNames.push(...Object.keys(toolInstances));
     } else if (context.config.tools) {
       for (const tool of context.config.tools as any[]) {
         if (typeof tool === 'string') {
           toolNames.push(tool);
-        } else if (tool && typeof tool.get_name === 'function') {
+        } else if (tool && typeof tool.getName === 'function') {
           try {
-            toolNames.push(tool.get_name());
+            toolNames.push(tool.getName());
           } catch {
             console.warn(`Agent '${agentId}': Failed to resolve tool name from ${tool?.constructor?.name ?? typeof tool}.`);
           }
@@ -100,10 +100,10 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
 
     const provider = llmInstance.model?.provider ?? null;
     const handlerResult = StreamingResponseHandlerFactory.create({
-      tool_names: toolNames,
+      toolNames,
       provider,
-      on_segment_event: emitSegmentEvent,
-      agent_id: agentId
+      onSegmentEvent: emitSegmentEvent,
+      agentId
     });
     const streamingHandler = handlerResult.handler;
 
@@ -112,10 +112,10 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     );
 
     const streamKwargs: Record<string, any> = {};
-    if (handlerResult.tool_schemas) {
-      streamKwargs.tools = handlerResult.tool_schemas;
+    if (handlerResult.toolSchemas) {
+      streamKwargs.tools = handlerResult.toolSchemas;
       console.info(
-        `Agent '${agentId}': Passing ${handlerResult.tool_schemas.length} tool schemas to LLM API (Provider: ${provider}).`
+        `Agent '${agentId}': Passing ${handlerResult.toolSchemas.length} tool schemas to LLM API (Provider: ${provider}).`
       );
     }
 
@@ -160,14 +160,14 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       streamingHandler.finalize();
 
       if (toolNames.length) {
-        const toolInvocations = streamingHandler.get_all_invocations();
+        const toolInvocations = streamingHandler.getAllInvocations();
         if (toolInvocations.length) {
-          context.state.active_multi_tool_call_turn = new ToolInvocationTurn(toolInvocations);
+          context.state.activeMultiToolCallTurn = new ToolInvocationTurn(toolInvocations);
           console.info(
             `Agent '${agentId}': Parsed ${toolInvocations.length} tool invocations from streaming parser.`
           );
           for (const invocation of toolInvocations) {
-            await context.input_event_queues.enqueue_tool_invocation_request(
+            await context.inputEventQueues.enqueueToolInvocationRequest(
               new PendingToolInvocationEvent(invocation)
             );
           }
@@ -180,11 +180,11 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     } catch (error) {
       console.error(`Agent '${agentId}' error during LLM stream: ${error}`);
       const errorMessage = `Error processing your request with the LLM: ${String(error)}`;
-      context.state.add_message_to_history({ role: 'assistant', content: errorMessage, is_error: true });
+      context.state.addMessageToHistory({ role: 'assistant', content: errorMessage, is_error: true });
 
       if (notifier) {
         try {
-          notifier.notify_agent_error_output_generation(
+          notifier.notifyAgentErrorOutputGeneration(
             'LLMUserMessageReadyEventHandler.streamUserMessage',
             errorMessage,
             String(error)
@@ -197,7 +197,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       }
 
       const errorResponse = new CompleteResponse({ content: errorMessage, usage: null });
-      await context.input_event_queues.enqueue_internal_system_event(
+      await context.inputEventQueues.enqueueInternalSystemEvent(
         new LLMCompleteResponseReceivedEvent(errorResponse, true)
       );
       console.info(`Agent '${agentId}' enqueued LLMCompleteResponseReceivedEvent with error details.`);
@@ -217,7 +217,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     if (completeVideoUrls.length) {
       historyEntry.video_urls = completeVideoUrls;
     }
-    context.state.add_message_to_history(historyEntry);
+    context.state.addMessageToHistory(historyEntry);
 
     const completeResponse = new CompleteResponse({
       content: completeResponseText,
@@ -227,7 +227,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       audio_urls: completeAudioUrls,
       video_urls: completeVideoUrls
     });
-    await context.input_event_queues.enqueue_internal_system_event(
+    await context.inputEventQueues.enqueueInternalSystemEvent(
       new LLMCompleteResponseReceivedEvent(completeResponse)
     );
     console.info(

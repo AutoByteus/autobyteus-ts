@@ -9,18 +9,18 @@ export class SentinelInitializationState extends BaseState {
   private headerBuffer = '';
 
   run(): void {
-    if (!this.context.has_more_chars()) {
+    if (!this.context.hasMoreChars()) {
       return;
     }
 
-    const startPos = this.context.get_position();
+    const startPos = this.context.getPosition();
     const endIdx = this.context.find(MARKER_END, startPos);
 
     if (endIdx === -1) {
-      this.headerBuffer += this.context.consume_remaining();
+      this.headerBuffer += this.context.consumeRemaining();
       if (!this.isPossiblePrefix(this.headerBuffer)) {
-        this.context.append_text_segment(this.headerBuffer);
-        this.context.transition_to(new TextState(this.context));
+        this.context.appendTextSegment(this.headerBuffer);
+        this.context.transitionTo(new TextState(this.context));
       }
       return;
     }
@@ -28,8 +28,8 @@ export class SentinelInitializationState extends BaseState {
     this.headerBuffer += this.context.consume(endIdx - startPos + MARKER_END.length);
 
     if (!this.headerBuffer.startsWith(START_MARKER)) {
-      this.context.append_text_segment(this.headerBuffer);
-      this.context.transition_to(new TextState(this.context));
+      this.context.appendTextSegment(this.headerBuffer);
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
@@ -40,15 +40,15 @@ export class SentinelInitializationState extends BaseState {
     headerJson = headerJson.trim();
 
     if (!headerJson) {
-      this.context.append_text_segment(this.headerBuffer);
-      this.context.transition_to(new TextState(this.context));
+      this.context.appendTextSegment(this.headerBuffer);
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
     const data = this.parseHeaderJson(headerJson);
     if (!data) {
-      this.context.append_text_segment(this.headerBuffer);
-      this.context.transition_to(new TextState(this.context));
+      this.context.appendTextSegment(this.headerBuffer);
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
@@ -56,30 +56,30 @@ export class SentinelInitializationState extends BaseState {
     const segmentType = this.mapSegmentType(typeStr);
 
     if (!segmentType) {
-      this.context.append_text_segment(this.headerBuffer);
-      this.context.transition_to(new TextState(this.context));
+      this.context.appendTextSegment(this.headerBuffer);
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
     const metadata = { ...data } as Record<string, any>;
     delete metadata.type;
 
-    if (this.context.get_current_segment_type() === SegmentType.TEXT) {
-      this.context.emit_segment_end();
+    if (this.context.getCurrentSegmentType() === SegmentType.TEXT) {
+      this.context.emitSegmentEnd();
     }
 
-    this.context.transition_to(new SentinelContentState(this.context, segmentType, metadata));
+    this.context.transitionTo(new SentinelContentState(this.context, segmentType, metadata));
   }
 
   finalize(): void {
-    if (this.context.has_more_chars()) {
-      this.headerBuffer += this.context.consume_remaining();
+    if (this.context.hasMoreChars()) {
+      this.headerBuffer += this.context.consumeRemaining();
     }
 
     if (this.headerBuffer) {
-      this.context.append_text_segment(this.headerBuffer);
+      this.context.appendTextSegment(this.headerBuffer);
     }
-    this.context.transition_to(new TextState(this.context));
+    this.context.transitionTo(new TextState(this.context));
   }
 
   private isPossiblePrefix(buffer: string): boolean {

@@ -15,7 +15,7 @@ describe('AgentExternalEventNotifier', () => {
       receivedMeta = metadata;
     });
 
-    notifier.notify_status_updated(AgentStatus.IDLE, AgentStatus.BOOTSTRAPPING);
+    notifier.notifyStatusUpdated(AgentStatus.IDLE, AgentStatus.BOOTSTRAPPING);
 
     expect(receivedPayload).toEqual({
       new_status: AgentStatus.IDLE,
@@ -34,7 +34,7 @@ describe('AgentExternalEventNotifier', () => {
     });
 
     const chunk = new ChunkResponse({ content: 'Hello' });
-    notifier.notify_agent_data_assistant_chunk(chunk);
+    notifier.notifyAgentDataAssistantChunk(chunk);
 
     expect(receivedPayload).toBe(chunk);
   });

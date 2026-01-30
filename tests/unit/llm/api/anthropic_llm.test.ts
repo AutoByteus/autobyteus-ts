@@ -20,7 +20,7 @@ describe('AnthropicLLM', () => {
     const model = new LLMModel({
       name: 'claude-3-opus',
       value: 'claude-3-opus',
-      canonical_name: 'claude-3-opus',
+      canonicalName: 'claude-3-opus',
       provider: LLMProvider.ANTHROPIC
     });
     
@@ -36,7 +36,7 @@ describe('AnthropicLLM', () => {
     const model = new LLMModel({
       name: 'claude',
       value: 'claude',
-      canonical_name: 'claude',
+      canonicalName: 'claude',
       provider: LLMProvider.ANTHROPIC
     });
     expect(() => new AnthropicLLM(model)).toThrow(/environment variable is not set/);

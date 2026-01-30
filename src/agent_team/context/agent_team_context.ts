@@ -10,74 +10,74 @@ import type { TeamManager } from './team_manager.js';
 import type { AgentEventMultiplexer } from '../streaming/agent_event_multiplexer.js';
 
 export class AgentTeamContext {
-  team_id: string;
+  teamId: string;
   config: AgentTeamConfig;
   state: AgentTeamRuntimeState;
-  private node_config_map: Map<string, TeamNodeConfig> | null = null;
+  private nodeConfigMap: Map<string, TeamNodeConfig> | null = null;
 
-  constructor(team_id: string, config: AgentTeamConfig, state: AgentTeamRuntimeState) {
-    if (!team_id || typeof team_id !== 'string') {
-      throw new Error("AgentTeamContext requires a non-empty string 'team_id'.");
+  constructor(teamId: string, config: AgentTeamConfig, state: AgentTeamRuntimeState) {
+    if (!teamId || typeof teamId !== 'string') {
+      throw new Error("AgentTeamContext requires a non-empty string 'teamId'.");
     }
 
-    this.team_id = team_id;
+    this.teamId = teamId;
     this.config = config;
     this.state = state;
 
-    console.info(`AgentTeamContext composed for team_id '${this.team_id}'.`);
+    console.info(`AgentTeamContext composed for team '${this.teamId}'.`);
   }
 
-  get_node_config_by_name(name: string): TeamNodeConfig | undefined {
-    if (!this.node_config_map) {
-      this.node_config_map = new Map(this.config.nodes.map((node) => [node.name, node]));
+  getNodeConfigByName(name: string): TeamNodeConfig | undefined {
+    if (!this.nodeConfigMap) {
+      this.nodeConfigMap = new Map(this.config.nodes.map((node) => [node.name, node]));
     }
-    return this.node_config_map.get(name);
+    return this.nodeConfigMap.get(name);
   }
 
   get agents(): Agent[] {
-    const manager = this.state.team_manager as TeamManager;
-    if (manager && typeof manager.get_all_agents === 'function') {
-      return manager.get_all_agents();
+    const manager = this.state.teamManager as TeamManager;
+    if (manager && typeof manager.getAllAgents === 'function') {
+      return manager.getAllAgents();
     }
     return [];
   }
 
-  get coordinator_agent(): Agent | null {
-    const manager = this.state.team_manager as TeamManager;
+  get coordinatorAgent(): Agent | null {
+    const manager = this.state.teamManager as TeamManager;
     if (manager) {
-      return (manager as any).coordinator_agent ?? null;
+      return manager.coordinatorAgent ?? null;
     }
     return null;
   }
 
-  get status_manager(): AgentTeamStatusManager | null {
-    return this.state.status_manager_ref ?? null;
+  get statusManager(): AgentTeamStatusManager | null {
+    return this.state.statusManagerRef ?? null;
   }
 
-  get current_status(): AgentTeamStatus {
-    return this.state.current_status;
+  get currentStatus(): AgentTeamStatus {
+    return this.state.currentStatus;
   }
 
-  set current_status(value: AgentTeamStatus) {
+  set currentStatus(value: AgentTeamStatus) {
     if (!Object.values(AgentTeamStatus).includes(value)) {
-      throw new TypeError(`current_status must be an AgentTeamStatus value. Got ${String(value)}`);
+      throw new TypeError(`currentStatus must be an AgentTeamStatus value. Got ${String(value)}`);
     }
-    this.state.current_status = value;
+    this.state.currentStatus = value;
   }
 
-  get event_store(): AgentTeamEventStore | null {
-    return this.state.event_store ?? null;
+  get eventStore(): AgentTeamEventStore | null {
+    return this.state.eventStore ?? null;
   }
 
-  get status_deriver(): AgentTeamStatusDeriver | null {
-    return this.state.status_deriver ?? null;
+  get statusDeriver(): AgentTeamStatusDeriver | null {
+    return this.state.statusDeriver ?? null;
   }
 
-  get team_manager(): TeamManager {
-    return (this.state.team_manager as TeamManager) ?? null;
+  get teamManager(): TeamManager {
+    return (this.state.teamManager as TeamManager) ?? null;
   }
 
   get multiplexer(): AgentEventMultiplexer | null {
-    return this.state.multiplexer_ref ?? null;
+    return this.state.multiplexerRef ?? null;
   }
 }

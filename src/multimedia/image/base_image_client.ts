@@ -14,16 +14,16 @@ export abstract class BaseImageClient {
   abstract generateImage(
     prompt: string,
     inputImageUrls?: string[] | null,
-    generationConfig?: Record<string, any>,
-    ...args: any[]
+    generationConfig?: Record<string, unknown>,
+    ...args: unknown[]
   ): Promise<ImageGenerationResponse>;
 
   abstract editImage(
     prompt: string,
     inputImageUrls: string[],
     maskUrl?: string | null,
-    generationConfig?: Record<string, any>,
-    ...args: any[]
+    generationConfig?: Record<string, unknown>,
+    ...args: unknown[]
   ): Promise<ImageGenerationResponse>;
 
   async cleanup(): Promise<void> {

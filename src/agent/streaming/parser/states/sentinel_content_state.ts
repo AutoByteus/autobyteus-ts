@@ -12,7 +12,7 @@ export class SentinelContentState extends DelimitedContentState {
     this.metadata = metadata;
   }
 
-  protected _get_start_metadata(): Record<string, any> {
+  protected _getStartMetadata(): Record<string, any> {
     return this.metadata;
   }
 }

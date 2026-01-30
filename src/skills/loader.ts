@@ -16,8 +16,9 @@ export class SkillLoader {
     let rawContent: string;
     try {
       rawContent = fs.readFileSync(skillFile, 'utf-8');
-    } catch (error: any) {
-      throw new Error(`Failed to read SKILL.md at ${skillFile}: ${error?.message ?? String(error)}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to read SKILL.md at ${skillFile}: ${message}`);
     }
 
     return SkillLoader.parseSkill(rawContent, skillPath);

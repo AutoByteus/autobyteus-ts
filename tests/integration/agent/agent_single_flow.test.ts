@@ -7,15 +7,11 @@ import { AgentFactory } from '../../../src/agent/factory/agent_factory.js';
 import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { AgentStatus } from '../../../src/agent/status/status_enum.js';
 import { AgentInputUserMessage } from '../../../src/agent/message/agent_input_user_message.js';
-import { OpenAILLM } from '../../../src/llm/api/openai_llm.js';
-import { LLMModel } from '../../../src/llm/models.js';
-import { LLMProvider } from '../../../src/llm/providers.js';
-import type { ChunkResponse } from '../../../src/llm/utils/response_types.js';
-import type { LLMUserMessage } from '../../../src/llm/user_message.js';
 import { registerWriteFileTool } from '../../../src/tools/file/write_file.js';
 import { BaseAgentWorkspace } from '../../../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../../../src/agent/workspace/workspace_config.js';
 import { SkillRegistry } from '../../../src/skills/registry.js';
+import { createLmstudioLLM, hasLmstudioConfig } from '../helpers/lmstudio_llm_helper.js';
 
 class SimpleWorkspace extends BaseAgentWorkspace {
   private rootPath: string;
@@ -25,23 +21,8 @@ class SimpleWorkspace extends BaseAgentWorkspace {
     this.rootPath = rootPath;
   }
 
-  get_base_path(): string {
-    return this.rootPath;
-  }
-
-  // Tool compatibility: some tools expect camelCase.
   getBasePath(): string {
     return this.rootPath;
-  }
-}
-
-class RequiredToolOpenAILLM extends OpenAILLM {
-  async *streamUserMessage(
-    userMessage: LLMUserMessage,
-    kwargs: Record<string, any> = {}
-  ): AsyncGenerator<ChunkResponse, void, unknown> {
-    const nextKwargs = { ...kwargs, tool_choice: 'required' };
-    yield* super.streamUserMessage(userMessage, nextKwargs);
   }
 }
 
@@ -80,10 +61,9 @@ const resetFactory = () => {
   (AgentFactory as any).instance = undefined;
 };
 
-const apiKey = process.env.OPENAI_API_KEY;
-const runIntegration = apiKey ? describe : describe.skip;
+const runIntegration = hasLmstudioConfig() ? describe : describe.skip;
 
-runIntegration('Agent single-flow integration (OpenAI)', () => {
+runIntegration('Agent single-flow integration (LM Studio)', () => {
   let tempDir: string;
   let originalParserEnv: string | undefined;
 
@@ -111,13 +91,8 @@ runIntegration('Agent single-flow integration (OpenAI)', () => {
     const tool = registerWriteFileTool();
     const toolArgs = { path: 'poem.txt', content: 'Roses are red.' };
 
-    const model = new LLMModel({
-      name: 'gpt-5.2',
-      value: 'gpt-5.2',
-      canonical_name: 'gpt-5.2',
-      provider: LLMProvider.OPENAI
-    });
-    const llm = new RequiredToolOpenAILLM(model);
+    const llm = await createLmstudioLLM({ requireToolChoice: true });
+    if (!llm) return;
 
     const config = new AgentConfig(
       'SingleAgent',
@@ -136,14 +111,14 @@ runIntegration('Agent single-flow integration (OpenAI)', () => {
     );
 
     const factory = new AgentFactory();
-    const agent = factory.create_agent(config);
+    const agent = factory.createAgent(config);
 
     try {
       agent.start();
-      const ready = await waitForStatus(agent.agent_id, () => agent.context.current_status);
+      const ready = await waitForStatus(agent.agentId, () => agent.context.currentStatus);
       expect(ready).toBe(true);
 
-      await agent.post_user_message(
+      await agent.postUserMessage(
         new AgentInputUserMessage(
           `Use the write_file tool to write "${toolArgs.content}" to "${toolArgs.path}". ` +
             `Do not respond with plain text.`
@@ -157,7 +132,7 @@ runIntegration('Agent single-flow integration (OpenAI)', () => {
       const content = await fs.readFile(filePath, 'utf8');
       expect(content).toBe(toolArgs.content);
     } finally {
-      if (agent.is_running) {
+      if (agent.isRunning) {
         await agent.stop(5);
       }
       await llm.cleanup();

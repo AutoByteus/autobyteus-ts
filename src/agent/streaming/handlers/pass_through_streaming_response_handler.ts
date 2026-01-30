@@ -13,13 +13,13 @@ export class PassThroughStreamingResponseHandler extends StreamingResponseHandle
   private allEvents: SegmentEvent[] = [];
 
   constructor(options?: {
-    on_segment_event?: (event: SegmentEvent) => void;
-    on_tool_invocation?: (invocation: ToolInvocation) => void;
-    segment_id_prefix?: string;
+    onSegmentEvent?: (event: SegmentEvent) => void;
+    onToolInvocation?: (invocation: ToolInvocation) => void;
+    segmentIdPrefix?: string;
   }) {
     super();
-    this.onSegmentEvent = options?.on_segment_event;
-    this.segmentIdPrefix = options?.segment_id_prefix ?? `pt_${randomUUID().replace(/-/g, '')}:`;
+    this.onSegmentEvent = options?.onSegmentEvent;
+    this.segmentIdPrefix = options?.segmentIdPrefix ?? `pt_${randomUUID().replace(/-/g, '')}:`;
     this.segmentId = `${this.segmentIdPrefix}text_0`;
   }
 
@@ -65,17 +65,17 @@ export class PassThroughStreamingResponseHandler extends StreamingResponseHandle
         try {
           this.onSegmentEvent(event);
         } catch (error) {
-          console.error(`Error in on_segment_event callback: ${error}`);
+          console.error(`Error in onSegmentEvent callback: ${error}`);
         }
       }
     }
   }
 
-  get_all_events(): SegmentEvent[] {
+  getAllEvents(): SegmentEvent[] {
     return [...this.allEvents];
   }
 
-  get_all_invocations(): ToolInvocation[] {
+  getAllInvocations(): ToolInvocation[] {
     return [];
   }
 

@@ -11,21 +11,21 @@ import {
 import type { TaskPlanEventPayload } from './agent_team_stream_events.js';
 
 export class AgentTeamExternalEventNotifier extends EventEmitter {
-  team_id: string;
-  runtime_ref: unknown;
+  teamId: string;
+  runtimeRef: unknown;
 
-  constructor(team_id: string, runtime_ref: unknown) {
+  constructor(teamId: string, runtimeRef: unknown) {
     super();
-    this.team_id = team_id;
-    this.runtime_ref = runtime_ref;
-    console.debug(`AgentTeamExternalEventNotifier initialized for team '${this.team_id}'.`);
+    this.teamId = teamId;
+    this.runtimeRef = runtimeRef;
+    console.debug(`AgentTeamExternalEventNotifier initialized for team '${this.teamId}'.`);
   }
 
-  private emit_event(event: AgentTeamStreamEvent): void {
+  private emitEvent(event: AgentTeamStreamEvent): void {
     this.emit(EventType.TEAM_STREAM_EVENT, { payload: event });
   }
 
-  notify_status_updated(
+  notifyStatusUpdated(
     new_status: AgentTeamStatus,
     old_status: AgentTeamStatus | null | undefined,
     extra_data?: Record<string, any> | null
@@ -44,37 +44,37 @@ export class AgentTeamExternalEventNotifier extends EventEmitter {
     }
 
     const event = new AgentTeamStreamEvent({
-      team_id: this.team_id,
+      team_id: this.teamId,
       event_source_type: 'TEAM',
       data: new AgentTeamStatusUpdateData(filtered_payload)
     });
-    this.emit_event(event);
+    this.emitEvent(event);
   }
 
-  publish_agent_event(agent_name: string, agent_event: StreamEvent): void {
+  publishAgentEvent(agentName: string, agentEvent: StreamEvent): void {
     const event = new AgentTeamStreamEvent({
-      team_id: this.team_id,
+      team_id: this.teamId,
       event_source_type: 'AGENT',
-      data: new AgentEventRebroadcastPayload({ agent_name, agent_event })
+      data: new AgentEventRebroadcastPayload({ agent_name: agentName, agent_event: agentEvent })
     });
-    this.emit_event(event);
+    this.emitEvent(event);
   }
 
-  publish_sub_team_event(sub_team_node_name: string, sub_team_event: AgentTeamStreamEvent): void {
+  publishSubTeamEvent(subTeamNodeName: string, subTeamEvent: AgentTeamStreamEvent): void {
     const event = new AgentTeamStreamEvent({
-      team_id: this.team_id,
+      team_id: this.teamId,
       event_source_type: 'SUB_TEAM',
-      data: new SubTeamEventRebroadcastPayload({ sub_team_node_name, sub_team_event })
+      data: new SubTeamEventRebroadcastPayload({ sub_team_node_name: subTeamNodeName, sub_team_event: subTeamEvent })
     });
-    this.emit_event(event);
+    this.emitEvent(event);
   }
 
-  handle_and_publish_task_plan_event(payload: TaskPlanEventPayload): void {
+  handleAndPublishTaskPlanEvent(payload: TaskPlanEventPayload): void {
     const event = new AgentTeamStreamEvent({
-      team_id: this.team_id,
+      team_id: this.teamId,
       event_source_type: 'TASK_PLAN',
       data: payload
     });
-    this.emit_event(event);
+    this.emitEvent(event);
   }
 }

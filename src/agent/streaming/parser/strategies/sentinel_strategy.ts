@@ -7,11 +7,11 @@ import type { DetectionStrategy } from './base.js';
 export class SentinelStrategy implements DetectionStrategy {
   name = 'sentinel';
 
-  next_marker(context: ParserContext, startPos: number): number {
+  nextMarker(context: ParserContext, startPos: number): number {
     return context.find(START_MARKER, startPos);
   }
 
-  create_state(context: ParserContext): BaseState {
+  createState(context: ParserContext): BaseState {
     return new SentinelInitializationState(context);
   }
 }

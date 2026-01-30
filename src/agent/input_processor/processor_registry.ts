@@ -1,39 +1,45 @@
 import { Singleton } from '../../utils/singleton.js';
 import { ProcessorOption } from '../processor_option.js';
 import { AgentUserInputMessageProcessorDefinition } from './processor_definition.js';
+import { BaseAgentUserInputMessageProcessor } from './base_user_input_processor.js';
+
+type ProcessorClass = (new () => BaseAgentUserInputMessageProcessor) & {
+  getOrder?: () => number;
+  isMandatory?: () => boolean;
+};
 
 export class AgentUserInputMessageProcessorRegistry extends Singleton {
+  protected static instance?: AgentUserInputMessageProcessorRegistry;
+
   private definitions: Map<string, AgentUserInputMessageProcessorDefinition> = new Map();
 
   constructor() {
     super();
-    const existing = (AgentUserInputMessageProcessorRegistry as any)
-      .instance as AgentUserInputMessageProcessorRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (AgentUserInputMessageProcessorRegistry.instance) {
+      return AgentUserInputMessageProcessorRegistry.instance;
     }
-    (AgentUserInputMessageProcessorRegistry as any).instance = this;
+    AgentUserInputMessageProcessorRegistry.instance = this;
   }
 
-  register_processor(definition: AgentUserInputMessageProcessorDefinition): void {
+  registerProcessor(definition: AgentUserInputMessageProcessorDefinition): void {
     if (!(definition instanceof AgentUserInputMessageProcessorDefinition)) {
       throw new TypeError(
         `Expected AgentUserInputMessageProcessorDefinition instance, got ${typeof definition}.`
       );
     }
 
-    const processor_name = definition.name;
-    if (this.definitions.has(processor_name)) {
-      console.warn(`Overwriting existing input processor definition for name: '${processor_name}'.`);
+    const processorName = definition.name;
+    if (this.definitions.has(processorName)) {
+      console.warn(`Overwriting existing input processor definition for name: '${processorName}'.`);
     }
 
-    this.definitions.set(processor_name, definition);
+    this.definitions.set(processorName, definition);
     console.info(
-      `Input processor definition '${processor_name}' (class: '${definition.processor_class.name}') registered successfully.`
+      `Input processor definition '${processorName}' (class: '${definition.processorClass.name}') registered successfully.`
     );
   }
 
-  get_processor_definition(name: string): AgentUserInputMessageProcessorDefinition | undefined {
+  getProcessorDefinition(name: string): AgentUserInputMessageProcessorDefinition | undefined {
     if (typeof name !== 'string') {
       console.warn(
         `Attempted to retrieve input processor definition with non-string name: ${typeof name}.`
@@ -48,52 +54,45 @@ export class AgentUserInputMessageProcessorRegistry extends Singleton {
     return definition;
   }
 
-  get_processor(name: string): any | undefined {
-    const definition = this.get_processor_definition(name);
+  getProcessor(name: string): BaseAgentUserInputMessageProcessor | undefined {
+    const definition = this.getProcessorDefinition(name);
     if (!definition) {
       return undefined;
     }
 
     try {
-      return new definition.processor_class();
+      return new definition.processorClass();
     } catch (error) {
       console.error(
-        `Failed to instantiate input processor '${name}' from class '${definition.processor_class.name}': ${error}`
+        `Failed to instantiate input processor '${name}' from class '${definition.processorClass.name}': ${error}`
       );
       return undefined;
     }
   }
 
-  list_processor_names(): string[] {
+  listProcessorNames(): string[] {
     return Array.from(this.definitions.keys());
   }
 
-  get_ordered_processor_options(): ProcessorOption[] {
+  getOrderedProcessorOptions(): ProcessorOption[] {
     const definitions = Array.from(this.definitions.values());
     const sortedDefinitions = definitions.sort((a, b) => {
-      const orderA =
-        typeof (a.processor_class as any).get_order === 'function'
-          ? (a.processor_class as any).get_order()
-          : 500;
-      const orderB =
-        typeof (b.processor_class as any).get_order === 'function'
-          ? (b.processor_class as any).get_order()
-          : 500;
+      const processorA = a.processorClass as ProcessorClass;
+      const processorB = b.processorClass as ProcessorClass;
+      const orderA = typeof processorA.getOrder === 'function' ? processorA.getOrder() : 500;
+      const orderB = typeof processorB.getOrder === 'function' ? processorB.getOrder() : 500;
       return orderA - orderB;
     });
 
-    return sortedDefinitions.map(
-      (definition) =>
-        new ProcessorOption(
-          definition.name,
-          typeof (definition.processor_class as any).is_mandatory === 'function'
-            ? (definition.processor_class as any).is_mandatory()
-            : false
-        )
-    );
+    return sortedDefinitions.map((definition) => {
+      const processorClass = definition.processorClass as ProcessorClass;
+      const isMandatory =
+        typeof processorClass.isMandatory === 'function' ? processorClass.isMandatory() : false;
+      return new ProcessorOption(definition.name, isMandatory);
+    });
   }
 
-  get_all_definitions(): Record<string, AgentUserInputMessageProcessorDefinition> {
+  getAllDefinitions(): Record<string, AgentUserInputMessageProcessorDefinition> {
     return Object.fromEntries(this.definitions.entries());
   }
 

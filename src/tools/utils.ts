@@ -14,7 +14,8 @@ export function formatToolUsageInfo(tools: BaseTool[]): string {
       usage = tool.definition.getUsageXml();
     } else {
       const toolClass = tool.constructor as ToolClass;
-      const category = (toolClass as any).CATEGORY ?? ToolCategory.GENERAL;
+      const category =
+        (toolClass as { CATEGORY?: ToolCategory }).CATEGORY ?? ToolCategory.GENERAL;
       try {
         const definition = new ToolDefinition(
           toolClass.getName(),

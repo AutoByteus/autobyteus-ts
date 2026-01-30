@@ -2,42 +2,42 @@ import type { ParameterSchema } from '../../utils/parameter_schema.js';
 import { BaseTool } from '../base_tool.js';
 import { McpServerProxy } from './server/proxy.js';
 
-type AgentContextLike = { agent_id: string };
+type AgentContextLike = { agentId: string };
 
 type ToolArguments = Record<string, any>;
 
 export class GenericMcpTool extends BaseTool {
-  private _server_id: string;
-  private _remote_tool_name: string;
-  private _instance_name: string;
-  private _instance_description: string;
-  private _instance_argument_schema: ParameterSchema;
+  private serverId: string;
+  private remoteToolName: string;
+  private instanceName: string;
+  private instanceDescription: string;
+  private instanceArgumentSchema: ParameterSchema;
 
   constructor(
-    server_id: string,
-    remote_tool_name: string,
+    serverId: string,
+    remoteToolName: string,
     name: string,
     description: string,
     argument_schema: ParameterSchema
   ) {
     super();
-    this._server_id = server_id;
-    this._remote_tool_name = remote_tool_name;
-    this._instance_name = name;
-    this._instance_description = description;
-    this._instance_argument_schema = argument_schema;
+    this.serverId = serverId;
+    this.remoteToolName = remoteToolName;
+    this.instanceName = name;
+    this.instanceDescription = description;
+    this.instanceArgumentSchema = argument_schema;
   }
 
   getName(): string {
-    return this._instance_name;
+    return this.instanceName;
   }
 
   getDescription(): string {
-    return this._instance_description;
+    return this.instanceDescription;
   }
 
   getArgumentSchema(): ParameterSchema {
-    return this._instance_argument_schema;
+    return this.instanceArgumentSchema;
   }
 
   static getName(): string {
@@ -53,8 +53,8 @@ export class GenericMcpTool extends BaseTool {
   }
 
   protected async _execute(context: AgentContextLike, kwargs: ToolArguments = {}): Promise<any> {
-    const agentId = context.agent_id;
-    const proxy = new McpServerProxy(agentId, this._server_id);
-    return await proxy.callTool(this._remote_tool_name, kwargs);
+    const agentId = context.agentId;
+    const proxy = new McpServerProxy(agentId, this.serverId);
+    return await proxy.callTool(this.remoteToolName, kwargs);
   }
 }

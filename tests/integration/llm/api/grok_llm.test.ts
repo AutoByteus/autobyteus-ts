@@ -12,7 +12,7 @@ const buildModel = () =>
   new LLMModel({
     name: 'grok-4-1-fast-reasoning',
     value: 'grok-4-1-fast-reasoning',
-    canonical_name: 'grok-4-1-fast-reasoning',
+    canonicalName: 'grok-4-1-fast-reasoning',
     provider: LLMProvider.GROK
   });
 

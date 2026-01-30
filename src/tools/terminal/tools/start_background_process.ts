@@ -9,7 +9,7 @@ import type { AgentContextLike } from './run_bash.js';
 
 let defaultBackgroundManager: BackgroundProcessManager | null = null;
 
-function _get_background_manager(context: AgentContextLike | null | undefined): BackgroundProcessManager {
+function getBackgroundManager(context: AgentContextLike | null | undefined): BackgroundProcessManager {
   if (!context) {
     if (!defaultBackgroundManager) {
       defaultBackgroundManager = new BackgroundProcessManager();
@@ -17,15 +17,23 @@ function _get_background_manager(context: AgentContextLike | null | undefined): 
     return defaultBackgroundManager;
   }
 
-  const contextAny = context as Record<string, any>;
-  if (!contextAny._background_process_manager) {
-    contextAny._background_process_manager = new BackgroundProcessManager();
+  const contextRecord = context as Record<string, unknown>;
+  const existing = contextRecord._backgroundProcessManager as BackgroundProcessManager | undefined;
+
+  if (!existing) {
+    const manager = new BackgroundProcessManager();
+    contextRecord._backgroundProcessManager = manager;
+    return manager;
   }
 
-  return contextAny._background_process_manager as BackgroundProcessManager;
+  if (!contextRecord._backgroundProcessManager) {
+    contextRecord._backgroundProcessManager = existing;
+  }
+
+  return existing;
 }
 
-function _get_cwd(context: AgentContextLike | null | undefined): string {
+function getCwd(context: AgentContextLike | null | undefined): string {
   if (context?.workspace) {
     try {
       const basePath = context.workspace.getBasePath();
@@ -40,15 +48,15 @@ function _get_cwd(context: AgentContextLike | null | undefined): string {
   return os.tmpdir();
 }
 
-export async function start_background_process(
+export async function startBackgroundProcess(
   context: AgentContextLike | null,
   command: string
-): Promise<{ process_id: string; status: string }> {
-  const manager = _get_background_manager(context);
-  const cwd = _get_cwd(context);
+): Promise<{ processId: string; status: string }> {
+  const manager = getBackgroundManager(context);
+  const cwd = getCwd(context);
 
-  const process_id = await manager.start_process(command, cwd);
-  return { process_id, status: 'started' };
+  const processId = await manager.startProcess(command, cwd);
+  return { processId, status: 'started' };
 }
 
 const argumentSchema = new ParameterSchema();
@@ -68,8 +76,9 @@ export function registerStartBackgroundProcessTool(): BaseTool {
       name: TOOL_NAME,
       description: 'Start a long-running process in the background and return its process_id.',
       argumentSchema,
-      category: ToolCategory.SYSTEM
-    })(start_background_process) as BaseTool;
+      category: ToolCategory.SYSTEM,
+      paramNames: ['context', 'command']
+    })(startBackgroundProcess) as BaseTool;
     return cachedTool;
   }
 

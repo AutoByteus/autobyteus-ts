@@ -26,7 +26,7 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -36,50 +36,50 @@ const makeContext = () => {
 };
 
 describe('AgentStatusManager', () => {
-  let agent_context: AgentContext;
+  let agentContext: AgentContext;
 
   beforeEach(() => {
-    agent_context = makeContext();
+    agentContext = makeContext();
   });
 
   it('does nothing when status does not change', async () => {
-    const notifier = { notify_status_updated: vi.fn() };
-    const manager = new AgentStatusManager(agent_context, notifier as any);
+    const notifier = { notifyStatusUpdated: vi.fn() };
+    const manager = new AgentStatusManager(agentContext, notifier as any);
 
     const processor = {
       event: LifecycleEvent.AGENT_READY,
-      get_order: () => 100,
-      get_name: () => 'Processor',
+      getOrder: () => 100,
+      getName: () => 'Processor',
       process: vi.fn(async () => undefined)
     };
-    agent_context.config.lifecycle_processors = [processor as any];
+    agentContext.config.lifecycleProcessors = [processor as any];
 
     await manager.emit_status_update(AgentStatus.IDLE, AgentStatus.IDLE);
 
     expect((processor as any).process).not.toHaveBeenCalled();
-    expect(notifier.notify_status_updated).not.toHaveBeenCalled();
+    expect(notifier.notifyStatusUpdated).not.toHaveBeenCalled();
   });
 
   it('runs lifecycle processors in order', async () => {
     const notifierCalls: any[] = [];
-    const notifier = { notify_status_updated: (...args: any[]) => notifierCalls.push(args) };
-    const manager = new AgentStatusManager(agent_context, notifier as any);
+    const notifier = { notifyStatusUpdated: (...args: any[]) => notifierCalls.push(args) };
+    const manager = new AgentStatusManager(agentContext, notifier as any);
 
     const call_order: string[] = [];
     const processor_late = {
       event: LifecycleEvent.AGENT_READY,
-      get_order: () => 200,
-      get_name: () => 'Late',
+      getOrder: () => 200,
+      getName: () => 'Late',
       process: async () => call_order.push('late')
     };
     const processor_early = {
       event: LifecycleEvent.AGENT_READY,
-      get_order: () => 100,
-      get_name: () => 'Early',
+      getOrder: () => 100,
+      getName: () => 'Early',
       process: async () => call_order.push('early')
     };
 
-    agent_context.config.lifecycle_processors = [processor_late as any, processor_early as any];
+    agentContext.config.lifecycleProcessors = [processor_late as any, processor_early as any];
 
     await manager.emit_status_update(AgentStatus.BOOTSTRAPPING, AgentStatus.IDLE, { foo: 'bar' });
 
@@ -89,19 +89,19 @@ describe('AgentStatusManager', () => {
 
   it('handles lifecycle processor errors', async () => {
     const notifierCalls: any[] = [];
-    const notifier = { notify_status_updated: (...args: any[]) => notifierCalls.push(args) };
-    const manager = new AgentStatusManager(agent_context, notifier as any);
+    const notifier = { notifyStatusUpdated: (...args: any[]) => notifierCalls.push(args) };
+    const manager = new AgentStatusManager(agentContext, notifier as any);
 
     const processor = {
       event: LifecycleEvent.BEFORE_LLM_CALL,
-      get_order: () => 100,
-      get_name: () => 'Fails',
+      getOrder: () => 100,
+      getName: () => 'Fails',
       process: async () => {
         throw new Error('boom');
       }
     };
 
-    agent_context.config.lifecycle_processors = [processor as any];
+    agentContext.config.lifecycleProcessors = [processor as any];
 
     await manager.emit_status_update(AgentStatus.PROCESSING_USER_INPUT, AgentStatus.AWAITING_LLM_RESPONSE);
 

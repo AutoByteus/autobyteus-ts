@@ -15,10 +15,10 @@ describe('TokenUsageTracker', () => {
 
   beforeEach(() => {
     model = {
-      default_config: {
-        pricing_config: new TokenPricingConfig({
-          input_token_pricing: 10.0, // $10 per 1M
-          output_token_pricing: 20.0 // $20 per 1M
+      defaultConfig: {
+        pricingConfig: new TokenPricingConfig({
+          inputTokenPricing: 10.0, // $10 per 1M
+          outputTokenPricing: 20.0 // $20 per 1M
         })
       }
     };

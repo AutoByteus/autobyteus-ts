@@ -14,17 +14,21 @@ export class SerpApiSearchStrategy extends SearchStrategy {
     this.apiKey = apiKey;
   }
 
-  protected formatResults(data: Record<string, any>): string {
-    if (!Array.isArray(data.organic_results) || data.organic_results.length === 0) {
+  protected formatResults(data: Record<string, unknown>): string {
+    const organicResults = data['organic_results'];
+    if (!Array.isArray(organicResults) || organicResults.length === 0) {
       return 'No relevant information found for the query via SerpApi.';
     }
 
-    const resultsStr = data.organic_results
-      .map((result: Record<string, any>, index: number) => (
-        `${index + 1}. ${result.title ?? 'No Title'}\n` +
-        `   Link: ${result.link ?? 'No Link'}\n` +
-        `   Snippet: ${result.snippet ?? 'No Snippet'}`
-      ))
+    const resultsStr = organicResults
+      .map((result: unknown, index: number) => {
+        const record = result as Record<string, unknown>;
+        return (
+          `${index + 1}. ${String(record['title'] ?? 'No Title')}\n` +
+          `   Link: ${String(record['link'] ?? 'No Link')}\n` +
+          `   Snippet: ${String(record['snippet'] ?? 'No Snippet')}`
+        );
+      })
       .join('\n');
 
     return `Search Results:\n${resultsStr}`;

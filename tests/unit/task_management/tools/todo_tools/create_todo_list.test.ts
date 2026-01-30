@@ -4,10 +4,10 @@ import { ToDoList } from '../../../../../src/task_management/todo_list.js';
 import { ToDosDefinitionSchema } from '../../../../../src/task_management/schemas/todo_definition.js';
 
 const buildContext = () => ({
-  agent_id: 'agent_create_todos',
-  custom_data: {},
-  status_manager: { notifier: { notify_agent_data_todo_list_updated: () => {} } },
-  state: { todo_list: null as ToDoList | null }
+  agentId: 'agent_create_todos',
+  customData: {},
+  statusManager: { notifier: { notifyAgentDataTodoListUpdated: () => {} } },
+  state: { todoList: null as ToDoList | null }
 });
 
 describe('CreateToDoList tool', () => {
@@ -38,9 +38,9 @@ describe('CreateToDoList tool', () => {
     expect(createdTodos[1].description).toBe('Review outline with team');
     expect(createdTodos[1].todo_id).toBe('todo_0002');
 
-    const todoList = context.state.todo_list;
+    const todoList = context.state.todoList;
     expect(todoList).toBeInstanceOf(ToDoList);
-    const todosInState = todoList?.get_all_todos() ?? [];
+    const todosInState = todoList?.getAllTodos() ?? [];
     expect(todosInState).toHaveLength(2);
     expect(todosInState.map((todo) => todo.description)).toEqual([
       'Write project outline',
@@ -52,9 +52,9 @@ describe('CreateToDoList tool', () => {
   it('overwrites an existing list', async () => {
     const tool = new CreateToDoList();
     const context = buildContext();
-    const existingList = new ToDoList(context.agent_id);
-    existingList.add_todos([{ description: 'Old item' }]);
-    context.state.todo_list = existingList;
+    const existingList = new ToDoList(context.agentId);
+    existingList.addTodos([{ description: 'Old item' }]);
+    context.state.todoList = existingList;
 
     const newListDef = ToDosDefinitionSchema.parse({
       todos: [{ description: 'New task A' }, { description: 'New task B' }]
@@ -63,11 +63,11 @@ describe('CreateToDoList tool', () => {
     const result = await (tool as any)._execute(context, newListDef);
     JSON.parse(result);
 
-    const newList = context.state.todo_list;
+    const newList = context.state.todoList;
     expect(newList).not.toBe(existingList);
-    const descriptions = newList?.get_all_todos().map((todo) => todo.description) ?? [];
+    const descriptions = newList?.getAllTodos().map((todo) => todo.description) ?? [];
     expect(descriptions).toEqual(['New task A', 'New task B']);
-    const ids = newList?.get_all_todos().map((todo) => todo.todo_id) ?? [];
+    const ids = newList?.getAllTodos().map((todo) => todo.todo_id) ?? [];
     expect(ids).toEqual(['todo_0001', 'todo_0002']);
   });
 
@@ -78,6 +78,6 @@ describe('CreateToDoList tool', () => {
     const result = await (tool as any)._execute(context, { todos: [{ invalid: 'missing description' }] });
 
     expect(result).toContain('Error: Invalid to-do list definition provided');
-    expect(context.state.todo_list).toBeNull();
+    expect(context.state.todoList).toBeNull();
   });
 });

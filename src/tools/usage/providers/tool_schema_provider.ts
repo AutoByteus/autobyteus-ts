@@ -12,7 +12,7 @@ export class ToolSchemaProvider {
     this.registry = registry;
   }
 
-  buildSchema(toolNames: Iterable<string>, provider?: LLMProvider | null): Array<Record<string, any>> {
+  buildSchema(toolNames: Iterable<string>, provider?: LLMProvider | null): Array<Record<string, unknown>> {
     const toolDefinitions: ToolDefinition[] = [];
     for (const name of toolNames) {
       const toolDef = this.registry.getToolDefinition(name);

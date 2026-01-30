@@ -31,7 +31,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Mistral live)', () => {
       new LLMModel({
         name: 'mistral-large-latest',
         value: 'mistral-large-latest',
-        canonical_name: 'mistral-large-latest',
+        canonicalName: 'mistral-large-latest',
         provider: LLMProvider.MISTRAL
       }),
       'MISTRAL_API_KEY',
@@ -40,7 +40,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Mistral live)', () => {
 
     const events: any[] = [];
     const handler = new ApiToolCallStreamingResponseHandler({
-      on_segment_event: (event) => events.push(event)
+      onSegmentEvent: (event) => events.push(event)
     });
 
     const userMessage = new LLMUserMessage({
@@ -69,7 +69,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Mistral live)', () => {
     );
     expect(toolStarts.length).toBeGreaterThan(0);
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations.length).toBeGreaterThanOrEqual(1);
 
     const invocation = invocations.find((entry) => entry.name === 'write_file');

@@ -11,7 +11,7 @@ const VALID_TASK_NOTIFICATION_MODES: Record<string, TaskNotificationMode> = {
   [TaskNotificationMode.SYSTEM_EVENT_DRIVEN]: TaskNotificationMode.SYSTEM_EVENT_DRIVEN
 };
 
-export function resolve_task_notification_mode(): TaskNotificationMode {
+export function resolveTaskNotificationMode(): TaskNotificationMode {
   const rawValue = process.env[ENV_TASK_NOTIFICATION_MODE];
   if (!rawValue) {
     return DEFAULT_TASK_NOTIFICATION_MODE;

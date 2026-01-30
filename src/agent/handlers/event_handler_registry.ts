@@ -18,6 +18,12 @@ export class EventHandlerRegistry {
       throw new TypeError(msg);
     }
 
+    if (!(handlerInstance instanceof AgentEventHandler)) {
+      const msg = `Cannot register handler: 'handler_instance' must be an instance of AgentEventHandler, got ${String(handlerInstance)}.`;
+      console.error(msg);
+      throw new TypeError(msg);
+    }
+
     if (this.handlers.has(eventClass)) {
       const msg = `Handler already registered for event class '${eventClass.name}'. Overwriting is not allowed by default.`;
       console.error(msg);
@@ -30,7 +36,7 @@ export class EventHandlerRegistry {
     );
   }
 
-  get_handler(eventClass: EventClass): AgentEventHandler | null {
+  getHandler(eventClass: EventClass): AgentEventHandler | null {
     if (typeof eventClass !== 'function' || !(eventClass.prototype instanceof BaseEvent)) {
       console.warn(`Attempted to get handler for invalid event_class type: ${String(eventClass)}.`);
       return null;
@@ -39,12 +45,12 @@ export class EventHandlerRegistry {
     return this.handlers.get(eventClass) ?? null;
   }
 
-  get_all_registered_event_types(): EventClass[] {
+  getAllRegisteredEventTypes(): EventClass[] {
     return Array.from(this.handlers.keys());
   }
 
   toString(): string {
-    const registeredTypes = this.get_all_registered_event_types()
+    const registeredTypes = this.getAllRegisteredEventTypes()
       .map((eventClass) => `'${eventClass.name}'`)
       .join(', ');
     return `<EventHandlerRegistry registered_event_types=[${registeredTypes}]>`;

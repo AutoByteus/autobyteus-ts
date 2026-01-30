@@ -15,7 +15,7 @@ describe('ToolCleanupStep', () => {
   it('succeeds when no tool instances are present', async () => {
     const step = new ToolCleanupStep();
     const context = createAgentContext('agent-1');
-    context.state.tool_instances = null;
+    context.state.toolInstances = null;
 
     const success = await step.execute(context);
 
@@ -32,7 +32,7 @@ describe('ToolCleanupStep', () => {
     const syncCleanup = vi.fn();
     const asyncCleanup = vi.fn().mockResolvedValue(undefined);
 
-    context.state.tool_instances = {
+    context.state.toolInstances = {
       syncTool: { cleanup: syncCleanup } as any,
       asyncTool: { cleanup: asyncCleanup } as any
     };
@@ -48,7 +48,7 @@ describe('ToolCleanupStep', () => {
     const step = new ToolCleanupStep();
     const context = createAgentContext('agent-1');
 
-    context.state.tool_instances = {
+    context.state.toolInstances = {
       noCleanupTool: {} as any
     };
 
@@ -69,7 +69,7 @@ describe('ToolCleanupStep', () => {
     });
     const okCleanup = vi.fn();
 
-    context.state.tool_instances = {
+    context.state.toolInstances = {
       failingTool: { cleanup: failingCleanup } as any,
       okTool: { cleanup: okCleanup } as any
     };

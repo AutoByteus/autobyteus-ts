@@ -10,7 +10,7 @@ class MyTestPreprocessor extends BaseToolInvocationPreprocessor {
 }
 
 class MyRenamedPreprocessor extends BaseToolInvocationPreprocessor {
-  static get_name(): string {
+  static getName(): string {
     return 'CustomPreprocessorName';
   }
 
@@ -22,12 +22,12 @@ class MyRenamedPreprocessor extends BaseToolInvocationPreprocessor {
 describe('BaseToolInvocationPreprocessor', () => {
   it('returns default name based on class name', () => {
     const processor = new MyTestPreprocessor();
-    expect(processor.get_name()).toBe('MyTestPreprocessor');
+    expect(processor.getName()).toBe('MyTestPreprocessor');
   });
 
   it('returns overridden name', () => {
     const processor = new MyRenamedPreprocessor();
-    expect(processor.get_name()).toBe('CustomPreprocessorName');
+    expect(processor.getName()).toBe('CustomPreprocessorName');
   });
 
   it('throws when instantiated directly', () => {

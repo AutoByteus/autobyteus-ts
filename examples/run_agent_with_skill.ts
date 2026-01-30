@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { AgentConfig } from '../src/agent/context/agent_config.js';
 import { AgentFactory } from '../src/agent/factory/agent_factory.js';
-import { run_agent_cli } from '../src/cli/index.js';
+import { runAgentCli } from '../src/cli/index.js';
 import { registerRunBashTool } from '../src/tools/terminal/tools/run_bash.js';
 import { registerReadFileTool } from '../src/tools/file/read_file.js';
 import { loadEnv, resolveExamplePath } from './shared/example_paths.js';
@@ -59,13 +59,13 @@ async function main(): Promise<void> {
     [skillPath]
   );
 
-  const agent = new AgentFactory().create_agent(agentConfig);
+  const agent = new AgentFactory().createAgent(agentConfig);
 
   console.log(`Skill loaded from: ${skillPath}`);
   console.log("Try asking: 'Please concatenate img1.png and img2.png into merged.png'");
 
   try {
-    await run_agent_cli(agent, { showToolLogs: !values['no-tool-logs'] });
+    await runAgentCli(agent, { showToolLogs: !values['no-tool-logs'] });
   } finally {
     await llm.cleanup();
   }

@@ -3,7 +3,7 @@ import { AvailableSkillsProcessor } from '../../../../src/agent/system_prompt_pr
 import { SkillRegistry } from '../../../../src/skills/registry.js';
 import { Skill } from '../../../../src/skills/model.js';
 
-const makeContext = () => ({ agent_id: 'agent-1', config: { skills: [] as string[] } });
+const makeContext = () => ({ agentId: 'agent-1', config: { skills: [] as string[] } });
 
 describe('AvailableSkillsProcessor', () => {
   beforeEach(() => {

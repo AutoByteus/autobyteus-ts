@@ -26,7 +26,7 @@ const makeLLM = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   return new DummyLLM(model, new LLMConfig());
@@ -43,12 +43,12 @@ describe('AgentContext', () => {
     vi.restoreAllMocks();
   });
 
-  it('requires valid agent_id, config, and state', () => {
+  it('requires valid agentId, config, and state', () => {
     const llm = makeLLM();
     const config = new AgentConfig('name', 'role', 'desc', llm);
     const state = new AgentRuntimeState('agent-1');
 
-    expect(() => new AgentContext('', config, state)).toThrow(/agent_id/);
+    expect(() => new AgentContext('', config, state)).toThrow(/agentId/);
     expect(() => new AgentContext('agent-1', {} as AgentConfig, state)).toThrow(/AgentConfig/);
     expect(() => new AgentContext('agent-1', config, {} as AgentRuntimeState)).toThrow(/AgentRuntimeState/);
   });
@@ -60,16 +60,16 @@ describe('AgentContext', () => {
 
     const context = new AgentContext('agent-2', config, state);
 
-    expect(context.tool_instances).toEqual({});
-    expect(context.auto_execute_tools).toBe(false);
-    expect(context.llm_instance).toBeNull();
+    expect(context.toolInstances).toEqual({});
+    expect(context.autoExecuteTools).toBe(false);
+    expect(context.llmInstance).toBeNull();
 
-    context.llm_instance = llm;
-    expect(context.llm_instance).toBe(llm);
+    context.llmInstance = llm;
+    expect(context.llmInstance).toBe(llm);
 
-    context.current_status = AgentStatus.IDLE;
-    expect(context.current_status).toBe(AgentStatus.IDLE);
-    expect(context.custom_data).toEqual({});
+    context.currentStatus = AgentStatus.IDLE;
+    expect(context.currentStatus).toBe(AgentStatus.IDLE);
+    expect(context.customData).toEqual({});
   });
 
   it('throws when input queues are not initialized', () => {
@@ -79,22 +79,22 @@ describe('AgentContext', () => {
 
     const context = new AgentContext('agent-3', config, state);
 
-    expect(() => context.input_event_queues).toThrow(/Input event queues/);
+    expect(() => context.inputEventQueues).toThrow(/Input event queues/);
 
-    state.input_event_queues = new AgentInputEventQueueManager();
-    expect(context.input_event_queues).toBe(state.input_event_queues);
+    state.inputEventQueues = new AgentInputEventQueueManager();
+    expect(context.inputEventQueues).toBe(state.inputEventQueues);
   });
 
   it('gets tools and warns when missing', () => {
     const llm = makeLLM();
     const config = new AgentConfig('name', 'role', 'desc', llm);
     const state = new AgentRuntimeState('agent-4');
-    state.tool_instances = { TestTool: { name: 'TestTool' } as any };
+    state.toolInstances = { TestTool: { name: 'TestTool' } as any };
 
     const context = new AgentContext('agent-4', config, state);
 
-    expect(context.get_tool('TestTool')).toBe(state.tool_instances.TestTool);
-    expect(context.get_tool('MissingTool')).toBeUndefined();
+    expect(context.getTool('TestTool')).toBe(state.toolInstances.TestTool);
+    expect(context.getTool('MissingTool')).toBeUndefined();
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining('MissingTool'));
   });
 
@@ -106,12 +106,12 @@ describe('AgentContext', () => {
 
     const invocation = new ToolInvocation('tool', { a: 1 }, 'inv-1');
 
-    context.store_pending_tool_invocation(invocation);
-    expect(context.pending_tool_approvals['inv-1']).toBe(invocation);
+    context.storePendingToolInvocation(invocation);
+    expect(context.pendingToolApprovals['inv-1']).toBe(invocation);
 
-    const retrieved = context.retrieve_pending_tool_invocation('inv-1');
+    const retrieved = context.retrievePendingToolInvocation('inv-1');
     expect(retrieved).toBe(invocation);
-    expect(context.pending_tool_approvals['inv-1']).toBeUndefined();
+    expect(context.pendingToolApprovals['inv-1']).toBeUndefined();
   });
 
   it('sets processed system prompt', () => {
@@ -120,7 +120,7 @@ describe('AgentContext', () => {
     const state = new AgentRuntimeState('agent-6');
     const context = new AgentContext('agent-6', config, state);
 
-    context.processed_system_prompt = 'processed';
-    expect(context.processed_system_prompt).toBe('processed');
+    context.processedSystemPrompt = 'processed';
+    expect(context.processedSystemPrompt).toBe('processed');
   });
 });

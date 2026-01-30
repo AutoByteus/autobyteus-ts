@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import { existsSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import { McpToolRegistrar } from '../../../../src/tools/mcp/tool_registrar.js';
@@ -17,9 +18,27 @@ const IMAGE_BYTES = Buffer.from(
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../../../..');
+const repoRoot = path.resolve(__dirname, '../../../..');
 const mcpsRoot = path.resolve(repoRoot, '..', 'autobyteus_mcps');
 const pdfMcpDir = path.join(mcpsRoot, 'pdf_mcp');
+
+const resolveUvCommand = (): string => {
+  const envOverride = process.env.UV_BIN;
+  if (envOverride && envOverride.trim()) {
+    return envOverride;
+  }
+  const candidates = [
+    path.join(os.homedir(), '.local', 'bin', 'uv'),
+    '/usr/local/bin/uv',
+    '/opt/homebrew/bin/uv'
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return 'uv';
+};
 
 const buildPdfConfig = (serverId: string, prefix: string) => ({
   [serverId]: {
@@ -27,7 +46,7 @@ const buildPdfConfig = (serverId: string, prefix: string) => ({
     enabled: true,
     tool_name_prefix: prefix,
     stdio_params: {
-      command: 'uv',
+      command: resolveUvCommand(),
       args: ['run', 'python', '-m', 'pdf_mcp.server'],
       cwd: pdfMcpDir
     }
@@ -95,7 +114,7 @@ describe('McpToolRegistrar integration (pdf_mcp)', () => {
     await fs.writeFile(imagePath, IMAGE_BYTES);
 
     try {
-      const result = await tool.execute({ agent_id: 'agent-1' }, {
+      const result = await tool.execute({ agentId: 'agent-1' }, {
         image_path: imagePath,
         output_path: outputPdf
       });

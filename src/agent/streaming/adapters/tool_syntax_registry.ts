@@ -3,12 +3,12 @@ import { SegmentType } from '../segments/segment_events.js';
 export type ToolArgsBuilder = (metadata: Record<string, any>, content: string) => Record<string, any> | null;
 
 export class ToolSyntaxSpec {
-  tool_name: string;
-  build_arguments: ToolArgsBuilder;
+  toolName: string;
+  buildArguments: ToolArgsBuilder;
 
   constructor(toolName: string, buildArguments: ToolArgsBuilder) {
-    this.tool_name = toolName;
-    this.build_arguments = buildArguments;
+    this.toolName = toolName;
+    this.buildArguments = buildArguments;
   }
 }
 
@@ -42,10 +42,10 @@ const TOOL_SYNTAX_REGISTRY = new Map<SegmentType, ToolSyntaxSpec>([
   [SegmentType.PATCH_FILE, new ToolSyntaxSpec('patch_file', buildPatchFileArgs)]
 ]);
 
-export const get_tool_syntax_spec = (segmentType: SegmentType): ToolSyntaxSpec | undefined => {
+export const getToolSyntaxSpec = (segmentType: SegmentType): ToolSyntaxSpec | undefined => {
   return TOOL_SYNTAX_REGISTRY.get(segmentType);
 };
 
-export const tool_syntax_registry_items = (): Array<[SegmentType, ToolSyntaxSpec]> => {
+export const toolSyntaxRegistryItems = (): Array<[SegmentType, ToolSyntaxSpec]> => {
   return Array.from(TOOL_SYNTAX_REGISTRY.entries());
 };

@@ -88,7 +88,7 @@ export async function patchFile(
       try {
         patchedLines = applyUnifiedDiff(originalLines, patch, { fuzzFactor, ignoreWhitespace });
         break;
-      } catch (error: any) {
+      } catch (error) {
         if (error instanceof PatchApplicationError) {
           patchError = error;
           continue;
@@ -103,11 +103,12 @@ export async function patchFile(
 
     await fs.writeFile(finalPath, patchedLines.join(''), 'utf-8');
     return `File patched successfully at ${returnPath}`;
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof PatchApplicationError) {
       throw error;
     }
-    throw new Error(`Could not patch file at '${finalPath}': ${error?.message ?? String(error)}`);
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Could not patch file at '${finalPath}': ${message}`);
   }
 }
 

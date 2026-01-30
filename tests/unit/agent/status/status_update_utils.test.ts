@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { build_status_update_data, apply_event_and_derive_status } from '../../../../src/agent/status/status_update_utils.js';
+import { buildStatusUpdateData, applyEventAndDeriveStatus } from '../../../../src/agent/status/status_update_utils.js';
 import { AgentStatus } from '../../../../src/agent/status/status_enum.js';
 import { AgentStatusDeriver } from '../../../../src/agent/status/status_deriver.js';
 import {
@@ -36,7 +36,7 @@ const makeContext = (): AgentContext => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -46,93 +46,93 @@ const makeContext = (): AgentContext => {
 };
 
 describe('status_update_utils', () => {
-  let agent_context: AgentContext;
+  let agentContext: AgentContext;
 
   beforeEach(() => {
-    agent_context = makeContext();
+    agentContext = makeContext();
   });
 
   it('builds status update data for processing user input', () => {
     const event = new UserMessageReceivedEvent({} as any);
-    const data = build_status_update_data(event, agent_context, AgentStatus.PROCESSING_USER_INPUT);
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.PROCESSING_USER_INPUT);
     expect(data).toEqual({ trigger: 'UserMessageReceivedEvent' });
   });
 
   it('builds status update data for executing tool (pending invocation)', () => {
     const invocation = new ToolInvocation('test_tool', {}, 'tid1');
     const event = new PendingToolInvocationEvent(invocation);
-    const data = build_status_update_data(event, agent_context, AgentStatus.EXECUTING_TOOL);
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.EXECUTING_TOOL);
     expect(data).toEqual({ tool_name: 'test_tool' });
   });
 
   it('builds status update data for executing tool (approved invocation)', () => {
     const invocation = new ToolInvocation('approved_tool', {}, 'tid2');
     const event = new ApprovedToolInvocationEvent(invocation);
-    const data = build_status_update_data(event, agent_context, AgentStatus.EXECUTING_TOOL);
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.EXECUTING_TOOL);
     expect(data).toEqual({ tool_name: 'approved_tool' });
   });
 
   it('builds status update data for execution approval unknown tool', () => {
     const event = new ToolExecutionApprovalEvent('missing', true);
-    agent_context.state.pending_tool_approvals = {};
-    const data = build_status_update_data(event, agent_context, AgentStatus.EXECUTING_TOOL);
+    agentContext.state.pendingToolApprovals = {};
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.EXECUTING_TOOL);
     expect(data).toEqual({ tool_name: 'unknown_tool' });
   });
 
   it('builds status update data for tool denied', () => {
     const invocation = new ToolInvocation('deny_tool', {}, 'tid3');
-    agent_context.state.pending_tool_approvals = { tid3: invocation };
+    agentContext.state.pendingToolApprovals = { tid3: invocation };
     const event = new ToolExecutionApprovalEvent('tid3', false);
-    const data = build_status_update_data(event, agent_context, AgentStatus.TOOL_DENIED);
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.TOOL_DENIED);
     expect(data).toEqual({ tool_name: 'deny_tool', denial_for_tool: 'deny_tool' });
   });
 
   it('builds status update data for processing tool result', () => {
     const event = new ToolResultEvent('tool_result', 'ok');
-    const data = build_status_update_data(event, agent_context, AgentStatus.PROCESSING_TOOL_RESULT);
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.PROCESSING_TOOL_RESULT);
     expect(data).toEqual({ tool_name: 'tool_result' });
   });
 
   it('builds status update data for error', () => {
     const event = new AgentErrorEvent('boom', 'trace');
-    const data = build_status_update_data(event, agent_context, AgentStatus.ERROR);
+    const data = buildStatusUpdateData(event, agentContext, AgentStatus.ERROR);
     expect(data).toEqual({ error_message: 'boom', error_details: 'trace' });
   });
 
   it('apply_event_and_derive_status updates status and emits', async () => {
-    agent_context.state.status_deriver = new AgentStatusDeriver(AgentStatus.IDLE);
-    agent_context.current_status = AgentStatus.IDLE;
-    agent_context.state.event_store = new AgentEventStore(agent_context.agent_id);
+    agentContext.state.statusDeriver = new AgentStatusDeriver(AgentStatus.IDLE);
+    agentContext.currentStatus = AgentStatus.IDLE;
+    agentContext.state.eventStore = new AgentEventStore(agentContext.agentId);
 
     const emitCalls: any[] = [];
-    agent_context.state.status_manager_ref = {
+    agentContext.state.statusManagerRef = {
       emit_status_update: async (...args: any[]) => {
         emitCalls.push(args);
       }
     } as any;
 
     const event = new UserMessageReceivedEvent({} as any);
-    const [oldStatus, newStatus] = await apply_event_and_derive_status(event, agent_context);
+    const [oldStatus, newStatus] = await applyEventAndDeriveStatus(event, agentContext);
 
     expect(oldStatus).toBe(AgentStatus.IDLE);
     expect(newStatus).toBe(AgentStatus.PROCESSING_USER_INPUT);
-    expect(agent_context.current_status).toBe(AgentStatus.PROCESSING_USER_INPUT);
+    expect(agentContext.currentStatus).toBe(AgentStatus.PROCESSING_USER_INPUT);
     expect(emitCalls).toHaveLength(1);
     expect(emitCalls[0][0]).toBe(AgentStatus.IDLE);
     expect(emitCalls[0][1]).toBe(AgentStatus.PROCESSING_USER_INPUT);
     expect(emitCalls[0][2]).toEqual({ trigger: 'UserMessageReceivedEvent' });
-    expect(agent_context.state.event_store?.all_events().length).toBe(1);
+    expect(agentContext.state.eventStore?.allEvents().length).toBe(1);
   });
 
   it('apply_event_and_derive_status does nothing without deriver', async () => {
-    agent_context.state.status_deriver = null;
-    agent_context.current_status = AgentStatus.IDLE;
+    agentContext.state.statusDeriver = null;
+    agentContext.currentStatus = AgentStatus.IDLE;
 
     const emitSpy = { emit_status_update: async () => undefined };
-    agent_context.state.status_manager_ref = emitSpy as any;
+    agentContext.state.statusManagerRef = emitSpy as any;
 
     const event = new UserMessageReceivedEvent({} as any);
-    const [oldStatus, newStatus] = await apply_event_and_derive_status(event, agent_context);
+    const [oldStatus, newStatus] = await applyEventAndDeriveStatus(event, agentContext);
 
     expect(oldStatus).toBe(AgentStatus.IDLE);
     expect(newStatus).toBe(AgentStatus.IDLE);

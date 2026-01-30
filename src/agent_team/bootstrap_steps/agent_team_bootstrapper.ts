@@ -7,10 +7,10 @@ import { CoordinatorInitializationStep } from './coordinator_initialization_step
 import type { AgentTeamContext } from '../context/agent_team_context.js';
 
 export class AgentTeamBootstrapper {
-  bootstrap_steps: BaseAgentTeamBootstrapStep[];
+  bootstrapSteps: BaseAgentTeamBootstrapStep[];
 
   constructor(steps?: BaseAgentTeamBootstrapStep[]) {
-    this.bootstrap_steps = steps ?? [
+    this.bootstrapSteps = steps ?? [
       new TeamContextInitializationStep(),
       new TaskNotifierInitializationStep(),
       new TeamManifestInjectionStep(),
@@ -20,22 +20,22 @@ export class AgentTeamBootstrapper {
   }
 
   async run(context: AgentTeamContext): Promise<boolean> {
-    const team_id = context.team_id;
-    console.info(`Team '${team_id}': Bootstrapper starting.`);
+    const teamId = context.teamId;
+    console.info(`Team '${teamId}': Bootstrapper starting.`);
 
-    for (const step of this.bootstrap_steps) {
-      const step_name = step.constructor.name;
-      console.debug(`Team '${team_id}': Executing bootstrap step: ${step_name}`);
+    for (const step of this.bootstrapSteps) {
+      const stepName = step.constructor.name;
+      console.debug(`Team '${teamId}': Executing bootstrap step: ${stepName}`);
       const success = await step.execute(context);
       if (!success) {
-        console.error(`Team '${team_id}': Bootstrap step ${step_name} failed.`);
+        console.error(`Team '${teamId}': Bootstrap step ${stepName} failed.`);
         return false;
       }
     }
 
-    console.info(`Team '${team_id}': All bootstrap steps completed successfully.`);
-    if (!context.state.input_event_queues) {
-      console.error(`Team '${team_id}': Bootstrap succeeded but queues not available.`);
+    console.info(`Team '${teamId}': All bootstrap steps completed successfully.`);
+    if (!context.state.inputEventQueues) {
+      console.error(`Team '${teamId}': Bootstrap succeeded but queues not available.`);
       return false;
     }
 

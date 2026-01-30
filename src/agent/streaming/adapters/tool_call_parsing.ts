@@ -5,7 +5,7 @@ export type JsonToolParsingStrategy = {
 const ARGS_OPEN = '<arguments>';
 const ARGS_CLOSE = '</arguments>';
 
-export const parse_xml_arguments = (content: string): Record<string, any> => {
+export const parseXmlArguments = (content: string): Record<string, any> => {
   const match = new RegExp(`${ARGS_OPEN}([\\s\\S]*?)${ARGS_CLOSE}`, 'i').exec(content);
   const argsContent = match ? match[1] : content.trim();
 
@@ -21,7 +21,7 @@ export const parse_xml_arguments = (content: string): Record<string, any> => {
   return parseLegacyArguments(argsContent);
 };
 
-export const parse_json_tool_call = (
+export const parseJsonToolCall = (
   jsonStr: string,
   parser?: JsonToolParsingStrategy | null
 ): { name?: string; arguments?: any } | null => {

@@ -3,12 +3,12 @@ import type { AgentTeamContext } from '../context/agent_team_context.js';
 
 export class BridgeCleanupStep extends BaseAgentTeamShutdownStep {
   async execute(context: AgentTeamContext): Promise<boolean> {
-    const team_id = context.team_id;
-    console.info(`Team '${team_id}': Executing BridgeCleanupStep.`);
+    const teamId = context.teamId;
+    console.info(`Team '${teamId}': Executing BridgeCleanupStep.`);
 
     const multiplexer: any = context.multiplexer;
     if (!multiplexer) {
-      console.warn(`Team '${team_id}': No AgentEventMultiplexer found, cannot shut down event bridges.`);
+      console.warn(`Team '${teamId}': No AgentEventMultiplexer found, cannot shut down event bridges.`);
       return true;
     }
 
@@ -17,7 +17,7 @@ export class BridgeCleanupStep extends BaseAgentTeamShutdownStep {
       return true;
     } catch (error) {
       console.error(
-        `Team '${team_id}': Error shutting down agent event bridges via multiplexer: ${error}`
+        `Team '${teamId}': Error shutting down agent event bridges via multiplexer: ${error}`
       );
       return false;
     }

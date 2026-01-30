@@ -10,14 +10,14 @@ const buildTaskPlan = () => {
     { task_name: 'my_task', assignee_name: 'AgentOne', description: 'Mine.', dependencies: [] },
     { task_name: 'other_task', assignee_name: 'AgentTwo', description: 'Not mine.', dependencies: [] }
   ];
-  plan.add_tasks(tasks);
+  plan.addTasks(tasks);
   return plan;
 };
 
 describe('GetMyTasks tool', () => {
   it('returns an error when team context is missing', async () => {
     const tool = new GetMyTasks();
-    const context = { config: { name: 'AgentOne' }, custom_data: {} };
+    const context = { config: { name: 'AgentOne' }, customData: {} };
 
     const result = await (tool as any)._execute(context);
 
@@ -26,7 +26,7 @@ describe('GetMyTasks tool', () => {
 
   it('returns an error when task plan is missing', async () => {
     const tool = new GetMyTasks();
-    const context = { config: { name: 'AgentOne' }, custom_data: { team_context: { state: { task_plan: null } } } };
+    const context = { config: { name: 'AgentOne' }, customData: { teamContext: { state: { taskPlan: null } } } };
 
     const result = await (tool as any)._execute(context);
 
@@ -36,7 +36,7 @@ describe('GetMyTasks tool', () => {
   it('returns an empty message when no queued tasks exist', async () => {
     const tool = new GetMyTasks();
     const taskPlan = buildTaskPlan();
-    const context = { config: { name: 'AgentOne' }, custom_data: { team_context: { state: { task_plan: taskPlan } } } };
+    const context = { config: { name: 'AgentOne' }, customData: { teamContext: { state: { taskPlan: taskPlan } } } };
 
     const result = await (tool as any)._execute(context);
 
@@ -46,13 +46,13 @@ describe('GetMyTasks tool', () => {
   it('returns queued tasks assigned to the agent', async () => {
     const tool = new GetMyTasks();
     const taskPlan = buildTaskPlan();
-    const context = { config: { name: 'AgentOne' }, custom_data: { team_context: { state: { task_plan: taskPlan } } } };
+    const context = { config: { name: 'AgentOne' }, customData: { teamContext: { state: { taskPlan: taskPlan } } } };
 
     const myTask = taskPlan.tasks.find((task) => task.task_name === 'my_task');
     if (!myTask) {
       throw new Error('Expected task missing.');
     }
-    taskPlan.update_task_status(myTask.task_id, TaskStatus.QUEUED, 'AgentOne');
+    taskPlan.updateTaskStatus(myTask.task_id, TaskStatus.QUEUED, 'AgentOne');
 
     const result = await (tool as any)._execute(context);
     const parsed = JSON.parse(result);

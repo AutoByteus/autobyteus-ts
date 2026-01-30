@@ -7,8 +7,8 @@ export class ToolCleanupStep extends BaseShutdownStep {
   }
 
   async execute(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
-    const toolInstances = context.tool_instances;
+    const agentId = context.agentId;
+    const toolInstances = context.toolInstances;
 
     if (!toolInstances || Object.keys(toolInstances).length === 0) {
       console.debug(`Agent '${agentId}': No tool instances found. Skipping ToolCleanupStep.`);

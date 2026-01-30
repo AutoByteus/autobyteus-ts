@@ -5,11 +5,11 @@ import { AvailableSkillsProcessor } from './available_skills_processor.js';
 
 export function registerSystemPromptProcessors(): void {
   const definitions = [
-    new SystemPromptProcessorDefinition(ToolManifestInjectorProcessor.get_name(), ToolManifestInjectorProcessor),
-    new SystemPromptProcessorDefinition(AvailableSkillsProcessor.get_name(), AvailableSkillsProcessor)
+    new SystemPromptProcessorDefinition(ToolManifestInjectorProcessor.getName(), ToolManifestInjectorProcessor),
+    new SystemPromptProcessorDefinition(AvailableSkillsProcessor.getName(), AvailableSkillsProcessor)
   ];
 
   for (const definition of definitions) {
-    defaultSystemPromptProcessorRegistry.register_processor(definition);
+    defaultSystemPromptProcessorRegistry.registerProcessor(definition);
   }
 }

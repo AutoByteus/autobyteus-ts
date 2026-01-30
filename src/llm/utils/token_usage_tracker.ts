@@ -6,8 +6,8 @@ import { TokenPricingConfig } from './llm_config.js';
 // For now, let's just pass the pricing config directly or an interface.
 
 export interface ModelWithConfig {
-  default_config: {
-    pricing_config: TokenPricingConfig
+  defaultConfig: {
+    pricingConfig: TokenPricingConfig
   }
 }
 
@@ -19,13 +19,13 @@ export class TokenUsageTracker {
 
   constructor(model: ModelWithConfig, tokenCounter: BaseTokenCounter) {
     this.tokenCounter = tokenCounter;
-    this.pricingConfig = model.default_config.pricing_config;
+    this.pricingConfig = model.defaultConfig.pricingConfig;
   }
 
   calculateCost(tokenCount: number, isInput: boolean): number {
     const pricePerMillion = isInput 
-      ? this.pricingConfig.input_token_pricing 
-      : this.pricingConfig.output_token_pricing;
+      ? this.pricingConfig.inputTokenPricing
+      : this.pricingConfig.outputTokenPricing;
     
     return (tokenCount / 1_000_000) * pricePerMillion;
   }

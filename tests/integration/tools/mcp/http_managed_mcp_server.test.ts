@@ -1,15 +1,35 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import os from 'node:os';
 import { HttpManagedMcpServer } from '../../../../src/tools/mcp/server/http_managed_mcp_server.js';
 import { StreamableHttpMcpServerConfig } from '../../../../src/tools/mcp/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../../../..');
+const repoRoot = path.resolve(__dirname, '../../../..');
 const mcpsRoot = path.resolve(repoRoot, '..', 'autobyteus_mcps');
 const httpToyDir = path.join(mcpsRoot, 'streamable_http_mcp_toy');
+
+const resolveUvCommand = (): string => {
+  const envOverride = process.env.UV_BIN;
+  if (envOverride && envOverride.trim()) {
+    return envOverride;
+  }
+  const candidates = [
+    path.join(os.homedir(), '.local', 'bin', 'uv'),
+    '/usr/local/bin/uv',
+    '/opt/homebrew/bin/uv'
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return 'uv';
+};
 
 const SERVER_HOST = '127.0.0.1';
 const SERVER_PORT = 8764;
@@ -66,7 +86,7 @@ describe('HttpManagedMcpServer integration (streamable_http_mcp_toy)', () => {
 
   beforeAll(async () => {
     serverProcess = spawn(
-      'uv',
+      resolveUvCommand(),
       ['run', 'python', 'src/streamable_http_mcp_toy/server.py', '--host', SERVER_HOST, '--port', String(SERVER_PORT)],
       {
         cwd: httpToyDir,

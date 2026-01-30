@@ -9,7 +9,7 @@ describe('InterAgentMessageType', () => {
   });
 
   it('adds a new message type dynamically', () => {
-    const created = InterAgentMessageType.add_type('CUSTOM', 'custom');
+    const created = InterAgentMessageType.addType('CUSTOM', 'custom');
     expect(created?.value).toBe('custom');
     const fetched = InterAgentMessageType.getByValue('custom');
     expect(fetched).toBe(created);

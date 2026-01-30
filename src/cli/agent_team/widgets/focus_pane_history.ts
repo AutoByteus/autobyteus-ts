@@ -1,7 +1,15 @@
 import { StreamEventType } from '../../../agent/streaming/events/stream_events.js';
 import { SegmentEventType, SegmentType } from '../../../agent/streaming/segments/segment_events.js';
 import type { StreamEvent } from '../../../agent/streaming/stream_events.js';
-import type { SegmentEventData } from '../../../agent/streaming/events/stream_event_payloads.js';
+import type {
+  SegmentEventData,
+  AssistantCompleteResponseData,
+  ToolInteractionLogEntryData,
+  ToolInvocationApprovalRequestedData,
+  ToolInvocationAutoExecutingData,
+  SystemTaskNotificationData,
+  ErrorEventData
+} from '../../../agent/streaming/events/stream_event_payloads.js';
 import type { HistoryEvent, UiHistoryEvent } from '../state_store.js';
 import {
   renderAssistantCompleteResponse,
@@ -147,7 +155,7 @@ export const buildHistoryLines = (history: HistoryEvent[]): string[] => {
 
     if (event.event_type === StreamEventType.ASSISTANT_COMPLETE_RESPONSE) {
       if (!sawSegmentEvent && !sawChunkEvent) {
-        lines.push(...renderAssistantCompleteResponse(event.data as any));
+        lines.push(...renderAssistantCompleteResponse(event.data as AssistantCompleteResponseData));
       } else {
         closeThinking();
         flushAssistant();
@@ -163,31 +171,31 @@ export const buildHistoryLines = (history: HistoryEvent[]): string[] => {
     if (event.event_type === StreamEventType.TOOL_INTERACTION_LOG_ENTRY) {
       closeThinking();
       flushAssistant();
-      lines.push(renderToolInteractionLog(event.data as any));
+      lines.push(renderToolInteractionLog(event.data as ToolInteractionLogEntryData));
       continue;
     }
     if (event.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED) {
       closeThinking();
       flushAssistant();
-      lines.push(renderToolApprovalRequest(event.data as any));
+      lines.push(renderToolApprovalRequest(event.data as ToolInvocationApprovalRequestedData));
       continue;
     }
     if (event.event_type === StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING) {
       closeThinking();
       flushAssistant();
-      lines.push(renderToolAutoExecuting(event.data as any));
+      lines.push(renderToolAutoExecuting(event.data as ToolInvocationAutoExecutingData));
       continue;
     }
     if (event.event_type === StreamEventType.SYSTEM_TASK_NOTIFICATION) {
       closeThinking();
       flushAssistant();
-      lines.push(renderSystemTaskNotification(event.data as any));
+      lines.push(renderSystemTaskNotification(event.data as SystemTaskNotificationData));
       continue;
     }
     if (event.event_type === StreamEventType.ERROR_EVENT) {
       closeThinking();
       flushAssistant();
-      lines.push(renderError(event.data as any));
+      lines.push(renderError(event.data as ErrorEventData));
       continue;
     }
   }

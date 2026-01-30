@@ -3,10 +3,14 @@ import path from 'node:path';
 import os from 'node:os';
 import crypto from 'node:crypto';
 
+import { GoogleGenAI } from '@google/genai';
 import { BaseAudioClient } from '../base_audio_client.js';
 import { SpeechGenerationResponse } from '../../utils/response_types.js';
 import { initializeGeminiClientWithRuntime } from '../../../utils/gemini_helper.js';
+import type { GeminiRuntimeInfo } from '../../../utils/gemini_helper.js';
 import { resolveModelForRuntime } from '../../../utils/gemini_model_mapping.js';
+import type { AudioModel } from '../audio_model.js';
+import type { MultimediaConfig } from '../../utils/multimedia_config.js';
 
 const AUDIO_TEMP_DIR = path.join(os.tmpdir(), 'autobyteus_audio');
 
@@ -37,7 +41,10 @@ function parseMimeType(mimeType?: string | null): MimeParseResult {
   return { base, params };
 }
 
-function coerceAudioBytes(data: any): Uint8Array {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+function coerceAudioBytes(data: unknown): Uint8Array {
   if (!data) return new Uint8Array();
   if (typeof data === 'string') {
     return Uint8Array.from(Buffer.from(data, 'base64'));
@@ -48,7 +55,10 @@ function coerceAudioBytes(data: any): Uint8Array {
   if (ArrayBuffer.isView(data)) {
     return new Uint8Array(data.buffer as ArrayBuffer);
   }
-  return new Uint8Array(data);
+  if (Array.isArray(data)) {
+    return new Uint8Array(data);
+  }
+  return new Uint8Array();
 }
 
 async function saveAudioBytesToWav(
@@ -94,48 +104,57 @@ async function saveAudioBytes(audioBytes: Uint8Array, extension?: string | null)
 }
 
 export class GeminiAudioClient extends BaseAudioClient {
-  private client: any;
-  private runtimeInfo: { runtime: string } | null;
+  private client: GoogleGenAI;
+  private runtimeInfo: GeminiRuntimeInfo | null;
 
-  constructor(model: any, config: any) {
+  constructor(model: AudioModel, config: MultimediaConfig) {
     super(model, config);
     const { client, runtimeInfo } = initializeGeminiClientWithRuntime();
     this.client = client;
     this.runtimeInfo = runtimeInfo;
   }
 
-  async generateSpeech(prompt: string, generationConfig?: Record<string, any>): Promise<SpeechGenerationResponse> {
+  async generateSpeech(prompt: string, generationConfig?: Record<string, unknown>): Promise<SpeechGenerationResponse> {
     try {
-      const finalConfig = { ...this.config.toDict?.() } as Record<string, any>;
+      const finalConfig = { ...(this.config.toDict?.() ?? {}) } as Record<string, unknown>;
       if (generationConfig) {
         Object.assign(finalConfig, generationConfig);
       }
 
-      const styleInstructions = finalConfig.style_instructions;
+      const styleInstructions = typeof finalConfig.style_instructions === 'string'
+        ? finalConfig.style_instructions
+        : undefined;
       const finalPrompt = styleInstructions ? `${styleInstructions}: ${prompt}` : prompt;
 
-      let speechConfig: any = null;
-      const mode = finalConfig.mode ?? 'single-speaker';
+      let speechConfig: Record<string, unknown> | null = null;
+      const mode = typeof finalConfig.mode === 'string' ? finalConfig.mode : 'single-speaker';
 
       if (mode === 'multi-speaker') {
-        const speakerMapping = finalConfig.speaker_mapping;
+        const speakerMapping = Array.isArray(finalConfig.speaker_mapping)
+          ? finalConfig.speaker_mapping
+          : [];
         if (!Array.isArray(speakerMapping) || speakerMapping.length === 0) {
           throw new Error("Multi-speaker mode requires a 'speaker_mapping' list in generation_config.");
         }
 
         const speakerVoiceConfigs = speakerMapping
-          .map((item: any) => {
-            if (!item?.speaker || !item?.voice) {
+          .map((item) => {
+            if (!isRecord(item)) {
+              return null;
+            }
+            const speaker = item.speaker;
+            const voice = item.voice;
+            if (typeof speaker !== 'string' || typeof voice !== 'string') {
               return null;
             }
             return {
-              speaker: item.speaker,
+              speaker,
               voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: item.voice }
+                prebuiltVoiceConfig: { voiceName: voice }
               }
             };
           })
-          .filter(Boolean);
+          .filter((item): item is { speaker: string; voiceConfig: { prebuiltVoiceConfig: { voiceName: string } } } => Boolean(item));
 
         if (speakerVoiceConfigs.length === 0) {
           throw new Error("The 'speaker_mapping' list was empty or contained no valid mappings.");
@@ -145,7 +164,9 @@ export class GeminiAudioClient extends BaseAudioClient {
           multiSpeakerVoiceConfig: { speakerVoiceConfigs }
         };
       } else {
-        const voiceName = finalConfig.voice_name ?? 'Kore';
+        const voiceName = typeof finalConfig.voice_name === 'string'
+          ? finalConfig.voice_name
+          : 'Kore';
         speechConfig = {
           voiceConfig: {
             prebuiltVoiceConfig: { voiceName }

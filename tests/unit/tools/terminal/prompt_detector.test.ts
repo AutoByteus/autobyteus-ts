@@ -64,7 +64,7 @@ describe('PromptDetector', () => {
     expect(detector.check('$ ')).toBe(true);
     expect(detector.check('>>> ')).toBe(false);
 
-    detector.set_pattern('>>>\\s*$');
+    detector.setPattern('>>>\\s*$');
 
     expect(detector.check('$ ')).toBe(false);
     expect(detector.check('>>> ')).toBe(true);

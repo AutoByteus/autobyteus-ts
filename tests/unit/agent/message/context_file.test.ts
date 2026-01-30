@@ -3,16 +3,16 @@ import { ContextFile } from '../../../../src/agent/message/context_file.js';
 import { ContextFileType } from '../../../../src/agent/message/context_file_type.js';
 
 describe('ContextFile', () => {
-  it('infers file_name and file_type when not provided', () => {
+  it('infers fileName and fileType when not provided', () => {
     const file = new ContextFile('https://example.com/docs/report.pdf');
-    expect(file.file_name).toBe('report.pdf');
-    expect(file.file_type).toBe(ContextFileType.PDF);
+    expect(file.fileName).toBe('report.pdf');
+    expect(file.fileType).toBe(ContextFileType.PDF);
   });
 
-  it('respects provided file_name and file_type', () => {
+  it('respects provided fileName and fileType', () => {
     const file = new ContextFile('notes.txt', ContextFileType.TEXT, 'custom.txt');
-    expect(file.file_name).toBe('custom.txt');
-    expect(file.file_type).toBe(ContextFileType.TEXT);
+    expect(file.fileName).toBe('custom.txt');
+    expect(file.fileType).toBe(ContextFileType.TEXT);
   });
 
   it('serializes and deserializes via toDict/fromDict', () => {
@@ -22,17 +22,17 @@ describe('ContextFile', () => {
 
     const restored = ContextFile.fromDict(data);
     expect(restored.uri).toBe('notes.md');
-    expect(restored.file_type).toBe(ContextFileType.MARKDOWN);
+    expect(restored.fileType).toBe(ContextFileType.MARKDOWN);
   });
 
-  it('defaults to UNKNOWN for invalid file_type in fromDict', () => {
+  it('defaults to UNKNOWN for invalid fileType in fromDict', () => {
     const restored = ContextFile.fromDict({
       uri: 'file.bin',
       file_type: 'not-a-type',
       file_name: 'file.bin',
       metadata: {}
     });
-    expect(restored.file_type).toBe(ContextFileType.UNKNOWN);
+    expect(restored.fileType).toBe(ContextFileType.UNKNOWN);
   });
 
   it('throws when uri is invalid', () => {

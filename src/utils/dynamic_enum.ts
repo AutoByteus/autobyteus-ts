@@ -6,13 +6,13 @@
  */
 export class DynamicEnum {
   // Use a map to store members for each subclass
-  private static _registries = new Map<any, Map<string, any>>();
-  private static _valueMaps = new Map<any, Map<any, any>>();
+  private static _registries = new Map<Function, Map<string, DynamicEnum>>();
+  private static _valueMaps = new Map<Function, Map<unknown, DynamicEnum>>();
 
   protected _name: string;
-  protected _value: any;
+  protected _value: unknown;
 
-  constructor(name: string, value: any) {
+  constructor(name: string, value: unknown) {
     this._name = name;
     this._value = value;
   }
@@ -21,7 +21,7 @@ export class DynamicEnum {
     return this._name;
   }
 
-  get value(): any {
+  get value(): unknown {
     return this._value;
   }
 
@@ -32,9 +32,9 @@ export class DynamicEnum {
   /**
    * Adds a new member to the enum subclass.
    */
-  public static add<T extends typeof DynamicEnum>(this: T, name: string, value: any): InstanceType<T> {
-    const registry = (this as any).getRegistry();
-    const valueMap = (this as any).getValueMap();
+  public static add<T extends typeof DynamicEnum>(this: T, name: string, value: unknown): InstanceType<T> {
+    const registry = this.getRegistry();
+    const valueMap = this.getValueMap();
 
     if (registry.has(name)) {
       throw new Error(`Name ${name} already exists in ${this.name}`);
@@ -43,7 +43,8 @@ export class DynamicEnum {
       throw new Error(`Value ${value} already exists in ${this.name}`);
     }
 
-    const member = new (this as any)(name, value);
+    const constructor = this as unknown as new (name: string, value: unknown) => InstanceType<T>;
+    const member = new constructor(name, value);
     registry.set(name, member);
     valueMap.set(value, member);
     
@@ -64,18 +65,18 @@ export class DynamicEnum {
   /**
    * Retrieves a member by value.
    */
-  public static getByValue<T extends typeof DynamicEnum>(this: T, value: any): InstanceType<T> | undefined {
+  public static getByValue<T extends typeof DynamicEnum>(this: T, value: unknown): InstanceType<T> | undefined {
     return this.getValueMap().get(value) as InstanceType<T>;
   }
 
-  private static getRegistry<T extends typeof DynamicEnum>(this: T): Map<string, any> {
+  private static getRegistry<T extends typeof DynamicEnum>(this: T): Map<string, DynamicEnum> {
     if (!DynamicEnum._registries.has(this)) {
       DynamicEnum._registries.set(this, new Map());
     }
     return DynamicEnum._registries.get(this)!;
   }
 
-  private static getValueMap<T extends typeof DynamicEnum>(this: T): Map<any, any> {
+  private static getValueMap<T extends typeof DynamicEnum>(this: T): Map<unknown, DynamicEnum> {
     if (!DynamicEnum._valueMaps.has(this)) {
       DynamicEnum._valueMaps.set(this, new Map());
     }

@@ -6,7 +6,7 @@ import type { LLMCompleteResponseReceivedEvent } from '../../../../src/agent/eve
 import type { CompleteResponse } from '../../../../src/llm/utils/response_types.js';
 
 class ProcA extends BaseLLMResponseProcessor {
-  async process_response(
+  async processResponse(
     _response: CompleteResponse,
     _context: AgentContext,
     _event: LLMCompleteResponseReceivedEvent
@@ -19,7 +19,7 @@ describe('LLMResponseProcessorDefinition', () => {
   it('stores name and processor class', () => {
     const definition = new LLMResponseProcessorDefinition('ProcA', ProcA);
     expect(definition.name).toBe('ProcA');
-    expect(definition.processor_class).toBe(ProcA);
+    expect(definition.processorClass).toBe(ProcA);
     expect(definition.toString()).toContain("name='ProcA'");
   });
 
@@ -31,7 +31,7 @@ describe('LLMResponseProcessorDefinition', () => {
 
   it('rejects invalid processor classes', () => {
     expect(() => new LLMResponseProcessorDefinition('ProcA', {} as any)).toThrow(
-      /processor_class must be a class type/i
+      /processorClass must be a class type/i
     );
   });
 });

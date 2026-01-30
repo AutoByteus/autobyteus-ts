@@ -3,25 +3,25 @@ import { SenderType } from '../sender_type.js';
 
 export class AgentInputUserMessage {
   content: string;
-  sender_type: SenderType;
-  context_files: ContextFile[] | null;
-  metadata: Record<string, any>;
+  senderType: SenderType;
+  contextFiles: ContextFile[] | null;
+  metadata: Record<string, unknown>;
 
   constructor(
     content: string,
-    sender_type: SenderType = SenderType.USER,
-    context_files: ContextFile[] | null = null,
-    metadata: Record<string, any> = {}
+    senderType: SenderType = SenderType.USER,
+    contextFiles: ContextFile[] | null = null,
+    metadata: Record<string, unknown> = {}
   ) {
     if (typeof content !== 'string') {
       throw new TypeError("AgentInputUserMessage 'content' must be a string.");
     }
-    if (!Object.values(SenderType).includes(sender_type)) {
-      throw new TypeError("AgentInputUserMessage 'sender_type' must be a SenderType enum.");
+    if (!Object.values(SenderType).includes(senderType)) {
+      throw new TypeError("AgentInputUserMessage 'senderType' must be a SenderType enum.");
     }
-    if (context_files !== null) {
-      if (!Array.isArray(context_files) || !context_files.every((cf) => cf instanceof ContextFile)) {
-        throw new TypeError("AgentInputUserMessage 'context_files' must be a list of ContextFile objects if provided.");
+    if (contextFiles !== null) {
+      if (!Array.isArray(contextFiles) || !contextFiles.every((cf) => cf instanceof ContextFile)) {
+        throw new TypeError("AgentInputUserMessage 'contextFiles' must be a list of ContextFile objects if provided.");
       }
     }
     if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
@@ -29,57 +29,59 @@ export class AgentInputUserMessage {
     }
 
     this.content = content;
-    this.sender_type = sender_type;
-    this.context_files = context_files;
+    this.senderType = senderType;
+    this.contextFiles = contextFiles;
     this.metadata = metadata;
   }
 
-  toDict(): Record<string, any> {
-    const contextFiles = this.context_files
-      ? this.context_files.map((cf) => cf.toDict())
+  toDict(): Record<string, unknown> {
+    const contextFiles = this.contextFiles
+      ? this.contextFiles.map((cf) => cf.toDict())
       : null;
 
     return {
       content: this.content,
-      sender_type: this.sender_type,
+      sender_type: this.senderType,
       context_files: contextFiles,
       metadata: this.metadata
     };
   }
 
-  static fromDict(data: Record<string, any>): AgentInputUserMessage {
-    const content = data?.content;
+  static fromDict(data: Record<string, unknown>): AgentInputUserMessage {
+    const payload = data ?? {};
+    const payloadRecord = payload as Record<string, unknown>;
+    const content = payloadRecord.content;
     if (typeof content !== 'string') {
       throw new Error("AgentInputUserMessage 'content' in dictionary must be a string.");
     }
 
-    const senderTypeVal = data?.sender_type ?? SenderType.USER;
-    const senderType = Object.values(SenderType).includes(senderTypeVal)
+    const senderTypeVal = payloadRecord.sender_type ?? SenderType.USER;
+    const senderType = Object.values(SenderType).includes(senderTypeVal as SenderType)
       ? (senderTypeVal as SenderType)
       : SenderType.USER;
 
-    const contextFilesData = data?.context_files;
+    const contextFilesData = payloadRecord.context_files;
     let contextFiles: ContextFile[] | null = null;
     if (contextFilesData !== null && contextFilesData !== undefined) {
       if (!Array.isArray(contextFilesData)) {
         throw new Error("AgentInputUserMessage 'context_files' in dictionary must be a list if provided.");
       }
-      contextFiles = contextFilesData.map((cfData) => ContextFile.fromDict(cfData));
+      contextFiles = contextFilesData.map((cfData) => ContextFile.fromDict(cfData as Record<string, unknown>));
     }
 
-    const metadata = data?.metadata ?? {};
+    const metadata = payloadRecord.metadata ?? {};
     if (typeof metadata !== 'object' || metadata === null || Array.isArray(metadata)) {
       throw new Error("AgentInputUserMessage 'metadata' in dictionary must be a dict if provided.");
     }
 
-    return new AgentInputUserMessage(content, senderType, contextFiles, metadata);
+    return new AgentInputUserMessage(content, senderType, contextFiles, metadata as Record<string, unknown>);
   }
 
   toString(): string {
     const contentPreview = this.content.length > 100 ? `${this.content.slice(0, 100)}...` : this.content;
-    const contextCount = this.context_files ? this.context_files.length : 0;
-    const contextInfo = this.context_files ? `, context_files=[${contextCount} ContextFile(s)]` : '';
+    const contextCount = this.contextFiles ? this.contextFiles.length : 0;
+    const contextInfo = this.contextFiles ? `, contextFiles=[${contextCount} ContextFile(s)]` : '';
     const metaInfo = Object.keys(this.metadata).length > 0 ? `, metadata_keys=${Object.keys(this.metadata)}` : '';
-    return `AgentInputUserMessage(sender_type='${this.sender_type}', content='${contentPreview}'${contextInfo}${metaInfo})`;
+    return `AgentInputUserMessage(senderType='${this.senderType}', content='${contentPreview}'${contextInfo}${metaInfo})`;
   }
 }

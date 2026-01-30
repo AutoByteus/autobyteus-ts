@@ -4,18 +4,19 @@ import type { BaseLifecycleEventProcessor } from './base_processor.js';
 import { ProcessorOption } from '../processor_option.js';
 
 export class LifecycleEventProcessorRegistry extends Singleton {
+  protected static instance?: LifecycleEventProcessorRegistry;
+
   private definitions: Map<string, LifecycleEventProcessorDefinition> = new Map();
 
   constructor() {
     super();
-    const existing = (LifecycleEventProcessorRegistry as any).instance as LifecycleEventProcessorRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (LifecycleEventProcessorRegistry.instance) {
+      return LifecycleEventProcessorRegistry.instance;
     }
-    (LifecycleEventProcessorRegistry as any).instance = this;
+    LifecycleEventProcessorRegistry.instance = this;
   }
 
-  register_processor(definition: LifecycleEventProcessorDefinition): void {
+  registerProcessor(definition: LifecycleEventProcessorDefinition): void {
     if (!(definition instanceof LifecycleEventProcessorDefinition)) {
       throw new Error(`Expected LifecycleEventProcessorDefinition instance, got ${typeof definition}.`);
     }
@@ -28,7 +29,7 @@ export class LifecycleEventProcessorRegistry extends Singleton {
     this.definitions.set(name, definition);
   }
 
-  get_processor_definition(name: string): LifecycleEventProcessorDefinition | undefined {
+  getProcessorDefinition(name: string): LifecycleEventProcessorDefinition | undefined {
     if (typeof name !== 'string') {
       console.warn(`Attempted to retrieve lifecycle event processor definition with non-string name: ${typeof name}.`);
       return undefined;
@@ -41,31 +42,31 @@ export class LifecycleEventProcessorRegistry extends Singleton {
     return definition;
   }
 
-  get_processor(name: string): BaseLifecycleEventProcessor | undefined {
-    const definition = this.get_processor_definition(name);
+  getProcessor(name: string): BaseLifecycleEventProcessor | undefined {
+    const definition = this.getProcessorDefinition(name);
     if (!definition) {
       return undefined;
     }
 
     try {
-      return new definition.processor_class();
+      return new definition.processorClass();
     } catch (error) {
       console.error(`Failed to instantiate lifecycle event processor '${name}': ${error}`);
       return undefined;
     }
   }
 
-  list_processor_names(): string[] {
+  listProcessorNames(): string[] {
     return Array.from(this.definitions.keys());
   }
 
-  get_ordered_processor_options(): ProcessorOption[] {
+  getOrderedProcessorOptions(): ProcessorOption[] {
     const definitions = Array.from(this.definitions.values());
-    const sorted = definitions.sort((a, b) => a.processor_class.get_order() - b.processor_class.get_order());
-    return sorted.map((definition) => new ProcessorOption(definition.name, definition.processor_class.is_mandatory()));
+    const sorted = definitions.sort((a, b) => a.processorClass.getOrder() - b.processorClass.getOrder());
+    return sorted.map((definition) => new ProcessorOption(definition.name, definition.processorClass.isMandatory()));
   }
 
-  get_all_definitions(): Record<string, LifecycleEventProcessorDefinition> {
+  getAllDefinitions(): Record<string, LifecycleEventProcessorDefinition> {
     return Object.fromEntries(this.definitions.entries());
   }
 

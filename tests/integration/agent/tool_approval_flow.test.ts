@@ -6,7 +6,7 @@ import { AgentFactory } from '../../../src/agent/factory/agent_factory.js';
 import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { PendingToolInvocationEvent, ToolResultEvent } from '../../../src/agent/events/agent_events.js';
 import { ToolInvocation } from '../../../src/agent/tool_invocation.js';
-import { wait_for_agent_to_be_idle } from '../../../src/agent/utils/wait_for_idle.js';
+import { waitForAgentToBeIdle } from '../../../src/agent/utils/wait_for_idle.js';
 import { BaseAgentWorkspace } from '../../../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../../../src/agent/workspace/workspace_config.js';
 import { BaseLLM } from '../../../src/llm/base.js';
@@ -42,17 +42,13 @@ class TestWorkspace extends BaseAgentWorkspace {
     this.rootPath = rootPath;
   }
 
-  get_base_path(): string {
-    return this.rootPath;
-  }
-
   getBasePath(): string {
     return this.rootPath;
   }
 }
 
 type AgentFixture = {
-  agent: ReturnType<AgentFactory['create_agent']>;
+  agent: ReturnType<AgentFactory['createAgent']>;
   llm: DummyLLM;
   workspaceDir: string;
 };
@@ -79,7 +75,7 @@ const createAgentFixture = async (tools: any[]): Promise<AgentFixture> => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -98,9 +94,9 @@ const createAgentFixture = async (tools: any[]): Promise<AgentFixture> => {
     null,
     workspace
   );
-  const agent = new AgentFactory().create_agent(config);
+  const agent = new AgentFactory().createAgent(config);
   agent.start();
-  await wait_for_agent_to_be_idle(agent, 10);
+  await waitForAgentToBeIdle(agent, 10);
   return { agent, llm, workspaceDir };
 };
 
@@ -129,18 +125,18 @@ describe('Tool approval integration flow', () => {
     const invocationId = `write-${Date.now()}`;
     const invocation = new ToolInvocation('write_file', { path: relativePath, content }, invocationId);
 
-    await fixture.agent.context.input_event_queues.enqueue_internal_system_event(
+    await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
     );
 
     await waitFor(
-      () => Boolean(fixture!.agent.context.state.pending_tool_approvals[invocationId]),
+      () => Boolean(fixture!.agent.context.state.pendingToolApprovals[invocationId]),
       5000,
       50,
       'pending tool approval'
     );
 
-    await fixture.agent.post_tool_execution_approval(invocationId, true, 'approved');
+    await fixture.agent.postToolExecutionApproval(invocationId, true, 'approved');
 
     const finalPath = path.join(fixture.workspaceDir, relativePath);
     await waitFor(
@@ -172,22 +168,22 @@ describe('Tool approval integration flow', () => {
     const invocationId = `read-${Date.now()}`;
     const invocation = new ToolInvocation('read_file', { path: relativePath }, invocationId);
 
-    await fixture.agent.context.input_event_queues.enqueue_internal_system_event(
+    await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
     );
 
     await waitFor(
-      () => Boolean(fixture!.agent.context.state.pending_tool_approvals[invocationId]),
+      () => Boolean(fixture!.agent.context.state.pendingToolApprovals[invocationId]),
       5000,
       50,
       'pending tool approval'
     );
 
-    await fixture.agent.post_tool_execution_approval(invocationId, true, 'approved');
+    await fixture.agent.postToolExecutionApproval(invocationId, true, 'approved');
 
     await waitFor(
       () =>
-        fixture!.agent.context.conversation_history.some(
+        fixture!.agent.context.conversationHistory.some(
           (entry) => entry.role === 'tool' && String(entry.content).includes('1: line1')
         ),
       5000,
@@ -195,7 +191,7 @@ describe('Tool approval integration flow', () => {
       'read_file tool output'
     );
 
-    const lastToolEntry = fixture.agent.context.conversation_history.find(
+    const lastToolEntry = fixture.agent.context.conversationHistory.find(
       (entry) => entry.role === 'tool' && String(entry.content).includes('1: line1')
     );
     expect(lastToolEntry).toBeDefined();
@@ -220,18 +216,18 @@ describe('Tool approval integration flow', () => {
     const invocationId = `patch-${Date.now()}`;
     const invocation = new ToolInvocation('patch_file', { path: relativePath, patch }, invocationId);
 
-    await fixture.agent.context.input_event_queues.enqueue_internal_system_event(
+    await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
     );
 
     await waitFor(
-      () => Boolean(fixture!.agent.context.state.pending_tool_approvals[invocationId]),
+      () => Boolean(fixture!.agent.context.state.pendingToolApprovals[invocationId]),
       5000,
       50,
       'pending tool approval'
     );
 
-    await fixture.agent.post_tool_execution_approval(invocationId, true, 'approved');
+    await fixture.agent.postToolExecutionApproval(invocationId, true, 'approved');
 
     await waitFor(
       async () => {
@@ -262,26 +258,26 @@ describe('Tool approval integration flow', () => {
       invocationId
     );
 
-    await fixture.agent.context.input_event_queues.enqueue_internal_system_event(
+    await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
     );
 
     await waitFor(
-      () => Boolean(fixture!.agent.context.state.pending_tool_approvals[invocationId]),
+      () => Boolean(fixture!.agent.context.state.pendingToolApprovals[invocationId]),
       5000,
       50,
       'pending tool approval'
     );
 
-    await fixture.agent.post_tool_execution_approval(invocationId, true, 'approved');
+    await fixture.agent.postToolExecutionApproval(invocationId, true, 'approved');
 
     await waitFor(
       () => {
-        const events = fixture!.agent.context.state.event_store?.all_events() ?? [];
+        const events = fixture!.agent.context.state.eventStore?.allEvents() ?? [];
         return events.some(
           (envelope) =>
             envelope.event instanceof ToolResultEvent &&
-            envelope.event.tool_invocation_id === invocationId
+            envelope.event.toolInvocationId === invocationId
         );
       },
       5000,
@@ -289,17 +285,17 @@ describe('Tool approval integration flow', () => {
       'run_bash tool result'
     );
 
-    const events = fixture.agent.context.state.event_store?.all_events() ?? [];
+    const events = fixture.agent.context.state.eventStore?.allEvents() ?? [];
     const toolEvent = events.find(
       (envelope) =>
         envelope.event instanceof ToolResultEvent &&
-        envelope.event.tool_invocation_id === invocationId
+        envelope.event.toolInvocationId === invocationId
     );
 
     expect(toolEvent).toBeDefined();
     const result = (toolEvent as { event: ToolResultEvent }).event.result as TerminalResult;
     expect(result.stdout).toContain('approval_ok');
-    expect(result.exit_code).toBe(0);
-    expect(result.timed_out).toBe(false);
+    expect(result.exitCode).toBe(0);
+    expect(result.timedOut).toBe(false);
   });
 });

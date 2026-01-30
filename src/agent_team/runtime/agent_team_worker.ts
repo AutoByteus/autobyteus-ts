@@ -10,8 +10,9 @@ import { AgentTeamInputEventQueueManager } from '../events/agent_team_input_even
 import { AgentTeamEventStore } from '../events/event_store.js';
 import { AgentTeamBootstrapper } from '../bootstrap_steps/agent_team_bootstrapper.js';
 import { AgentTeamShutdownOrchestrator } from '../shutdown_steps/agent_team_shutdown_orchestrator.js';
+import { AgentTeamStatusManager } from '../status/agent_team_status_manager.js';
 import { AgentTeamStatusDeriver } from '../status/status_deriver.js';
-import { apply_event_and_derive_status } from '../status/status_update_utils.js';
+import { applyEventAndDeriveStatus } from '../status/status_update_utils.js';
 import type { AgentTeamContext } from '../context/agent_team_context.js';
 import type { AgentTeamEventHandlerRegistry } from '../handlers/agent_team_event_handler_registry.js';
 
@@ -25,27 +26,28 @@ type EventResult = { source: EventSource; event: QueuedEvent };
 
 export class AgentTeamWorker {
   context: AgentTeamContext;
-  status_manager: any;
-  event_dispatcher: AgentTeamEventDispatcher;
-  private _is_active: boolean = false;
+  statusManager: AgentTeamStatusManager;
+  eventDispatcher: AgentTeamEventDispatcher;
+  private isActive: boolean = false;
 
   private loopPromise: Promise<void> | null = null;
   private stopRequested = false;
   private stopInitiated = false;
   private doneCallbacks: Array<(result: PromiseSettledResult<void>) => void> = [];
 
-  constructor(context: AgentTeamContext, event_handler_registry: AgentTeamEventHandlerRegistry) {
+  constructor(context: AgentTeamContext, eventHandlerRegistry: AgentTeamEventHandlerRegistry) {
     this.context = context;
-    this.status_manager = this.context.status_manager;
-    if (!this.status_manager) {
-      throw new Error(`AgentTeamWorker for '${this.context.team_id}': AgentTeamStatusManager not found.`);
+    const statusManager = this.context.statusManager;
+    if (!statusManager) {
+      throw new Error(`AgentTeamWorker for '${this.context.teamId}': AgentTeamStatusManager not found.`);
     }
+    this.statusManager = statusManager;
 
-    this.event_dispatcher = new AgentTeamEventDispatcher(event_handler_registry);
-    console.info(`AgentTeamWorker initialized for team '${this.context.team_id}'.`);
+    this.eventDispatcher = new AgentTeamEventDispatcher(eventHandlerRegistry);
+    console.info(`AgentTeamWorker initialized for team '${this.context.teamId}'.`);
   }
 
-  add_done_callback(callback: (result: PromiseSettledResult<void>) => void): void {
+  addDoneCallback(callback: (result: PromiseSettledResult<void>) => void): void {
     if (this.loopPromise) {
       this.loopPromise
         .then(() => callback({ status: 'fulfilled', value: undefined }))
@@ -55,76 +57,76 @@ export class AgentTeamWorker {
     this.doneCallbacks.push(callback);
   }
 
-  is_alive(): boolean {
-    return this._is_active;
+  isAlive(): boolean {
+    return this.isActive;
   }
 
-  get_worker_loop(): Promise<void> | null {
-    return this._is_active ? this.loopPromise : null;
+  getWorkerLoop(): Promise<void> | null {
+    return this.isActive ? this.loopPromise : null;
   }
 
   start(): void {
-    const team_id = this.context.team_id;
-    if (this._is_active) {
-      console.warn(`AgentTeamWorker '${team_id}': Start called, but worker is already active.`);
+    const teamId = this.context.teamId;
+    if (this.isActive) {
+      console.warn(`AgentTeamWorker '${teamId}': Start called, but worker is already active.`);
       return;
     }
 
-    console.info(`AgentTeamWorker '${team_id}': Starting...`);
-    this._is_active = true;
+    console.info(`AgentTeamWorker '${teamId}': Starting...`);
+    this.isActive = true;
     this.stopRequested = false;
     this.stopInitiated = false;
 
-    this.loopPromise = this.async_run();
+    this.loopPromise = this.asyncRun();
     this.loopPromise
       .then(() => {
-        this._is_active = false;
+        this.isActive = false;
         this.doneCallbacks.forEach((cb) => cb({ status: 'fulfilled', value: undefined }));
         this.doneCallbacks = [];
       })
       .catch((error) => {
-        this._is_active = false;
+        this.isActive = false;
         this.doneCallbacks.forEach((cb) => cb({ status: 'rejected', reason: error }));
         this.doneCallbacks = [];
       });
   }
 
-  private async _runtime_init(): Promise<boolean> {
-    const team_id = this.context.team_id;
+  private async runtimeInit(): Promise<boolean> {
+    const teamId = this.context.teamId;
 
-    if (!this.context.state.event_store) {
-      this.context.state.event_store = new AgentTeamEventStore(team_id);
-      console.info(`Team '${team_id}': Runtime init completed (event store initialized).`);
+    if (!this.context.state.eventStore) {
+      this.context.state.eventStore = new AgentTeamEventStore(teamId);
+      console.info(`Team '${teamId}': Runtime init completed (event store initialized).`);
     }
 
-    if (!this.context.state.status_deriver) {
-      this.context.state.status_deriver = new AgentTeamStatusDeriver();
-      console.info(`Team '${team_id}': Runtime init completed (status deriver initialized).`);
+    if (!this.context.state.statusDeriver) {
+      this.context.state.statusDeriver = new AgentTeamStatusDeriver();
+      console.info(`Team '${teamId}': Runtime init completed (status deriver initialized).`);
     }
 
-    if (this.context.state.input_event_queues) {
-      console.debug(`Team '${team_id}': Runtime init skipped; input event queues already initialized.`);
+    if (this.context.state.inputEventQueues) {
+      console.debug(`Team '${teamId}': Runtime init skipped; input event queues already initialized.`);
       return true;
     }
 
     try {
-      this.context.state.input_event_queues = new AgentTeamInputEventQueueManager();
-      console.info(`Team '${team_id}': Runtime init completed (input queues initialized).`);
+      this.context.state.inputEventQueues = new AgentTeamInputEventQueueManager();
+      console.info(`Team '${teamId}': Runtime init completed (input queues initialized).`);
       return true;
     } catch (error) {
-      console.error(`Team '${team_id}': Runtime init failed while initializing input queues: ${error}`);
+      console.error(`Team '${teamId}': Runtime init failed while initializing input queues: ${error}`);
       return false;
     }
   }
 
-  async async_run(): Promise<void> {
-    const team_id = this.context.team_id;
+  async asyncRun(): Promise<void> {
+    const teamId = this.context.teamId;
 
     try {
-      const runtimeInitSuccess = await this._runtime_init();
+      const runtimeInitSuccess = await this.runtimeInit();
       if (!runtimeInitSuccess) {
-        console.error(`Team '${team_id}': Runtime init failed. Shutting down.`);
-        await apply_event_and_derive_status(
+        console.error(`Team '${teamId}': Runtime init failed. Shutting down.`);
+        await applyEventAndDeriveStatus(
           new AgentTeamErrorEvent('Runtime init failed.', 'Failed to initialize event store or queues.'),
           this.context
         );
@@ -132,33 +134,33 @@ export class AgentTeamWorker {
       }
 
       const bootstrapper = new AgentTeamBootstrapper();
-      await this.event_dispatcher.dispatch(new AgentTeamBootstrapStartedEvent(), this.context);
+      await this.eventDispatcher.dispatch(new AgentTeamBootstrapStartedEvent(), this.context);
       const bootstrapSuccess = await bootstrapper.run(this.context);
       if (!bootstrapSuccess) {
-        console.error(`Team '${team_id}': Bootstrap failed. Shutting down.`);
-        await this.event_dispatcher.dispatch(
+        console.error(`Team '${teamId}': Bootstrap failed. Shutting down.`);
+        await this.eventDispatcher.dispatch(
           new AgentTeamErrorEvent('Bootstrap failed.', 'Bootstrapper returned failure.'),
           this.context
         );
         return;
       }
 
-      await this.event_dispatcher.dispatch(new AgentTeamReadyEvent(), this.context);
+      await this.eventDispatcher.dispatch(new AgentTeamReadyEvent(), this.context);
 
       let pendingUser: Promise<QueuedEvent> | null = null;
       let pendingSystem: Promise<QueuedEvent> | null = null;
 
       while (!this.stopRequested) {
-        if (!this.context.state.input_event_queues) {
+        if (!this.context.state.inputEventQueues) {
           await delay(50);
           continue;
         }
 
         if (!pendingUser) {
-          pendingUser = this.context.state.input_event_queues.user_message_queue.get();
+          pendingUser = this.context.state.inputEventQueues.userMessageQueue.get();
         }
         if (!pendingSystem) {
-          pendingSystem = this.context.state.input_event_queues.internal_system_event_queue.get();
+          pendingSystem = this.context.state.inputEventQueues.internalSystemEventQueue.get();
         }
 
         const result = await Promise.race([
@@ -178,40 +180,40 @@ export class AgentTeamWorker {
         }
 
         try {
-          await this.event_dispatcher.dispatch(result.event, this.context);
+          await this.eventDispatcher.dispatch(result.event, this.context);
         } catch (error) {
-          console.error(`Team '${team_id}': Error dispatching event: ${error}`);
+          console.error(`Team '${teamId}': Error dispatching event: ${error}`);
         }
 
         await delay(0);
       }
     } catch (error) {
-      console.error(`AgentTeamWorker '${team_id}' async_run() loop failed: ${error}`);
+      console.error(`AgentTeamWorker '${teamId}' asyncRun() loop failed: ${error}`);
     } finally {
-      console.info(`Team '${team_id}': Shutdown signal received. Cleaning up.`);
+      console.info(`Team '${teamId}': Shutdown signal received. Cleaning up.`);
       const orchestrator = new AgentTeamShutdownOrchestrator();
       const cleanupSuccess = await orchestrator.run(this.context);
 
       if (!cleanupSuccess) {
-        console.error(`Team '${team_id}': Shutdown resource cleanup failed.`);
+        console.error(`Team '${teamId}': Shutdown resource cleanup failed.`);
       } else {
-        console.info(`Team '${team_id}': Shutdown resource cleanup completed successfully.`);
+        console.info(`Team '${teamId}': Shutdown resource cleanup completed successfully.`);
       }
     }
   }
 
   async stop(timeout: number = 10.0): Promise<void> {
-    if (!this._is_active || this.stopInitiated) {
+    if (!this.isActive || this.stopInitiated) {
       return;
     }
 
-    const team_id = this.context.team_id;
-    console.info(`AgentTeamWorker '${team_id}': Stop requested.`);
+    const teamId = this.context.teamId;
+    console.info(`AgentTeamWorker '${teamId}': Stop requested.`);
     this.stopInitiated = true;
     this.stopRequested = true;
 
-    if (this.context.state.input_event_queues) {
-      await this.context.state.input_event_queues.enqueue_internal_system_event(new AgentTeamStoppedEvent());
+    if (this.context.state.inputEventQueues) {
+      await this.context.state.inputEventQueues.enqueueInternalSystemEvent(new AgentTeamStoppedEvent());
     }
 
     if (this.loopPromise) {
@@ -221,10 +223,10 @@ export class AgentTeamWorker {
         delay(timeoutMs).then(() => 'timeout')
       ]);
       if (result === 'timeout') {
-        console.warn(`AgentTeamWorker '${team_id}': Timeout waiting for worker loop to terminate.`);
+        console.warn(`AgentTeamWorker '${teamId}': Timeout waiting for worker loop to terminate.`);
       }
     }
 
-    this._is_active = false;
+    this.isActive = false;
   }
 }

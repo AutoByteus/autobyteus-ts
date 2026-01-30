@@ -55,31 +55,31 @@ export class AgentTeamStreamEvent {
   }
 
   private validate_payload(): void {
-    const is_agent_event = this.event_source_type === 'AGENT';
-    const is_agent_payload = this.data instanceof AgentEventRebroadcastPayload;
+    const isAgentEvent = this.event_source_type === 'AGENT';
+    const isAgentPayload = this.data instanceof AgentEventRebroadcastPayload;
 
-    const is_sub_team_event = this.event_source_type === 'SUB_TEAM';
-    const is_sub_team_payload = this.data instanceof SubTeamEventRebroadcastPayload;
+    const isSubTeamEvent = this.event_source_type === 'SUB_TEAM';
+    const isSubTeamPayload = this.data instanceof SubTeamEventRebroadcastPayload;
 
-    const is_team_event = this.event_source_type === 'TEAM';
-    const is_team_payload = this.data instanceof AgentTeamStatusUpdateData;
+    const isTeamEvent = this.event_source_type === 'TEAM';
+    const isTeamPayload = this.data instanceof AgentTeamStatusUpdateData;
 
-    const is_task_plan_event = this.event_source_type === 'TASK_PLAN';
-    const is_task_plan_payload = isTaskPlanPayload(this.data);
+    const isTaskPlanEvent = this.event_source_type === 'TASK_PLAN';
+    const hasTaskPlanPayload = isTaskPlanPayload(this.data);
 
-    if (is_agent_event && !is_agent_payload) {
+    if (isAgentEvent && !isAgentPayload) {
       throw new Error("event_source_type is 'AGENT' but data is not an AgentEventRebroadcastPayload");
     }
 
-    if (is_sub_team_event && !is_sub_team_payload) {
+    if (isSubTeamEvent && !isSubTeamPayload) {
       throw new Error("event_source_type is 'SUB_TEAM' but data is not a SubTeamEventRebroadcastPayload");
     }
 
-    if (is_team_event && !is_team_payload) {
+    if (isTeamEvent && !isTeamPayload) {
       throw new Error("event_source_type is 'TEAM' but data is not a valid team-specific payload");
     }
 
-    if (is_task_plan_event && !is_task_plan_payload) {
+    if (isTaskPlanEvent && !hasTaskPlanPayload) {
       throw new Error("event_source_type is 'TASK_PLAN' but data is not a BaseTaskPlanEvent instance");
     }
   }

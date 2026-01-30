@@ -32,19 +32,19 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
-  const inputQueues = { enqueue_tool_result: vi.fn(async () => undefined) } as any;
-  state.input_event_queues = inputQueues;
+  const inputQueues = { enqueueToolResult: vi.fn(async () => undefined) } as any;
+  state.inputEventQueues = inputQueues;
   const notifier = {
-    notify_agent_data_tool_log: vi.fn(),
-    notify_agent_error_output_generation: vi.fn()
+    notifyAgentDataToolLog: vi.fn(),
+    notifyAgentErrorOutputGeneration: vi.fn()
   };
-  state.status_manager_ref = { notifier } as any;
+  state.statusManagerRef = { notifier } as any;
   const context = new AgentContext('agent-1', config, state);
   return { context, inputQueues, notifier };
 };
@@ -75,8 +75,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
     const toolInvocation = new ToolInvocation('mock_tool', { param1: 'value1' }, 'approved-tool-id-123');
     const event = new ApprovedToolInvocationEvent(toolInvocation);
     const toolInstance = { execute: vi.fn(async () => 'Successful execution result') };
-    vi.spyOn(context, 'get_tool').mockReturnValue(toolInstance as any);
-    const historySpy = vi.spyOn(context.state, 'add_message_to_history');
+    vi.spyOn(context, 'getTool').mockReturnValue(toolInstance as any);
+    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -95,7 +95,7 @@ describe('ApprovedToolInvocationEventHandler', () => {
       )
     ).toBe(true);
 
-    expect(notifier.notify_agent_data_tool_log).toHaveBeenCalled();
+    expect(notifier.notifyAgentDataToolLog).toHaveBeenCalled();
     expect(historySpy).toHaveBeenCalledWith({
       role: 'tool',
       tool_call_id: 'approved-tool-id-123',
@@ -103,13 +103,13 @@ describe('ApprovedToolInvocationEventHandler', () => {
       content: 'Successful execution result'
     });
 
-    expect(inputQueues.enqueue_tool_result).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_tool_result.mock.calls[0][0];
+    expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(ToolResultEvent);
-    expect(enqueued.tool_name).toBe('mock_tool');
+    expect(enqueued.toolName).toBe('mock_tool');
     expect(enqueued.result).toBe('Successful execution result');
     expect(enqueued.error).toBeUndefined();
-    expect(enqueued.tool_invocation_id).toBe('approved-tool-id-123');
+    expect(enqueued.toolInvocationId).toBe('approved-tool-id-123');
 
     expect(toolInstance.execute).toHaveBeenCalledWith(context, { param1: 'value1' });
   });
@@ -119,8 +119,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
     const { context, inputQueues, notifier } = makeContext();
     const toolInvocation = new ToolInvocation('non_existent_tool', { param: 'val' }, 'notfound-tool-id-456');
     const event = new ApprovedToolInvocationEvent(toolInvocation);
-    vi.spyOn(context, 'get_tool').mockReturnValue(undefined);
-    const historySpy = vi.spyOn(context.state, 'add_message_to_history');
+    vi.spyOn(context, 'getTool').mockReturnValue(undefined);
+    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -129,8 +129,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
         String(msg).includes("Tool 'non_existent_tool' not found or configured for agent 'agent-1'.")
       )
     ).toBe(true);
-    expect(notifier.notify_agent_data_tool_log).toHaveBeenCalled();
-    expect(notifier.notify_agent_error_output_generation).toHaveBeenCalledWith(
+    expect(notifier.notifyAgentDataToolLog).toHaveBeenCalled();
+    expect(notifier.notifyAgentErrorOutputGeneration).toHaveBeenCalledWith(
       'ApprovedToolExecution.ToolNotFound.non_existent_tool',
       "Tool 'non_existent_tool' not found or configured for agent 'agent-1'."
     );
@@ -143,8 +143,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
         "Error: Approved tool 'non_existent_tool' execution failed. Reason: Tool 'non_existent_tool' not found or configured for agent 'agent-1'."
     });
 
-    expect(inputQueues.enqueue_tool_result).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_tool_result.mock.calls[0][0];
+    expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
     expect(enqueued.result).toBeNull();
     expect(enqueued.error).toBe("Tool 'non_existent_tool' not found or configured for agent 'agent-1'.");
   });
@@ -155,8 +155,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
     const toolInvocation = new ToolInvocation('failing_tool', {}, 'fail-tool-id-789');
     const event = new ApprovedToolInvocationEvent(toolInvocation);
     const toolInstance = { execute: vi.fn(async () => { throw new Error('Simulated tool execution failure!'); }) };
-    vi.spyOn(context, 'get_tool').mockReturnValue(toolInstance as any);
-    const historySpy = vi.spyOn(context.state, 'add_message_to_history');
+    vi.spyOn(context, 'getTool').mockReturnValue(toolInstance as any);
+    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -168,9 +168,9 @@ describe('ApprovedToolInvocationEventHandler', () => {
       )
     ).toBe(true);
 
-    expect(notifier.notify_agent_data_tool_log).toHaveBeenCalled();
-    expect(notifier.notify_agent_error_output_generation).toHaveBeenCalled();
-    const callArgs = notifier.notify_agent_error_output_generation.mock.calls[0];
+    expect(notifier.notifyAgentDataToolLog).toHaveBeenCalled();
+    expect(notifier.notifyAgentErrorOutputGeneration).toHaveBeenCalled();
+    const callArgs = notifier.notifyAgentErrorOutputGeneration.mock.calls[0];
     expect(callArgs[0]).toBe('ApprovedToolExecution.Exception.failing_tool');
     expect(String(callArgs[1])).toContain(
       "Error executing approved tool 'failing_tool' (ID: fail-tool-id-789)"
@@ -185,8 +185,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
         "Error: Approved tool 'failing_tool' execution failed. Reason: Error executing approved tool 'failing_tool' (ID: fail-tool-id-789): Error: Simulated tool execution failure!"
     });
 
-    expect(inputQueues.enqueue_tool_result).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_tool_result.mock.calls[0][0];
+    expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
     expect(enqueued.error).toContain("Error executing approved tool 'failing_tool'");
   });
 
@@ -204,8 +204,8 @@ describe('ApprovedToolInvocationEventHandler', () => {
         )
       )
     ).toBe(true);
-    expect(notifier.notify_agent_data_tool_log).not.toHaveBeenCalled();
-    expect(inputQueues.enqueue_tool_result).not.toHaveBeenCalled();
+    expect(notifier.notifyAgentDataToolLog).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueToolResult).not.toHaveBeenCalled();
   });
 
   it('logs initialization', () => {

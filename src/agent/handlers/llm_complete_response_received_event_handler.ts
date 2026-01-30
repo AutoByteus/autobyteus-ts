@@ -4,12 +4,12 @@ import type { CompleteResponse } from '../../llm/utils/response_types.js';
 import type { AgentContext } from '../context/agent_context.js';
 
 type LLMResponseProcessorLike = {
-  get_name: () => string;
-  get_order: () => number;
-  process_response: (
+  getName: () => string;
+  getOrder: () => number;
+  processResponse: (
     response: CompleteResponse,
     context: AgentContext,
-    triggering_event: LLMCompleteResponseReceivedEvent
+    triggeringEvent: LLMCompleteResponseReceivedEvent
   ) => Promise<boolean>;
 };
 
@@ -19,9 +19,9 @@ const isLLMResponseProcessor = (value: unknown): value is LLMResponseProcessorLi
   }
   const candidate = value as LLMResponseProcessorLike;
   return (
-    typeof candidate.get_name === 'function' &&
-    typeof candidate.get_order === 'function' &&
-    typeof candidate.process_response === 'function'
+    typeof candidate.getName === 'function' &&
+    typeof candidate.getOrder === 'function' &&
+    typeof candidate.processResponse === 'function'
   );
 };
 
@@ -40,12 +40,12 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
       return;
     }
 
-    const completeResponse = event.complete_response;
+    const completeResponse = event.completeResponse;
     const completeResponseText = completeResponse.content;
     const completeResponseReasoning = completeResponse.reasoning ?? '';
-    const isErrorResponse = (event as any).is_error ?? false;
+    const isErrorResponse = event.isError ?? false;
 
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     console.info(
       `Agent '${agentId}' handling LLMCompleteResponseReceivedEvent. ` +
         `Response Length: ${completeResponseText.length}, ` +
@@ -62,7 +62,7 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
     );
 
     let anyProcessorTookAction = false;
-    const notifier = context.status_manager?.notifier;
+    const notifier = context.statusManager?.notifier;
     if (!notifier) {
       console.error(
         `Agent '${agentId}': Notifier not available in LLMCompleteResponseReceivedEventHandler. Cannot emit complete response event.`
@@ -70,7 +70,7 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
     }
 
     if (!isErrorResponse) {
-      const processorInstances = context.config.llm_response_processors as unknown[];
+      const processorInstances = context.config.llmResponseProcessors as unknown[];
       if (!processorInstances || processorInstances.length === 0) {
         console.debug(
           `Agent '${agentId}': No LLM response processors configured in agent config. ` +
@@ -87,9 +87,9 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
         }
 
         const sortedProcessors = validProcessors.sort(
-          (left, right) => left.get_order() - right.get_order()
+          (left, right) => left.getOrder() - right.getOrder()
         );
-        const processorNames = sortedProcessors.map((processor) => processor.get_name());
+        const processorNames = sortedProcessors.map((processor) => processor.getName());
         console.debug(
           `Agent '${agentId}': Attempting LLM response processing in order: ${JSON.stringify(processorNames)}`
         );
@@ -97,11 +97,11 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
         for (const processor of sortedProcessors) {
           let processorName = 'unknown';
           try {
-            processorName = processor.get_name();
+            processorName = processor.getName();
             console.debug(
               `Agent '${agentId}': Attempting to process with LLMResponseProcessor '${processorName}'.`
             );
-            const handled = await processor.process_response(
+            const handled = await processor.processResponse(
               completeResponse,
               context,
               event
@@ -120,7 +120,7 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
             console.error(
               `Agent '${agentId}': Error while using LLMResponseProcessor '${processorName}': ${error}. This processor is skipped.`
             );
-            notifier?.notify_agent_error_output_generation?.(
+            notifier?.notifyAgentErrorOutputGeneration?.(
               `LLMResponseProcessor.${processorName}`,
               String(error)
             );
@@ -134,13 +134,13 @@ export class LLMCompleteResponseReceivedEventHandler extends AgentEventHandler {
       );
     }
 
-    if (notifier?.notify_agent_data_assistant_complete_response) {
+    if (notifier?.notifyAgentDataAssistantCompleteResponse) {
       const logMessage = anyProcessorTookAction
         ? `Agent '${agentId}': One or more LLMResponseProcessors handled the response. Now emitting AGENT_DATA_ASSISTANT_COMPLETE_RESPONSE as a completion signal.`
         : `Agent '${agentId}': No LLMResponseProcessor handled the response. Emitting the full LLM response as a final answer and completion signal.`;
       console.info(logMessage);
       try {
-        notifier.notify_agent_data_assistant_complete_response(completeResponse);
+        notifier.notifyAgentDataAssistantCompleteResponse(completeResponse);
         console.debug(
           `Agent '${agentId}' emitted AGENT_DATA_ASSISTANT_COMPLETE_RESPONSE event successfully.`
         );

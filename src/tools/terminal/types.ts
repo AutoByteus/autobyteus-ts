@@ -1,39 +1,65 @@
 export class TerminalResult {
   stdout: string;
   stderr: string;
-  exit_code: number | null;
-  timed_out: boolean;
+  exitCode: number | null;
+  timedOut: boolean;
 
-  constructor(stdout: string, stderr: string, exit_code: number | null, timed_out: boolean) {
+  constructor(stdout: string, stderr: string, exitCode: number | null, timedOut: boolean) {
     this.stdout = stdout;
     this.stderr = stderr;
-    this.exit_code = exit_code;
-    this.timed_out = timed_out;
+    this.exitCode = exitCode;
+    this.timedOut = timedOut;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      stdout: this.stdout,
+      stderr: this.stderr,
+      exitCode: this.exitCode,
+      timedOut: this.timedOut
+    };
   }
 }
 
 export class BackgroundProcessOutput {
   output: string;
-  is_running: boolean;
-  process_id: string;
+  isRunning: boolean;
+  processId: string;
 
-  constructor(output: string, is_running: boolean, process_id: string) {
+  constructor(output: string, isRunning: boolean, processId: string) {
     this.output = output;
-    this.is_running = is_running;
-    this.process_id = process_id;
+    this.isRunning = isRunning;
+    this.processId = processId;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      output: this.output,
+      isRunning: this.isRunning,
+      processId: this.processId
+    };
   }
 }
 
 export class ProcessInfo {
-  process_id: string;
+  processId: string;
   command: string;
-  started_at: number;
-  is_running: boolean;
+  startedAt: number;
+  isRunning: boolean;
 
-  constructor(process_id: string, command: string, started_at: number, is_running: boolean) {
-    this.process_id = process_id;
+  constructor(processId: string, command: string, startedAt: number, isRunning: boolean) {
+    this.processId = processId;
     this.command = command;
-    this.started_at = started_at;
-    this.is_running = is_running;
+    this.startedAt = startedAt;
+    this.isRunning = isRunning;
+  }
+
+  toJSON(): Record<string, unknown> {
+    return {
+      processId: this.processId,
+      command: this.command,
+      startedAt: this.startedAt,
+      isRunning: this.isRunning
+    };
   }
 }

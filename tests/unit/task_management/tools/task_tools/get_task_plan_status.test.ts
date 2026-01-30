@@ -7,12 +7,12 @@ import { createFileDeliverable } from '../../../../../src/task_management/delive
 
 const makeAgentContext = () => ({
   agentId: 'test_agent_get_status',
-  custom_data: {} as Record<string, any>
+  customData: {} as Record<string, any>
 });
 
 const makeTeamContext = () => ({
   state: {
-    task_plan: {}
+    taskPlan: {}
   }
 });
 
@@ -21,7 +21,7 @@ describe('GetTaskPlanStatus tool', () => {
     const tool = new GetTaskPlanStatus();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
     const report = TaskStatusReportSchema.parse({
       tasks: [
@@ -36,11 +36,11 @@ describe('GetTaskPlanStatus tool', () => {
       ]
     });
 
-    const spy = vi.spyOn(TaskPlanConverter, 'to_schema').mockReturnValue(report);
+    const spy = vi.spyOn(TaskPlanConverter, 'toSchema').mockReturnValue(report);
 
     const result = await (tool as any)._execute(context);
 
-    expect(spy).toHaveBeenCalledWith(teamContext.state.task_plan);
+    expect(spy).toHaveBeenCalledWith(teamContext.state.taskPlan);
 
     const resultData = JSON.parse(result);
     expect(resultData.overall_goal).toBeUndefined();
@@ -52,7 +52,7 @@ describe('GetTaskPlanStatus tool', () => {
     const tool = new GetTaskPlanStatus();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
     const deliverable = createFileDeliverable({
       file_path: 'report.pdf',
@@ -73,7 +73,7 @@ describe('GetTaskPlanStatus tool', () => {
       ]
     });
 
-    vi.spyOn(TaskPlanConverter, 'to_schema').mockReturnValue(report);
+    vi.spyOn(TaskPlanConverter, 'toSchema').mockReturnValue(report);
 
     const result = await (tool as any)._execute(context);
 
@@ -89,9 +89,9 @@ describe('GetTaskPlanStatus tool', () => {
     const tool = new GetTaskPlanStatus();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
-    vi.spyOn(TaskPlanConverter, 'to_schema').mockReturnValue(null);
+    vi.spyOn(TaskPlanConverter, 'toSchema').mockReturnValue(null);
 
     const result = await (tool as any)._execute(context);
 
@@ -110,7 +110,7 @@ describe('GetTaskPlanStatus tool', () => {
   it('returns an error when task plan is missing', async () => {
     const tool = new GetTaskPlanStatus();
     const context = makeAgentContext();
-    context.custom_data.team_context = { state: { task_plan: null } };
+    context.customData.teamContext = { state: { taskPlan: null } };
 
     const result = await (tool as any)._execute(context);
 

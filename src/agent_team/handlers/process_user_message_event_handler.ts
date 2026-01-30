@@ -4,53 +4,56 @@ import type { AgentTeamContext } from '../context/agent_team_context.js';
 
 export class ProcessUserMessageEventHandler extends BaseAgentTeamEventHandler {
   async handle(event: ProcessUserMessageEvent, context: AgentTeamContext): Promise<void> {
-    const team_manager: any = context.team_manager;
-    if (!team_manager) {
-      const message = `Team '${context.team_id}': TeamManager not found. Cannot route message.`;
+    const teamManager = context.teamManager;
+    const teamId = context.teamId;
+    if (!teamManager) {
+      const message = `Team '${teamId}': TeamManager not found. Cannot route message.`;
       console.error(message);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(message, 'TeamManager is not initialized.')
         );
       }
       return;
     }
 
-    let target_node: any;
+    let targetNode: unknown;
     try {
-      target_node = await team_manager.ensure_node_is_ready(event.target_agent_name);
+      targetNode = await teamManager.ensureNodeIsReady(event.targetAgentName);
     } catch (error) {
       const message =
-        `Team '${context.team_id}': Node '${event.target_agent_name}' not found or failed to start. ` +
+        `Team '${teamId}': Node '${event.targetAgentName}' not found or failed to start. ` +
         `Cannot route message. Error: ${error}`;
       console.error(message);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(
             message,
-            `Node '${event.target_agent_name}' not found or failed to start.`
+            `Node '${event.targetAgentName}' not found or failed to start.`
           )
         );
       }
       return;
     }
 
-    if (target_node && typeof target_node.post_user_message === 'function') {
-      await target_node.post_user_message(event.user_message);
-      console.info(`Team '${context.team_id}': Routed user message to agent node '${event.target_agent_name}'.`);
+    if (targetNode && typeof (targetNode as { postUserMessage?: unknown }).postUserMessage === 'function') {
+      await (targetNode as { postUserMessage: (message: ProcessUserMessageEvent['userMessage']) => Promise<void> })
+        .postUserMessage(event.userMessage);
+      console.info(`Team '${teamId}': Routed user message to agent node '${event.targetAgentName}'.`);
       return;
     }
 
-    if (target_node && typeof target_node.post_message === 'function') {
-      await target_node.post_message(event.user_message);
-      console.info(`Team '${context.team_id}': Routed user message to sub-team node '${event.target_agent_name}'.`);
+    if (targetNode && typeof (targetNode as { postMessage?: unknown }).postMessage === 'function') {
+      await (targetNode as { postMessage: (message: ProcessUserMessageEvent['userMessage']) => Promise<void> })
+        .postMessage(event.userMessage);
+      console.info(`Team '${teamId}': Routed user message to sub-team node '${event.targetAgentName}'.`);
       return;
     }
 
-    const message = `Target node '${event.target_agent_name}' is of an unsupported type: ${typeof target_node}`;
-    console.error(`Team '${context.team_id}': ${message}`);
-    if (context.state.input_event_queues) {
-      await context.state.input_event_queues.enqueue_internal_system_event(
+    const message = `Target node '${event.targetAgentName}' is of an unsupported type: ${typeof targetNode}`;
+    console.error(`Team '${teamId}': ${message}`);
+    if (context.state.inputEventQueues) {
+      await context.state.inputEventQueues.enqueueInternalSystemEvent(
         new AgentTeamErrorEvent(message, '')
       );
     }

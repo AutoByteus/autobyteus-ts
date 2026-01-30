@@ -8,12 +8,12 @@ import { MessageRole } from '../../../src/llm/utils/messages.js';
 import { LLMProvider } from '../../../src/llm/providers.js';
 
 class ConcreteLLM extends BaseLLM {
-  async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse> {
+  async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
     // Mock response
     return new CompleteResponse({ content: 'Mock response' });
   }
 
-  async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown> {
+  async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'Mock' });
     yield new ChunkResponse({ content: ' Stream', is_complete: true });
   }
@@ -29,7 +29,7 @@ describe('BaseLLM', () => {
     model = new LLMModel({ 
       name: 'test', 
       value: 'test', 
-      canonical_name: 'test',
+      canonicalName: 'test',
       provider: LLMProvider.OPENAI 
     });
     llm = new ConcreteLLM(model, config);

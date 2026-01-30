@@ -1,15 +1,35 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import os from 'node:os';
 import { WebsocketManagedMcpServer } from '../../../../src/tools/mcp/server/websocket_managed_mcp_server.js';
 import { WebsocketMcpServerConfig } from '../../../../src/tools/mcp/types.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../../../..');
+const repoRoot = path.resolve(__dirname, '../../../..');
 const mcpsRoot = path.resolve(repoRoot, '..', 'autobyteus_mcps');
 const wssToyDir = path.join(mcpsRoot, 'wss_mcp_toy');
+
+const resolveUvCommand = (): string => {
+  const envOverride = process.env.UV_BIN;
+  if (envOverride && envOverride.trim()) {
+    return envOverride;
+  }
+  const candidates = [
+    path.join(os.homedir(), '.local', 'bin', 'uv'),
+    '/usr/local/bin/uv',
+    '/opt/homebrew/bin/uv'
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return 'uv';
+};
 
 const SERVER_HOST = '127.0.0.1';
 const SERVER_PORT = 8765;
@@ -74,7 +94,7 @@ describe('WebsocketManagedMcpServer integration (wss_mcp_toy)', () => {
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
     serverProcess = spawn(
-      'uv',
+      resolveUvCommand(),
       [
         'run',
         'python',

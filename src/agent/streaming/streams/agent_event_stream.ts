@@ -2,19 +2,19 @@ import { EventEmitter } from '../../../events/event_emitter.js';
 import { EventType } from '../../../events/event_types.js';
 import { StreamEvent, StreamEventType } from '../events/stream_events.js';
 import {
-  create_assistant_chunk_data,
-  create_assistant_complete_response_data,
-  create_tool_interaction_log_entry_data,
-  create_agent_status_update_data,
-  create_error_event_data,
-  create_tool_invocation_approval_requested_data,
-  create_tool_invocation_auto_executing_data,
-  create_segment_event_data,
-  create_system_task_notification_data,
-  create_inter_agent_message_data,
-  create_todo_list_update_data,
-  create_artifact_persisted_data,
-  create_artifact_updated_data,
+  createAssistantChunkData,
+  createAssistantCompleteResponseData,
+  createToolInteractionLogEntryData,
+  createAgentStatusUpdateData,
+  createErrorEventData,
+  createToolInvocationApprovalRequestedData,
+  createToolInvocationAutoExecutingData,
+  createSegmentEventData,
+  createSystemTaskNotificationData,
+  createInterAgentMessageData,
+  createTodoListUpdateData,
+  createArtifactPersistedData,
+  createArtifactUpdatedData,
   AssistantChunkData,
   AssistantCompleteResponseData,
   ToolInteractionLogEntryData,
@@ -33,9 +33,9 @@ import {
 import { streamQueueItems, SimpleQueue } from '../utils/queue_streamer.js';
 
 export type AgentLike = {
-  agent_id: string;
+  agentId: string;
   context?: {
-    status_manager?: {
+    statusManager?: {
       notifier?: EventEmitter;
     } | null;
   };
@@ -44,29 +44,29 @@ export type AgentLike = {
 const AES_INTERNAL_SENTINEL = {};
 
 export class AgentEventStream extends EventEmitter {
-  agent_id: string;
+  agentId: string;
   private genericStreamQueue: SimpleQueue<StreamEvent | object>;
   private notifier: EventEmitter | null;
 
   constructor(agent: AgentLike) {
     super();
 
-    if (!agent || typeof agent !== 'object' || typeof agent.agent_id !== 'string') {
+    if (!agent || typeof agent !== 'object' || typeof agent.agentId !== 'string') {
       throw new TypeError(`AgentEventStream requires an Agent-like instance, got ${typeof agent}.`);
     }
 
-    this.agent_id = agent.agent_id;
+    this.agentId = agent.agentId;
     this.genericStreamQueue = new SimpleQueue<StreamEvent | object>();
-    this.notifier = agent.context?.status_manager?.notifier ?? null;
+    this.notifier = agent.context?.statusManager?.notifier ?? null;
 
     if (!this.notifier) {
-      console.error(`AgentEventStream for '${this.agent_id}': Notifier not available. No events will be streamed.`);
+      console.error(`AgentEventStream for '${this.agentId}': Notifier not available. No events will be streamed.`);
       return;
     }
 
     this.registerListeners();
     console.info(
-      `AgentEventStream (ID: ${this.object_id}) initialized for agent_id '${this.agent_id}'. Subscribed to notifier.`
+      `AgentEventStream (ID: ${this.objectId}) initialized for agent_id '${this.agentId}'. Subscribed to notifier.`
     );
   }
 
@@ -76,7 +76,7 @@ export class AgentEventStream extends EventEmitter {
     );
 
     for (const eventType of allAgentEventTypes) {
-      this.subscribe_from(this.notifier as EventEmitter, eventType as EventType, this.handleNotifierEventSync);
+      this.subscribeFrom(this.notifier as EventEmitter, eventType as EventType, this.handleNotifierEventSync);
     }
   }
 
@@ -85,7 +85,7 @@ export class AgentEventStream extends EventEmitter {
     if (!eventType) {
       return;
     }
-    const eventAgentId = metadata?.agent_id ?? this.agent_id;
+    const eventAgentId = metadata?.agent_id ?? this.agentId;
 
     let typedPayload: StreamDataPayload | null = null;
     let streamEventType: StreamEventType | null = null;
@@ -93,55 +93,55 @@ export class AgentEventStream extends EventEmitter {
     try {
       switch (eventType) {
         case EventType.AGENT_STATUS_UPDATED:
-          typedPayload = create_agent_status_update_data(payload);
+          typedPayload = createAgentStatusUpdateData(payload);
           streamEventType = StreamEventType.AGENT_STATUS_UPDATED;
           break;
         case EventType.AGENT_DATA_ASSISTANT_CHUNK:
-          typedPayload = create_assistant_chunk_data(payload);
+          typedPayload = createAssistantChunkData(payload);
           streamEventType = StreamEventType.ASSISTANT_CHUNK;
           break;
         case EventType.AGENT_DATA_ASSISTANT_COMPLETE_RESPONSE:
-          typedPayload = create_assistant_complete_response_data(payload);
+          typedPayload = createAssistantCompleteResponseData(payload);
           streamEventType = StreamEventType.ASSISTANT_COMPLETE_RESPONSE;
           break;
         case EventType.AGENT_DATA_TOOL_LOG:
-          typedPayload = create_tool_interaction_log_entry_data(payload);
+          typedPayload = createToolInteractionLogEntryData(payload);
           streamEventType = StreamEventType.TOOL_INTERACTION_LOG_ENTRY;
           break;
         case EventType.AGENT_REQUEST_TOOL_INVOCATION_APPROVAL:
-          typedPayload = create_tool_invocation_approval_requested_data(payload);
+          typedPayload = createToolInvocationApprovalRequestedData(payload);
           streamEventType = StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED;
           break;
         case EventType.AGENT_TOOL_INVOCATION_AUTO_EXECUTING:
-          typedPayload = create_tool_invocation_auto_executing_data(payload);
+          typedPayload = createToolInvocationAutoExecutingData(payload);
           streamEventType = StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING;
           break;
         case EventType.AGENT_DATA_SEGMENT_EVENT:
-          typedPayload = create_segment_event_data(payload);
+          typedPayload = createSegmentEventData(payload);
           streamEventType = StreamEventType.SEGMENT_EVENT;
           break;
         case EventType.AGENT_ERROR_OUTPUT_GENERATION:
-          typedPayload = create_error_event_data(payload);
+          typedPayload = createErrorEventData(payload);
           streamEventType = StreamEventType.ERROR_EVENT;
           break;
         case EventType.AGENT_DATA_SYSTEM_TASK_NOTIFICATION_RECEIVED:
-          typedPayload = create_system_task_notification_data(payload);
+          typedPayload = createSystemTaskNotificationData(payload);
           streamEventType = StreamEventType.SYSTEM_TASK_NOTIFICATION;
           break;
         case EventType.AGENT_DATA_INTER_AGENT_MESSAGE_RECEIVED:
-          typedPayload = create_inter_agent_message_data(payload);
+          typedPayload = createInterAgentMessageData(payload);
           streamEventType = StreamEventType.INTER_AGENT_MESSAGE;
           break;
         case EventType.AGENT_DATA_TODO_LIST_UPDATED:
-          typedPayload = create_todo_list_update_data(payload);
+          typedPayload = createTodoListUpdateData(payload);
           streamEventType = StreamEventType.AGENT_TODO_LIST_UPDATE;
           break;
         case EventType.AGENT_ARTIFACT_PERSISTED:
-          typedPayload = create_artifact_persisted_data(payload);
+          typedPayload = createArtifactPersistedData(payload);
           streamEventType = StreamEventType.ARTIFACT_PERSISTED;
           break;
         case EventType.AGENT_ARTIFACT_UPDATED:
-          typedPayload = create_artifact_updated_data(payload);
+          typedPayload = createArtifactUpdatedData(payload);
           streamEventType = StreamEventType.ARTIFACT_UPDATED;
           break;
         case EventType.AGENT_DATA_TOOL_LOG_STREAM_END:
@@ -167,32 +167,32 @@ export class AgentEventStream extends EventEmitter {
 
   async close(): Promise<void> {
     console.info(
-      `AgentEventStream (ID: ${this.object_id}) for '${this.agent_id}': close() called. Unsubscribing all listeners and signaling.`
+      `AgentEventStream (ID: ${this.objectId}) for '${this.agentId}': close() called. Unsubscribing all listeners and signaling.`
     );
-    this.unsubscribe_all_listeners();
+    this.unsubscribeAllListeners();
     this.genericStreamQueue.put(AES_INTERNAL_SENTINEL);
   }
 
-  async *all_events(): AsyncGenerator<StreamEvent, void, unknown> {
+  async *allEvents(): AsyncGenerator<StreamEvent, void, unknown> {
     for await (const event of streamQueueItems(
       this.genericStreamQueue,
       AES_INTERNAL_SENTINEL,
-      `agent_${this.agent_id}_all_events`
+      `agent_${this.agentId}_allEvents`
     )) {
       yield event as StreamEvent;
     }
   }
 
-  async *stream_assistant_chunks(): AsyncGenerator<AssistantChunkData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamAssistantChunks(): AsyncGenerator<AssistantChunkData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.ASSISTANT_CHUNK && event.data instanceof AssistantChunkData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_assistant_final_response(): AsyncGenerator<AssistantCompleteResponseData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamAssistantFinalResponse(): AsyncGenerator<AssistantCompleteResponseData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (
         event.event_type === StreamEventType.ASSISTANT_COMPLETE_RESPONSE &&
         event.data instanceof AssistantCompleteResponseData
@@ -202,24 +202,24 @@ export class AgentEventStream extends EventEmitter {
     }
   }
 
-  async *stream_tool_logs(): AsyncGenerator<ToolInteractionLogEntryData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamToolLogs(): AsyncGenerator<ToolInteractionLogEntryData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.TOOL_INTERACTION_LOG_ENTRY && event.data instanceof ToolInteractionLogEntryData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_status_updates(): AsyncGenerator<AgentStatusUpdateData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamStatusUpdates(): AsyncGenerator<AgentStatusUpdateData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.AGENT_STATUS_UPDATED && event.data instanceof AgentStatusUpdateData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_tool_approval_requests(): AsyncGenerator<ToolInvocationApprovalRequestedData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamToolApprovalRequests(): AsyncGenerator<ToolInvocationApprovalRequestedData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (
         event.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED &&
         event.data instanceof ToolInvocationApprovalRequestedData
@@ -229,8 +229,8 @@ export class AgentEventStream extends EventEmitter {
     }
   }
 
-  async *stream_tool_auto_executing(): AsyncGenerator<ToolInvocationAutoExecutingData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamToolAutoExecuting(): AsyncGenerator<ToolInvocationAutoExecutingData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (
         event.event_type === StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING &&
         event.data instanceof ToolInvocationAutoExecutingData
@@ -240,48 +240,48 @@ export class AgentEventStream extends EventEmitter {
     }
   }
 
-  async *stream_errors(): AsyncGenerator<ErrorEventData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamErrors(): AsyncGenerator<ErrorEventData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.ERROR_EVENT && event.data instanceof ErrorEventData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_system_task_notifications(): AsyncGenerator<SystemTaskNotificationData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamSystemTaskNotifications(): AsyncGenerator<SystemTaskNotificationData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.SYSTEM_TASK_NOTIFICATION && event.data instanceof SystemTaskNotificationData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_inter_agent_messages(): AsyncGenerator<InterAgentMessageData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamInterAgentMessages(): AsyncGenerator<InterAgentMessageData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.INTER_AGENT_MESSAGE && event.data instanceof InterAgentMessageData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_todo_updates(): AsyncGenerator<ToDoListUpdateData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamTodoUpdates(): AsyncGenerator<ToDoListUpdateData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.AGENT_TODO_LIST_UPDATE && event.data instanceof ToDoListUpdateData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_artifact_persisted(): AsyncGenerator<ArtifactPersistedData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamArtifactPersisted(): AsyncGenerator<ArtifactPersistedData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.ARTIFACT_PERSISTED && event.data instanceof ArtifactPersistedData) {
         yield event.data;
       }
     }
   }
 
-  async *stream_artifact_updated(): AsyncGenerator<ArtifactUpdatedData, void, unknown> {
-    for await (const event of this.all_events()) {
+  async *streamArtifactUpdated(): AsyncGenerator<ArtifactUpdatedData, void, unknown> {
+    for await (const event of this.allEvents()) {
       if (event.event_type === StreamEventType.ARTIFACT_UPDATED && event.data instanceof ArtifactUpdatedData) {
         yield event.data;
       }

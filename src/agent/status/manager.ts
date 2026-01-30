@@ -14,77 +14,77 @@ export class AgentStatusManager {
     this.context = context;
     this.notifier = notifier;
 
-    if (!Object.values(AgentStatus).includes(this.context.current_status)) {
-      this.context.current_status = AgentStatus.UNINITIALIZED;
+    if (!Object.values(AgentStatus).includes(this.context.currentStatus)) {
+      this.context.currentStatus = AgentStatus.UNINITIALIZED;
     }
 
     console.debug(
-      `AgentStatusManager initialized for agent_id '${this.context.agent_id}'. Initial status: ${this.context.current_status}. Notifier provided: ${Boolean(notifier)}`
+      `AgentStatusManager initialized for agent_id '${this.context.agentId}'. Initial status: ${this.context.currentStatus}. Notifier provided: ${Boolean(notifier)}`
     );
   }
 
-  private async execute_lifecycle_processors(
-    old_status: AgentStatus,
-    new_status: AgentStatus,
-    event_data: Record<string, any> | null = null
+  private async executeLifecycleProcessors(
+    oldStatus: AgentStatus,
+    newStatus: AgentStatus,
+    eventData: Record<string, any> | null = null
   ): Promise<void> {
-    let lifecycle_event: LifecycleEvent | null = null;
-    if (old_status === AgentStatus.BOOTSTRAPPING && new_status === AgentStatus.IDLE) {
-      lifecycle_event = LifecycleEvent.AGENT_READY;
-    } else if (new_status === AgentStatus.AWAITING_LLM_RESPONSE) {
-      lifecycle_event = LifecycleEvent.BEFORE_LLM_CALL;
-    } else if (old_status === AgentStatus.AWAITING_LLM_RESPONSE && new_status === AgentStatus.ANALYZING_LLM_RESPONSE) {
-      lifecycle_event = LifecycleEvent.AFTER_LLM_RESPONSE;
-    } else if (new_status === AgentStatus.EXECUTING_TOOL) {
-      lifecycle_event = LifecycleEvent.BEFORE_TOOL_EXECUTE;
-    } else if (old_status === AgentStatus.EXECUTING_TOOL) {
-      lifecycle_event = LifecycleEvent.AFTER_TOOL_EXECUTE;
-    } else if (new_status === AgentStatus.SHUTTING_DOWN) {
-      lifecycle_event = LifecycleEvent.AGENT_SHUTTING_DOWN;
+    let lifecycleEvent: LifecycleEvent | null = null;
+    if (oldStatus === AgentStatus.BOOTSTRAPPING && newStatus === AgentStatus.IDLE) {
+      lifecycleEvent = LifecycleEvent.AGENT_READY;
+    } else if (newStatus === AgentStatus.AWAITING_LLM_RESPONSE) {
+      lifecycleEvent = LifecycleEvent.BEFORE_LLM_CALL;
+    } else if (oldStatus === AgentStatus.AWAITING_LLM_RESPONSE && newStatus === AgentStatus.ANALYZING_LLM_RESPONSE) {
+      lifecycleEvent = LifecycleEvent.AFTER_LLM_RESPONSE;
+    } else if (newStatus === AgentStatus.EXECUTING_TOOL) {
+      lifecycleEvent = LifecycleEvent.BEFORE_TOOL_EXECUTE;
+    } else if (oldStatus === AgentStatus.EXECUTING_TOOL) {
+      lifecycleEvent = LifecycleEvent.AFTER_TOOL_EXECUTE;
+    } else if (newStatus === AgentStatus.SHUTTING_DOWN) {
+      lifecycleEvent = LifecycleEvent.AGENT_SHUTTING_DOWN;
     }
 
-    if (!lifecycle_event) {
+    if (!lifecycleEvent) {
       return;
     }
 
-    const processors = (this.context.config.lifecycle_processors ?? []).filter(
-      (processor) => processor.event === lifecycle_event
+    const processors = (this.context.config.lifecycleProcessors ?? []).filter(
+      (processor) => processor.event === lifecycleEvent
     );
 
     if (!processors.length) {
       return;
     }
 
-    const sorted_processors = processors.sort((a, b) => a.get_order() - b.get_order());
-    const processor_names = sorted_processors.map((processor) => processor.get_name());
+    const sortedProcessors = processors.sort((a, b) => a.getOrder() - b.getOrder());
+    const processorNames = sortedProcessors.map((processor) => processor.getName());
     console.info(
-      `Agent '${this.context.agent_id}': Executing ${sorted_processors.length} lifecycle processors for '${lifecycle_event}': ${processor_names}`
+      `Agent '${this.context.agentId}': Executing ${sortedProcessors.length} lifecycle processors for '${lifecycleEvent}': ${processorNames}`
     );
 
-    for (const processor of sorted_processors) {
+    for (const processor of sortedProcessors) {
       try {
-        await processor.process(this.context, event_data ?? {});
+        await processor.process(this.context, eventData ?? {});
         console.debug(
-          `Agent '${this.context.agent_id}': Lifecycle processor '${processor.get_name()}' executed successfully.`
+          `Agent '${this.context.agentId}': Lifecycle processor '${processor.getName()}' executed successfully.`
         );
       } catch (error) {
         console.error(
-          `Agent '${this.context.agent_id}': Error executing lifecycle processor '${processor.get_name()}' for '${lifecycle_event}': ${error}`
+          `Agent '${this.context.agentId}': Error executing lifecycle processor '${processor.getName()}' for '${lifecycleEvent}': ${error}`
         );
       }
     }
   }
 
   async emit_status_update(
-    old_status: AgentStatus,
-    new_status: AgentStatus,
-    additional_data: Record<string, any> | null = null
+    oldStatus: AgentStatus,
+    newStatus: AgentStatus,
+    additionalData: Record<string, any> | null = null
   ): Promise<void> {
-    if (old_status === new_status) {
+    if (oldStatus === newStatus) {
       return;
     }
 
-    await this.execute_lifecycle_processors(old_status, new_status, additional_data);
-    this.notifier.notify_status_updated(new_status, old_status, additional_data ?? undefined);
+    await this.executeLifecycleProcessors(oldStatus, newStatus, additionalData);
+    this.notifier.notifyStatusUpdated(newStatus, oldStatus, additionalData);
   }
 }

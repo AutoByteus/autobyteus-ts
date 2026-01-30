@@ -14,8 +14,8 @@ describe('Event bus integration', () => {
   });
 
   afterEach(() => {
-    emitterA.unsubscribe_all_listeners();
-    emitterB.unsubscribe_all_listeners();
+    emitterA.unsubscribeAllListeners();
+    emitterB.unsubscribeAllListeners();
   });
 
   it('delivers to global and sender-specific listeners', () => {
@@ -27,13 +27,13 @@ describe('Event bus integration', () => {
     };
 
     const senderListener = (_payload?: any, metadata?: Record<string, any>) => {
-      if (metadata?.object_id === emitterA.object_id) {
+      if (metadata?.object_id === emitterA.objectId) {
         senderCount += 1;
       }
     };
 
     emitterB.subscribe(eventType, globalListener);
-    emitterB.subscribe_from(emitterA, eventType, senderListener);
+    emitterB.subscribeFrom(emitterA, eventType, senderListener);
 
     emitterA.emit(eventType, { payload: { kind: 'from-a' } });
     emitterB.emit(eventType, { payload: { kind: 'from-b' } });
@@ -50,12 +50,12 @@ describe('Event bus integration', () => {
       received.metadata = metadata;
     };
 
-    emitterB.subscribe_from(emitterA, eventType, listener);
+    emitterB.subscribeFrom(emitterA, eventType, listener);
     emitterA.emit(eventType, { payload: { message: 'hello' }, extra: 'meta' });
 
     expect(received.payload).toEqual({ message: 'hello' });
     expect(received.metadata?.event_type).toBe(eventType);
-    expect(received.metadata?.object_id).toBe(emitterA.object_id);
+    expect(received.metadata?.object_id).toBe(emitterA.objectId);
     expect(received.metadata?.extra).toBe('meta');
   });
 
@@ -66,8 +66,8 @@ describe('Event bus integration', () => {
     };
 
     emitterB.subscribe(eventType, listener);
-    emitterB.subscribe_from(emitterA, eventType, listener);
-    emitterB.unsubscribe_all_listeners();
+    emitterB.subscribeFrom(emitterA, eventType, listener);
+    emitterB.unsubscribeAllListeners();
 
     emitterA.emit(eventType, { payload: { ok: true } });
     emitterB.emit(eventType, { payload: { ok: true } });
@@ -101,7 +101,7 @@ describe('Event bus integration', () => {
       asyncCount += 1;
     };
 
-    emitterB.subscribe_from(emitterA, eventType, asyncListener);
+    emitterB.subscribeFrom(emitterA, eventType, asyncListener);
     emitterA.emit(eventType, { payload: { ok: true } });
 
     await new Promise((resolve) => setTimeout(resolve, 10));

@@ -1,21 +1,21 @@
 export class ToolState {
-  [key: string]: any;
+  [key: string]: unknown;
 
-  constructor(initial?: Record<string, any>) {
+  constructor(initial?: Record<string, unknown>) {
     if (initial && typeof initial === 'object') {
       Object.assign(this, initial);
     }
   }
 
-  public get(key: string, defaultValue: any = null): any {
+  public get<T = unknown>(key: string, defaultValue: T | null = null): T | null {
     if (Object.prototype.hasOwnProperty.call(this, key)) {
-      return (this as any)[key];
+      return (this as Record<string, unknown>)[key] as T;
     }
     return defaultValue;
   }
 
-  public set(key: string, value: any): void {
-    (this as any)[key] = value;
+  public set(key: string, value: unknown): void {
+    (this as Record<string, unknown>)[key] = value;
   }
 
   public has(key: string): boolean {
@@ -34,25 +34,25 @@ export class ToolState {
     return Object.keys(this);
   }
 
-  public values(): any[] {
+  public values(): unknown[] {
     return Object.values(this);
   }
 
-  public entries(): Array<[string, any]> {
-    return Object.entries(this) as Array<[string, any]>;
+  public entries(): Array<[string, unknown]> {
+    return Object.entries(this) as Array<[string, unknown]>;
   }
 
   public clear(): void {
     for (const key of Object.keys(this)) {
-      delete (this as any)[key];
+      delete (this as Record<string, unknown>)[key];
     }
   }
 
-  public toObject(): Record<string, any> {
+  public toObject(): Record<string, unknown> {
     return { ...this };
   }
 
-  public toJSON(): Record<string, any> {
+  public toJSON(): Record<string, unknown> {
     return this.toObject();
   }
 }

@@ -35,8 +35,8 @@ describe('ReadMediaFile tool (unit)', () => {
 
     expect(result).toBeInstanceOf(ContextFile);
     expect(result.uri).toBe(imagePath);
-    expect(result.file_name).toBe('test_image.png');
-    expect(result.file_type).toBe(ContextFileType.IMAGE);
+    expect(result.fileName).toBe('test_image.png');
+    expect(result.fileType).toBe(ContextFileType.IMAGE);
   });
 
   it('requires workspace for relative paths', async () => {

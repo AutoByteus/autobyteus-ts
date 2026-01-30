@@ -2,7 +2,7 @@ import { AgentTeamEventStream } from './agent_team_event_stream.js';
 import type { AgentTeamExternalEventNotifier } from './agent_team_event_notifier.js';
 import type { AgentTeamStreamEvent } from './agent_team_stream_events.js';
 
-type TeamLike = { team_id: string } | Record<string, any>;
+type TeamLike = { teamId: string } | Record<string, any>;
 
 type BridgeOptions = { stream?: AgentTeamEventStream };
 
@@ -14,53 +14,53 @@ const resolveOptions = (loopOrOptions?: unknown, maybeOptions?: BridgeOptions): 
 };
 
 export class TeamEventBridge {
-  private sub_team_node_name: string;
-  private parent_notifier: AgentTeamExternalEventNotifier;
+  private subTeamNodeName: string;
+  private parentNotifier: AgentTeamExternalEventNotifier;
   private stream: AgentTeamEventStream;
   private cancelled = false;
-  _task: Promise<void>;
+  private task: Promise<void>;
 
   constructor(
-    sub_team: TeamLike,
-    sub_team_node_name: string,
-    parent_notifier: AgentTeamExternalEventNotifier,
+    subTeam: TeamLike,
+    subTeamNodeName: string,
+    parentNotifier: AgentTeamExternalEventNotifier,
     loopOrOptions?: unknown,
     maybeOptions?: BridgeOptions
   ) {
-    this.sub_team_node_name = sub_team_node_name;
-    this.parent_notifier = parent_notifier;
+    this.subTeamNodeName = subTeamNodeName;
+    this.parentNotifier = parentNotifier;
 
     const options = resolveOptions(loopOrOptions, maybeOptions);
-    this.stream = options?.stream ?? new AgentTeamEventStream(sub_team as any);
+    this.stream = options?.stream ?? new AgentTeamEventStream(subTeam as any);
 
-    this._task = this.run();
-    console.info(`TeamEventBridge created and task started for sub-team '${sub_team_node_name}'.`);
+    this.task = this.run();
+    console.info(`TeamEventBridge created and task started for sub-team '${subTeamNodeName}'.`);
   }
 
   private async run(): Promise<void> {
     try {
-      for await (const event of this.stream.all_events()) {
+      for await (const event of this.stream.allEvents()) {
         if (this.cancelled) {
           break;
         }
-        this.parent_notifier.publish_sub_team_event(this.sub_team_node_name, event as AgentTeamStreamEvent);
+        this.parentNotifier.publishSubTeamEvent(this.subTeamNodeName, event as AgentTeamStreamEvent);
       }
     } catch (error) {
       if (this.cancelled) {
-        console.info(`TeamEventBridge task for '${this.sub_team_node_name}' was cancelled.`);
+        console.info(`TeamEventBridge task for '${this.subTeamNodeName}' was cancelled.`);
       } else {
-        console.error(`Error in TeamEventBridge for '${this.sub_team_node_name}': ${error}`);
+        console.error(`Error in TeamEventBridge for '${this.subTeamNodeName}': ${error}`);
       }
     } finally {
-      console.debug(`TeamEventBridge task for '${this.sub_team_node_name}' is finishing.`);
+      console.debug(`TeamEventBridge task for '${this.subTeamNodeName}' is finishing.`);
     }
   }
 
   async cancel(): Promise<void> {
-    console.info(`Cancelling TeamEventBridge for '${this.sub_team_node_name}'.`);
+    console.info(`Cancelling TeamEventBridge for '${this.subTeamNodeName}'.`);
     this.cancelled = true;
     await this.stream.close();
-    await this._task;
-    console.info(`TeamEventBridge for '${this.sub_team_node_name}' cancelled successfully.`);
+    await this.task;
+    console.info(`TeamEventBridge for '${this.subTeamNodeName}' cancelled successfully.`);
   }
 }

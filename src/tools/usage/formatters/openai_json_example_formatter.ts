@@ -24,8 +24,8 @@ export class OpenAiJsonExampleFormatter implements BaseExampleFormatter {
     return output;
   }
 
-  private createExampleStructure(tool: ToolDefinition, mode: 'basic' | 'advanced'): Record<string, any> {
-    const argumentsPayload: Record<string, any> = {};
+  private createExampleStructure(tool: ToolDefinition, mode: 'basic' | 'advanced'): Record<string, unknown> {
+    const argumentsPayload: Record<string, unknown> = {};
     const schema = tool.argumentSchema;
 
     if (schema && schema.parameters.length > 0) {
@@ -75,7 +75,7 @@ export class OpenAiJsonExampleFormatter implements BaseExampleFormatter {
     return false;
   }
 
-  private generateSimplePlaceholder(param: ParameterDefinition): any {
+  private generateSimplePlaceholder(param: ParameterDefinition): unknown {
     if (param.defaultValue !== undefined && param.defaultValue !== null) {
       return param.defaultValue;
     }

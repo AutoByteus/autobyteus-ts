@@ -3,6 +3,7 @@ import { BaseTool } from '../../../tools/base_tool.js';
 import { ToolCategory } from '../../../tools/tool_category.js';
 import { zodToParameterSchema } from '../../../tools/zod_schema_converter.js';
 import { TaskDefinitionSchema, type TaskDefinition } from '../../schemas/task_definition.js';
+import type { TaskToolContext } from './types.js';
 
 export class CreateTask extends BaseTool {
   static CATEGORY = ToolCategory.TASK_MANAGEMENT;
@@ -22,14 +23,14 @@ export class CreateTask extends BaseTool {
     return zodToParameterSchema(TaskDefinitionSchema);
   }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const taskName = kwargs.task_name ?? 'unnamed task';
-    const teamContext = context?.custom_data?.team_context;
+  protected async _execute(context: TaskToolContext, kwargs: Record<string, unknown> = {}): Promise<string> {
+    const taskName = (kwargs as { task_name?: string }).task_name ?? 'unnamed task';
+    const teamContext = context?.customData?.teamContext;
     if (!teamContext) {
       return 'Error: Team context is not available. Cannot access the task plan.';
     }
 
-    const taskPlan = teamContext.state?.task_plan;
+    const taskPlan = teamContext.state?.taskPlan ?? null;
     if (!taskPlan) {
       return 'Error: Task plan has not been initialized for this team.';
     }
@@ -50,7 +51,7 @@ export class CreateTask extends BaseTool {
       return `Error: Invalid task definition provided${suffix}`;
     }
 
-    const newTask = taskPlan.add_task(taskDef);
+    const newTask = taskPlan.addTask(taskDef);
     if (newTask) {
       return `Successfully created new task '${newTask.task_name}' (ID: ${newTask.task_id}) in the task plan.`;
     }

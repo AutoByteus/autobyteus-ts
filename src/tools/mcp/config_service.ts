@@ -11,7 +11,7 @@ import {
   type WebsocketMcpServerConfigData
 } from './types.js';
 
-type ConfigDict = Record<string, any>;
+type ConfigDict = Record<string, unknown>;
 
 type TransportSpecificParamsKeyMap = Record<McpTransportType, string>;
 
@@ -28,15 +28,16 @@ const TRANSPORT_TYPE_NAME: Record<McpTransportType, string> = {
 };
 
 export class McpConfigService extends Singleton {
+  protected static instance?: McpConfigService;
+
   private configs: Map<string, BaseMcpConfig> = new Map();
 
   constructor() {
     super();
-    const existing = (McpConfigService as any).instance as McpConfigService | undefined;
-    if (existing) {
-      return existing;
+    if (McpConfigService.instance) {
+      return McpConfigService.instance;
     }
-    (McpConfigService as any).instance = this;
+    McpConfigService.instance = this;
   }
 
   static parseTransportType(typeStr: string, serverIdentifier: string): McpTransportType {
@@ -92,22 +93,22 @@ export class McpConfigService extends Singleton {
 
     try {
       if (transportType === McpTransportType.STDIO) {
-        return new StdioMcpServerConfig(constructorParams as StdioMcpServerConfigData);
+        return new StdioMcpServerConfig(constructorParams as unknown as StdioMcpServerConfigData);
       }
       if (transportType === McpTransportType.STREAMABLE_HTTP) {
-        return new StreamableHttpMcpServerConfig(constructorParams as StreamableHttpMcpServerConfigData);
+        return new StreamableHttpMcpServerConfig(constructorParams as unknown as StreamableHttpMcpServerConfigData);
       }
       if (transportType === McpTransportType.WEBSOCKET) {
-        return new WebsocketMcpServerConfig(constructorParams as WebsocketMcpServerConfigData);
+        return new WebsocketMcpServerConfig(constructorParams as unknown as WebsocketMcpServerConfigData);
       }
       throw new Error(
         `Unsupported McpTransportType '${transportType}' for server '${serverId}'.`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (transportType === McpTransportType.WEBSOCKET) {
         throw error;
       }
-      const errorMessage = error?.message ?? String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       throw new Error(
         `Failed to create config for server '${serverId}' due to incompatible parameters for ` +
           `${TRANSPORT_TYPE_NAME[transportType]} config: ${errorMessage}`
@@ -136,19 +137,19 @@ export class McpConfigService extends Singleton {
       throw new Error(`Configuration for server '${serverId}' must be a dictionary.`);
     }
 
-    const transportTypeStr = configData.transport_type;
-    if (!transportTypeStr) {
+    const transportTypeValue = (configData as ConfigDict)['transport_type'];
+    if (typeof transportTypeValue !== 'string' || !transportTypeValue) {
       throw new Error(`Config data for server '${serverId}' is missing 'transport_type' field.`);
     }
 
-    const transportType = McpConfigService.parseTransportType(transportTypeStr, serverId);
-    return McpConfigService.createSpecificConfig(serverId, transportType, configData);
+    const transportType = McpConfigService.parseTransportType(transportTypeValue, serverId);
+    return McpConfigService.createSpecificConfig(serverId, transportType, configData as ConfigDict);
   }
 
   addConfig(configObject: BaseMcpConfig): BaseMcpConfig {
     if (!(configObject instanceof BaseMcpConfig)) {
       throw new TypeError(
-        `Unsupported input type for add_config: ${typeof configObject}. ` +
+        `Unsupported input type for addConfig: ${typeof configObject}. ` +
           'Expected a BaseMcpConfig subclass object (e.g., StdioMcpServerConfig).'
       );
     }
@@ -200,7 +201,10 @@ export class McpConfigService extends Singleton {
         const configsAsDict: Record<string, ConfigDict> = {};
         for (const item of jsonData) {
           if (item && typeof item === 'object' && 'server_id' in item) {
-            const serverId = (item as any).server_id;
+            const serverId = (item as ConfigDict).server_id;
+            if (typeof serverId !== 'string' || !serverId) {
+              throw new Error("When loading from a list, each item must have a non-empty 'server_id'.");
+            }
             configsAsDict[serverId] = item as ConfigDict;
           } else {
             throw new Error("When loading from a list, each item must be a dict with a 'server_id'.");
@@ -212,7 +216,7 @@ export class McpConfigService extends Singleton {
       throw new TypeError(
         `Unsupported JSON structure in ${filepath}. Expected a dictionary of configurations.`
       );
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (error instanceof SyntaxError) {
         throw new Error(`Invalid JSON in MCP configuration file ${filepath}: ${error.message}`);
       }

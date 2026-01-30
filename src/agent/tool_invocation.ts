@@ -1,9 +1,11 @@
+import type { ToolResultEvent } from './events/agent_events.js';
+
 export class ToolInvocation {
   name: string;
-  arguments: Record<string, any>;
+  arguments: Record<string, unknown>;
   id: string;
 
-  constructor(name: string, arguments_: Record<string, any>, id: string) {
+  constructor(name: string, arguments_: Record<string, unknown>, id: string) {
     if (!id) {
       throw new Error('ToolInvocation requires a non-empty id.');
     }
@@ -19,7 +21,7 @@ export class ToolInvocation {
     this.id = id;
   }
 
-  is_valid(): boolean {
+  isValid(): boolean {
     return this.name != null && this.arguments != null;
   }
 
@@ -30,14 +32,14 @@ export class ToolInvocation {
 
 export class ToolInvocationTurn {
   invocations: ToolInvocation[];
-  results: any[];
+  results: ToolResultEvent[];
 
-  constructor(invocations: ToolInvocation[], results: any[] = []) {
+  constructor(invocations: ToolInvocation[], results: ToolResultEvent[] = []) {
     this.invocations = invocations;
     this.results = results;
   }
 
-  is_complete(): boolean {
+  isComplete(): boolean {
     return this.results.length >= this.invocations.length;
   }
 }

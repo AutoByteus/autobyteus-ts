@@ -21,7 +21,7 @@ import { LMStudioModelProvider } from './lmstudio_provider.js';
 import { AutobyteusModelProvider } from './autobyteus_provider.js';
 
 const pricing = (input: number, output: number) =>
-  new TokenPricingConfig({ input_token_pricing: input, output_token_pricing: output });
+  new TokenPricingConfig({ inputTokenPricing: input, outputTokenPricing: output });
 
 const openaiReasoningSchema = new ParameterSchema([
   new ParameterDefinition({
@@ -114,204 +114,204 @@ export class LLMFactory {
         name: 'gpt-5.2',
         value: 'gpt-5.2',
         provider: LLMProvider.OPENAI,
-        llm_class: OpenAILLM,
-        canonical_name: 'gpt-5.2',
-        default_config: new LLMConfig({ pricing_config: pricing(1.75, 14.0) }),
-        config_schema: openaiReasoningSchema
+        llmClass: OpenAILLM,
+        canonicalName: 'gpt-5.2',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(1.75, 14.0) }),
+        configSchema: openaiReasoningSchema
       }),
       new LLMModel({
         name: 'gpt-5.2-chat-latest',
         value: 'gpt-5.2-chat-latest',
         provider: LLMProvider.OPENAI,
-        llm_class: OpenAILLM,
-        canonical_name: 'gpt-5.2-chat-latest',
-        default_config: new LLMConfig({ pricing_config: pricing(1.75, 14.0) }),
-        config_schema: openaiReasoningSchema
+        llmClass: OpenAILLM,
+        canonicalName: 'gpt-5.2-chat-latest',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(1.75, 14.0) }),
+        configSchema: openaiReasoningSchema
       }),
       new LLMModel({
         name: 'mistral-large',
         value: 'mistral-large-latest',
         provider: LLMProvider.MISTRAL,
-        llm_class: MistralLLM,
-        canonical_name: 'mistral-large',
-        default_config: new LLMConfig({ pricing_config: pricing(2.0, 6.0) })
+        llmClass: MistralLLM,
+        canonicalName: 'mistral-large',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(2.0, 6.0) })
       }),
       new LLMModel({
         name: 'devstral-2',
         value: 'devstral-2512',
         provider: LLMProvider.MISTRAL,
-        llm_class: MistralLLM,
-        canonical_name: 'devstral-2',
-        default_config: new LLMConfig({ pricing_config: pricing(0.4, 2.0) })
+        llmClass: MistralLLM,
+        canonicalName: 'devstral-2',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.4, 2.0) })
       }),
       new LLMModel({
         name: 'grok-4',
         value: 'grok-4',
         provider: LLMProvider.GROK,
-        llm_class: GrokLLM,
-        canonical_name: 'grok-4',
-        default_config: new LLMConfig({ pricing_config: pricing(3.0, 15.0) })
+        llmClass: GrokLLM,
+        canonicalName: 'grok-4',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(3.0, 15.0) })
       }),
       new LLMModel({
         name: 'grok-4-1-fast-reasoning',
         value: 'grok-4-1-fast-reasoning',
         provider: LLMProvider.GROK,
-        llm_class: GrokLLM,
-        canonical_name: 'grok-4-1-fast-reasoning',
-        default_config: new LLMConfig({ pricing_config: pricing(0.2, 0.5) })
+        llmClass: GrokLLM,
+        canonicalName: 'grok-4-1-fast-reasoning',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.2, 0.5) })
       }),
       new LLMModel({
         name: 'grok-4-1-fast-non-reasoning',
         value: 'grok-4-1-fast-non-reasoning',
         provider: LLMProvider.GROK,
-        llm_class: GrokLLM,
-        canonical_name: 'grok-4-1-fast-non-reasoning',
-        default_config: new LLMConfig({ pricing_config: pricing(0.2, 0.5) })
+        llmClass: GrokLLM,
+        canonicalName: 'grok-4-1-fast-non-reasoning',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.2, 0.5) })
       }),
       new LLMModel({
         name: 'grok-code-fast-1',
         value: 'grok-code-fast-1',
         provider: LLMProvider.GROK,
-        llm_class: GrokLLM,
-        canonical_name: 'grok-code-fast-1',
-        default_config: new LLMConfig({ pricing_config: pricing(0.2, 1.5) })
+        llmClass: GrokLLM,
+        canonicalName: 'grok-code-fast-1',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.2, 1.5) })
       }),
       new LLMModel({
         name: 'claude-4.5-opus',
         value: 'claude-opus-4-5-20251101',
         provider: LLMProvider.ANTHROPIC,
-        llm_class: AnthropicLLM,
-        canonical_name: 'claude-4.5-opus',
-        default_config: new LLMConfig({ pricing_config: pricing(5.0, 25.0) }),
-        config_schema: claudeSchema
+        llmClass: AnthropicLLM,
+        canonicalName: 'claude-4.5-opus',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(5.0, 25.0) }),
+        configSchema: claudeSchema
       }),
       new LLMModel({
         name: 'claude-4.5-sonnet',
         value: 'claude-sonnet-4-5-20250929',
         provider: LLMProvider.ANTHROPIC,
-        llm_class: AnthropicLLM,
-        canonical_name: 'claude-4.5-sonnet',
-        default_config: new LLMConfig({ pricing_config: pricing(3.0, 15.0) }),
-        config_schema: claudeSchema
+        llmClass: AnthropicLLM,
+        canonicalName: 'claude-4.5-sonnet',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(3.0, 15.0) }),
+        configSchema: claudeSchema
       }),
       new LLMModel({
         name: 'claude-4.5-haiku',
         value: 'claude-haiku-4-5-20251001',
         provider: LLMProvider.ANTHROPIC,
-        llm_class: AnthropicLLM,
-        canonical_name: 'claude-4.5-haiku',
-        default_config: new LLMConfig({ pricing_config: pricing(1.0, 5.0) }),
-        config_schema: claudeSchema
+        llmClass: AnthropicLLM,
+        canonicalName: 'claude-4.5-haiku',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(1.0, 5.0) }),
+        configSchema: claudeSchema
       }),
       new LLMModel({
         name: 'deepseek-chat',
         value: 'deepseek-chat',
         provider: LLMProvider.DEEPSEEK,
-        llm_class: DeepSeekLLM,
-        canonical_name: 'deepseek-chat',
-        default_config: new LLMConfig({
-          rate_limit: 60,
-          token_limit: 8000,
-          pricing_config: pricing(0.014, 0.28)
+        llmClass: DeepSeekLLM,
+        canonicalName: 'deepseek-chat',
+        defaultConfig: new LLMConfig({
+          rateLimit: 60,
+          tokenLimit: 8000,
+          pricingConfig: pricing(0.014, 0.28)
         })
       }),
       new LLMModel({
         name: 'deepseek-reasoner',
         value: 'deepseek-reasoner',
         provider: LLMProvider.DEEPSEEK,
-        llm_class: DeepSeekLLM,
-        canonical_name: 'deepseek-reasoner',
-        default_config: new LLMConfig({
-          rate_limit: 60,
-          token_limit: 8000,
-          pricing_config: pricing(0.14, 2.19)
+        llmClass: DeepSeekLLM,
+        canonicalName: 'deepseek-reasoner',
+        defaultConfig: new LLMConfig({
+          rateLimit: 60,
+          tokenLimit: 8000,
+          pricingConfig: pricing(0.14, 2.19)
         })
       }),
       new LLMModel({
         name: 'gemini-3-pro-preview',
         value: 'gemini-3-pro-preview',
         provider: LLMProvider.GEMINI,
-        llm_class: GeminiLLM,
-        canonical_name: 'gemini-3-pro',
-        default_config: new LLMConfig({ pricing_config: pricing(2.0, 12.0) }),
-        config_schema: geminiSchema
+        llmClass: GeminiLLM,
+        canonicalName: 'gemini-3-pro',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(2.0, 12.0) }),
+        configSchema: geminiSchema
       }),
       new LLMModel({
         name: 'gemini-3-flash-preview',
         value: 'gemini-3-flash-preview',
         provider: LLMProvider.GEMINI,
-        llm_class: GeminiLLM,
-        canonical_name: 'gemini-3-flash',
-        default_config: new LLMConfig({ pricing_config: pricing(0.5, 3.0) }),
-        config_schema: geminiSchema
+        llmClass: GeminiLLM,
+        canonicalName: 'gemini-3-flash',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.5, 3.0) }),
+        configSchema: geminiSchema
       }),
       new LLMModel({
         name: 'kimi-k2-0711-preview',
         value: 'kimi-k2-0711-preview',
         provider: LLMProvider.KIMI,
-        llm_class: KimiLLM,
-        canonical_name: 'kimi-k2-0711-preview',
-        default_config: new LLMConfig({ pricing_config: pricing(0.55, 2.21) })
+        llmClass: KimiLLM,
+        canonicalName: 'kimi-k2-0711-preview',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.55, 2.21) })
       }),
       new LLMModel({
         name: 'kimi-k2-0905-preview',
         value: 'kimi-k2-0905-preview',
         provider: LLMProvider.KIMI,
-        llm_class: KimiLLM,
-        canonical_name: 'kimi-k2-0905-preview',
-        default_config: new LLMConfig({ pricing_config: pricing(0.55, 2.21) })
+        llmClass: KimiLLM,
+        canonicalName: 'kimi-k2-0905-preview',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.55, 2.21) })
       }),
       new LLMModel({
         name: 'kimi-k2-turbo-preview',
         value: 'kimi-k2-turbo-preview',
         provider: LLMProvider.KIMI,
-        llm_class: KimiLLM,
-        canonical_name: 'kimi-k2-turbo-preview',
-        default_config: new LLMConfig({ pricing_config: pricing(2.76, 2.76) })
+        llmClass: KimiLLM,
+        canonicalName: 'kimi-k2-turbo-preview',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(2.76, 2.76) })
       }),
       new LLMModel({
         name: 'kimi-latest',
         value: 'kimi-latest',
         provider: LLMProvider.KIMI,
-        llm_class: KimiLLM,
-        canonical_name: 'kimi-latest',
-        default_config: new LLMConfig({ pricing_config: pricing(1.38, 4.14) })
+        llmClass: KimiLLM,
+        canonicalName: 'kimi-latest',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(1.38, 4.14) })
       }),
       new LLMModel({
         name: 'kimi-thinking-preview',
         value: 'kimi-thinking-preview',
         provider: LLMProvider.KIMI,
-        llm_class: KimiLLM,
-        canonical_name: 'kimi-thinking-preview',
-        default_config: new LLMConfig({ pricing_config: pricing(27.59, 27.59) })
+        llmClass: KimiLLM,
+        canonicalName: 'kimi-thinking-preview',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(27.59, 27.59) })
       }),
       new LLMModel({
         name: 'qwen3-max',
         value: 'qwen-max',
         provider: LLMProvider.QWEN,
-        llm_class: QwenLLM,
-        canonical_name: 'qwen3-max',
-        default_config: new LLMConfig({
-          token_limit: 262144,
-          pricing_config: new TokenPricingConfig({ input_token_pricing: 2.4, output_token_pricing: 12.0 })
+        llmClass: QwenLLM,
+        canonicalName: 'qwen3-max',
+        defaultConfig: new LLMConfig({
+          tokenLimit: 262144,
+          pricingConfig: new TokenPricingConfig({ inputTokenPricing: 2.4, outputTokenPricing: 12.0 })
         })
       }),
       new LLMModel({
         name: 'glm-4.7',
         value: 'glm-4.7',
         provider: LLMProvider.ZHIPU,
-        llm_class: ZhipuLLM,
-        canonical_name: 'glm-4.7',
-        default_config: new LLMConfig({ pricing_config: pricing(13.8, 13.8) }),
-        config_schema: zhipuSchema
+        llmClass: ZhipuLLM,
+        canonicalName: 'glm-4.7',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(13.8, 13.8) }),
+        configSchema: zhipuSchema
       }),
       new LLMModel({
         name: 'minimax-m2.1',
         value: 'MiniMax-M2.1',
         provider: LLMProvider.MINIMAX,
-        llm_class: MinimaxLLM,
-        canonical_name: 'minimax-m2.1',
-        default_config: new LLMConfig({ pricing_config: pricing(0.15, 0.45) })
+        llmClass: MinimaxLLM,
+        canonicalName: 'minimax-m2.1',
+        defaultConfig: new LLMConfig({ pricingConfig: pricing(0.15, 0.45) })
       })
     ];
 
@@ -325,7 +325,7 @@ export class LLMFactory {
   }
 
   static registerModel(model: LLMModel): void {
-    const identifier = model.model_identifier;
+    const identifier = model.modelIdentifier;
     const existing = LLMFactory.modelsByIdentifier.get(identifier);
     if (existing) {
       const providerModels = LLMFactory.modelsByProvider.get(existing.provider);
@@ -348,11 +348,11 @@ export class LLMFactory {
 
     const model = LLMFactory.modelsByIdentifier.get(modelIdentifier);
     if (model) {
-      const LLMClass = model.llm_class;
+      const LLMClass = model.llmClass;
       if (!LLMClass) {
-        throw new Error(`Model '${model.model_identifier}' does not have an LLM class registered yet.`);
+        throw new Error(`Model '${model.modelIdentifier}' does not have an LLM class registered yet.`);
       }
-      const config = model.default_config ? model.default_config.clone() : new LLMConfig();
+      const config = model.defaultConfig ? model.defaultConfig.clone() : new LLMConfig();
       if (llmConfig) {
         config.mergeWith(llmConfig);
       }
@@ -363,7 +363,7 @@ export class LLMFactory {
       (entry) => entry.name === modelIdentifier
     );
     if (foundByName.length > 1) {
-      const identifiers = foundByName.map((entry) => entry.model_identifier);
+      const identifiers = foundByName.map((entry) => entry.modelIdentifier);
       throw new Error(
         `The model name '${modelIdentifier}' is ambiguous. Please use one of the unique model identifiers: ${identifiers}`
       );
@@ -375,7 +375,7 @@ export class LLMFactory {
   static async listAvailableModels(): Promise<ModelInfo[]> {
     await LLMFactory.ensureInitialized();
     const models = Array.from(LLMFactory.modelsByIdentifier.values()).sort((a, b) =>
-      a.model_identifier.localeCompare(b.model_identifier)
+      a.modelIdentifier.localeCompare(b.modelIdentifier)
     );
     return models.map((model) => model.toModelInfo());
   }
@@ -384,7 +384,7 @@ export class LLMFactory {
     await LLMFactory.ensureInitialized();
     const models = Array.from(LLMFactory.modelsByIdentifier.values())
       .filter((model) => model.provider === provider)
-      .sort((a, b) => a.model_identifier.localeCompare(b.model_identifier));
+      .sort((a, b) => a.modelIdentifier.localeCompare(b.modelIdentifier));
     return models.map((model) => model.toModelInfo());
   }
 
@@ -392,7 +392,7 @@ export class LLMFactory {
     await LLMFactory.ensureInitialized();
     const models = Array.from(LLMFactory.modelsByIdentifier.values())
       .filter((model) => model.runtime === runtime)
-      .sort((a, b) => a.model_identifier.localeCompare(b.model_identifier));
+      .sort((a, b) => a.modelIdentifier.localeCompare(b.modelIdentifier));
     return models.map((model) => model.toModelInfo());
   }
 
@@ -400,7 +400,7 @@ export class LLMFactory {
     await LLMFactory.ensureInitialized();
     const model = LLMFactory.modelsByIdentifier.get(modelIdentifier);
     if (model) {
-      return model.canonical_name;
+      return model.canonicalName;
     }
 
     console.warn(`Could not find model with identifier '${modelIdentifier}' to get its canonical name.`);
@@ -424,7 +424,7 @@ export class LLMFactory {
     }
 
     const currentProviderModels = LLMFactory.modelsByProvider.get(provider) ?? [];
-    const idsToRemove = currentProviderModels.map((model) => model.model_identifier);
+    const idsToRemove = currentProviderModels.map((model) => model.modelIdentifier);
 
     console.log(`Clearing ${idsToRemove.length} models for provider ${provider} before discovery.`);
 

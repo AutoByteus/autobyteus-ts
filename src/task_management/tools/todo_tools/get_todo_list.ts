@@ -1,5 +1,6 @@
 import { BaseTool } from '../../../tools/base_tool.js';
 import { ToolCategory } from '../../../tools/tool_category.js';
+import type { TodoToolContext } from './types.js';
 
 export class GetToDoList extends BaseTool {
   static CATEGORY = ToolCategory.TASK_MANAGEMENT;
@@ -19,14 +20,14 @@ export class GetToDoList extends BaseTool {
     return null;
   }
 
-  protected async _execute(context: any): Promise<string> {
-    const todoList = context?.state?.todo_list;
-    if (!todoList || todoList.get_all_todos().length === 0) {
+  protected async _execute(context: TodoToolContext): Promise<string> {
+    const todoList = context?.state?.todoList;
+    if (!todoList || todoList.getAllTodos().length === 0) {
       return 'Your to-do list is empty.';
     }
 
     try {
-      const todosForLLM = todoList.get_all_todos();
+      const todosForLLM = todoList.getAllTodos();
       return JSON.stringify(todosForLLM, null, 2);
     } catch (error) {
       const details = error instanceof Error ? error.message : String(error);

@@ -26,26 +26,26 @@ const makeContext = (): AgentTeamContext => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const agent = new AgentConfig('Coordinator', 'Coordinator', 'desc', llm);
-  const node = new TeamNodeConfig({ node_definition: agent });
+  const node = new TeamNodeConfig({ nodeDefinition: agent });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
   return new AgentTeamContext('team-1', config, state);
 };
 
 describe('SubTeamShutdownStep', () => {
   it('succeeds with no team manager', async () => {
     const context = makeContext();
-    context.state.team_manager = null;
+    context.state.teamManager = null;
     const step = new SubTeamShutdownStep();
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
@@ -58,22 +58,22 @@ describe('SubTeamShutdownStep', () => {
 
   it('succeeds when there are no running sub-teams', async () => {
     const context = makeContext();
-    const teamManager = { get_all_sub_teams: vi.fn(() => []) };
-    context.state.team_manager = teamManager as any;
+    const teamManager = { getAllSubTeams: vi.fn(() => []) };
+    context.state.teamManager = teamManager as any;
     const step = new SubTeamShutdownStep();
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
-    expect(teamManager.get_all_sub_teams).toHaveBeenCalledTimes(1);
+    expect(teamManager.getAllSubTeams).toHaveBeenCalledTimes(1);
   });
 
   it('stops running sub-teams', async () => {
     const context = makeContext();
-    const runningTeam = { name: 'Sub1', is_running: true, stop: vi.fn(async () => undefined) };
-    const stoppedTeam = { name: 'Sub2', is_running: false, stop: vi.fn(async () => undefined) };
-    const teamManager = { get_all_sub_teams: vi.fn(() => [runningTeam, stoppedTeam]) };
-    context.state.team_manager = teamManager as any;
+    const runningTeam = { name: 'Sub1', isRunning: true, stop: vi.fn(async () => undefined) };
+    const stoppedTeam = { name: 'Sub2', isRunning: false, stop: vi.fn(async () => undefined) };
+    const teamManager = { getAllSubTeams: vi.fn(() => [runningTeam, stoppedTeam]) };
+    context.state.teamManager = teamManager as any;
     const step = new SubTeamShutdownStep();
 
     const success = await step.execute(context);
@@ -87,13 +87,13 @@ describe('SubTeamShutdownStep', () => {
     const context = makeContext();
     const failingTeam = {
       name: 'Failing',
-      is_running: true,
+      isRunning: true,
       stop: vi.fn(async () => {
         throw new Error('boom');
       })
     };
-    const teamManager = { get_all_sub_teams: vi.fn(() => [failingTeam]) };
-    context.state.team_manager = teamManager as any;
+    const teamManager = { getAllSubTeams: vi.fn(() => [failingTeam]) };
+    context.state.teamManager = teamManager as any;
     const step = new SubTeamShutdownStep();
 
     const success = await step.execute(context);

@@ -5,34 +5,34 @@ import type { ToolConfig } from '../tool_config.js';
 import type { BaseTool } from '../base_tool.js';
 
 export class McpToolFactory extends ToolFactory {
-  private _server_id: string;
-  private _remote_tool_name: string;
-  private _registered_tool_name: string;
-  private _tool_description: string;
-  private _tool_argument_schema: ParameterSchema;
+  private serverId: string;
+  private remoteToolName: string;
+  private registeredToolName: string;
+  private toolDescription: string;
+  private toolArgumentSchema: ParameterSchema;
 
   constructor(
-    server_id: string,
-    remote_tool_name: string,
-    registered_tool_name: string,
-    tool_description: string,
-    tool_argument_schema: ParameterSchema
+    serverId: string,
+    remoteToolName: string,
+    registeredToolName: string,
+    toolDescription: string,
+    toolArgumentSchema: ParameterSchema
   ) {
     super();
-    this._server_id = server_id;
-    this._remote_tool_name = remote_tool_name;
-    this._registered_tool_name = registered_tool_name;
-    this._tool_description = tool_description;
-    this._tool_argument_schema = tool_argument_schema;
+    this.serverId = serverId;
+    this.remoteToolName = remoteToolName;
+    this.registeredToolName = registeredToolName;
+    this.toolDescription = toolDescription;
+    this.toolArgumentSchema = toolArgumentSchema;
   }
 
   createTool(_config?: ToolConfig): BaseTool {
     return new GenericMcpTool(
-      this._server_id,
-      this._remote_tool_name,
-      this._registered_tool_name,
-      this._tool_description,
-      this._tool_argument_schema
+      this.serverId,
+      this.remoteToolName,
+      this.registeredToolName,
+      this.toolDescription,
+      this.toolArgumentSchema
     );
   }
 }

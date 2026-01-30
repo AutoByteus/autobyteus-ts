@@ -3,7 +3,7 @@ import { LLMModel } from '../models.js';
 import { LLMConfig } from '../utils/llm_config.js';
 import { LLMProvider } from '../providers.js';
 
-function normalizeZhipuExtraParams(extraParams?: Record<string, any>): Record<string, any> {
+function normalizeZhipuExtraParams(extraParams?: Record<string, unknown>): Record<string, unknown> {
   if (!extraParams) return {};
 
   const params = { ...extraParams };
@@ -11,7 +11,10 @@ function normalizeZhipuExtraParams(extraParams?: Record<string, any>): Record<st
   delete params.thinking_type;
 
   if (thinkingType !== undefined) {
-    const thinking = { ...(params.thinking ?? {}) };
+    const thinking =
+      params.thinking && typeof params.thinking === 'object'
+        ? { ...(params.thinking as Record<string, unknown>) }
+        : {};
     thinking.type = thinkingType;
     params.thinking = thinking;
   }
@@ -26,7 +29,7 @@ export class ZhipuLLM extends OpenAICompatibleLLM {
       new LLMModel({
         name: 'glm-4.7',
         value: 'glm-4.7',
-        canonical_name: 'glm-4.7',
+        canonicalName: 'glm-4.7',
         provider: LLMProvider.ZHIPU
       });
 
@@ -34,8 +37,8 @@ export class ZhipuLLM extends OpenAICompatibleLLM {
 
     super(effectiveModel, 'ZHIPU_API_KEY', 'https://open.bigmodel.cn/api/paas/v4/', config);
 
-    if (this.config?.extra_params && typeof this.config.extra_params === 'object') {
-      this.config.extra_params = normalizeZhipuExtraParams(this.config.extra_params);
+    if (this.config?.extraParams && typeof this.config.extraParams === 'object') {
+      this.config.extraParams = normalizeZhipuExtraParams(this.config.extraParams);
     }
   }
 }

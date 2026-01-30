@@ -70,7 +70,7 @@ export class OpenAICompatibleLLM extends BaseLLM {
     llmConfig?: LLMConfig,
     apiKeyDefault?: string
   ) {
-    let effectiveConfig = model.default_config ? model.default_config.clone() : new LLMConfig();
+    let effectiveConfig = model.defaultConfig ? model.defaultConfig.clone() : new LLMConfig();
     if (llmConfig) {
       effectiveConfig.mergeWith(llmConfig);
     }
@@ -92,7 +92,7 @@ export class OpenAICompatibleLLM extends BaseLLM {
       baseURL: baseUrl
     });
     
-    this.maxTokens = effectiveConfig.max_tokens ?? undefined;
+    this.maxTokens = effectiveConfig.maxTokens ?? undefined;
   }
 
   private createTokenUsage(usageData?: OpenAIClient.CompletionUsage): TokenUsage | null {
@@ -104,7 +104,7 @@ export class OpenAICompatibleLLM extends BaseLLM {
     };
   }
 
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse> {
+  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
     const formattedMessages = await formatOpenAIHistory(this.messages);
@@ -121,8 +121,8 @@ export class OpenAICompatibleLLM extends BaseLLM {
     }
     
     // extra params handling
-    if (this.config.extra_params) {
-       Object.assign(params, this.config.extra_params);
+    if (this.config.extraParams) {
+       Object.assign(params, this.config.extraParams);
     }
 
     try {
@@ -145,7 +145,7 @@ export class OpenAICompatibleLLM extends BaseLLM {
     }
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown> {
+  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
 
     const formattedMessages = await formatOpenAIHistory(this.messages);
@@ -158,7 +158,7 @@ export class OpenAICompatibleLLM extends BaseLLM {
     };
 
     if (this.maxTokens) params.max_tokens = this.maxTokens;
-    if (this.config.extra_params) Object.assign(params, this.config.extra_params);
+    if (this.config.extraParams) Object.assign(params, this.config.extraParams);
 
     if (kwargs.tools) params.tools = kwargs.tools;
 

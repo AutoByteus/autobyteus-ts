@@ -9,7 +9,7 @@ import { ToolCategory } from '../tool_category.js';
 import { ParameterSchema, ParameterDefinition, ParameterType } from '../../utils/parameter_schema.js';
 import { getDefaultDownloadFolder } from '../../utils/file_utils.js';
 
-type WorkspaceLike = { getBasePath?: () => string; get_base_path?: () => string };
+type WorkspaceLike = { getBasePath?: () => string };
 type AgentContextLike = { agentId?: string; workspace?: WorkspaceLike | null };
 
 type DownloadMediaArgs = {
@@ -22,9 +22,6 @@ function resolveWorkspaceBasePath(workspace: WorkspaceLike | null | undefined): 
   if (!workspace) return null;
   if (typeof workspace.getBasePath === 'function') {
     return path.resolve(workspace.getBasePath());
-  }
-  if (typeof workspace.get_base_path === 'function') {
-    return path.resolve(workspace.get_base_path());
   }
   return null;
 }

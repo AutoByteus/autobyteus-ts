@@ -23,31 +23,31 @@ export class DelimitedContentState extends BaseState {
     this.holdbackLen = Math.max(this.closingTag.length - 1, 0);
   }
 
-  protected _can_start_segment(): boolean {
+  protected _canStartSegment(): boolean {
     return true;
   }
 
-  protected _get_start_metadata(): Record<string, any> {
+  protected _getStartMetadata(): Record<string, any> {
     return {};
   }
 
-  protected _opening_content(): string | undefined {
+  protected _openingContent(): string | undefined {
     return undefined;
   }
 
-  protected _on_segment_complete(): void {
+  protected _onSegmentComplete(): void {
     return;
   }
 
-  protected _should_emit_closing_tag(): boolean {
+  protected _shouldEmitClosingTag(): boolean {
     return false;
   }
 
   run(): void {
     if (!this.segmentStarted) {
-      if (!this._can_start_segment()) {
-        this.context.append_text_segment(this.openingTag);
-        this.context.transition_to(new TextState(this.context));
+      if (!this._canStartSegment()) {
+        this.context.appendTextSegment(this.openingTag);
+        this.context.transitionTo(new TextState(this.context));
         return;
       }
 
@@ -57,31 +57,31 @@ export class DelimitedContentState extends BaseState {
         throw new Error('SEGMENT_TYPE is not defined for DelimitedContentState.');
       }
 
-      this.context.emit_segment_start(segmentType, this._get_start_metadata());
+      this.context.emitSegmentStart(segmentType, this._getStartMetadata());
       this.segmentStarted = true;
 
-      const openingContent = this._opening_content();
+      const openingContent = this._openingContent();
       if (openingContent) {
-        this.context.emit_segment_content(openingContent);
+        this.context.emitSegmentContent(openingContent);
       }
     }
 
-    if (!this.context.has_more_chars()) {
+    if (!this.context.hasMoreChars()) {
       return;
     }
 
-    const available = this.context.consume_remaining();
+    const available = this.context.consumeRemaining();
     const combined = this.tail + available;
     const idx = combined ? combined.toLowerCase().indexOf(this.closingTagLower) : -1;
 
     if (idx !== -1) {
       const contentBefore = combined.slice(0, idx);
       if (contentBefore) {
-        this.context.emit_segment_content(contentBefore);
+        this.context.emitSegmentContent(contentBefore);
       }
 
-      if (this._should_emit_closing_tag() && this.closingTag) {
-        this.context.emit_segment_content(this.closingTag);
+      if (this._shouldEmitClosingTag() && this.closingTag) {
+        this.context.emitSegmentContent(this.closingTag);
       }
 
       const tailLen = this.tail.length;
@@ -89,19 +89,19 @@ export class DelimitedContentState extends BaseState {
       const consumedFromAvailable = idx < tailLen ? idx + closingLen - tailLen : idx - tailLen + closingLen;
       const extra = available.length - consumedFromAvailable;
       if (extra > 0) {
-        this.context.rewind_by(extra);
+        this.context.rewindBy(extra);
       }
 
       this.tail = '';
-      this._on_segment_complete();
-      this.context.emit_segment_end();
-      this.context.transition_to(new TextState(this.context));
+      this._onSegmentComplete();
+      this.context.emitSegmentEnd();
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
     if (this.holdbackLen === 0) {
       if (combined) {
-        this.context.emit_segment_content(combined);
+        this.context.emitSegmentContent(combined);
       }
       this.tail = '';
       return;
@@ -110,7 +110,7 @@ export class DelimitedContentState extends BaseState {
     if (combined.length > this.holdbackLen) {
       const safe = combined.slice(0, -this.holdbackLen);
       if (safe) {
-        this.context.emit_segment_content(safe);
+        this.context.emitSegmentContent(safe);
       }
       this.tail = combined.slice(-this.holdbackLen);
     } else {
@@ -119,21 +119,21 @@ export class DelimitedContentState extends BaseState {
   }
 
   finalize(): void {
-    const remaining = this.context.has_more_chars() ? this.context.consume_remaining() : '';
+    const remaining = this.context.hasMoreChars() ? this.context.consumeRemaining() : '';
 
     if (!this.segmentStarted) {
       const text = `${this.openingTag}${this.tail}${remaining}`;
       if (text) {
-        this.context.append_text_segment(text);
+        this.context.appendTextSegment(text);
       }
     } else {
       if (this.tail || remaining) {
-        this.context.emit_segment_content(`${this.tail}${remaining}`);
+        this.context.emitSegmentContent(`${this.tail}${remaining}`);
       }
       this.tail = '';
-      this.context.emit_segment_end();
+      this.context.emitSegmentEnd();
     }
 
-    this.context.transition_to(new TextState(this.context));
+    this.context.transitionTo(new TextState(this.context));
   }
 }

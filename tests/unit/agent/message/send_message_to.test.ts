@@ -4,16 +4,16 @@ import { InterAgentMessageRequestEvent } from '../../../../src/agent_team/events
 import { ParameterSchema } from '../../../../src/utils/parameter_schema.js';
 
 const makeTeamManager = () => ({
-  dispatch_inter_agent_message_request: vi.fn().mockResolvedValue(undefined)
+  dispatchInterAgentMessageRequest: vi.fn().mockResolvedValue(undefined)
 });
 
 const makeTeamContext = (teamManager: any) => ({
-  team_manager: teamManager
+  teamManager: teamManager
 });
 
 const makeAgentContext = (teamContext: any) => ({
-  agent_id: 'sender_agent_001',
-  custom_data: { team_context: teamContext }
+  agentId: 'sender_agent_001',
+  customData: { teamContext: teamContext }
 });
 
 describe('SendMessageTo tool', () => {
@@ -45,19 +45,19 @@ describe('SendMessageTo tool', () => {
     });
 
     expect(result).toContain("Message dispatch for recipient 'Researcher' has been successfully requested.");
-    expect(teamManager.dispatch_inter_agent_message_request).toHaveBeenCalledOnce();
+    expect(teamManager.dispatchInterAgentMessageRequest).toHaveBeenCalledOnce();
 
-    const [event] = teamManager.dispatch_inter_agent_message_request.mock.calls[0];
+    const [event] = teamManager.dispatchInterAgentMessageRequest.mock.calls[0];
     expect(event).toBeInstanceOf(InterAgentMessageRequestEvent);
-    expect(event.sender_agent_id).toBe('sender_agent_001');
-    expect(event.recipient_name).toBe('Researcher');
+    expect(event.senderAgentId).toBe('sender_agent_001');
+    expect(event.recipientName).toBe('Researcher');
     expect(event.content).toBe('Please find data on topic X.');
-    expect(event.message_type).toBe('TASK_ASSIGNMENT');
+    expect(event.messageType).toBe('TASK_ASSIGNMENT');
   });
 
   it('returns an error without team context', async () => {
     const tool = new SendMessageTo();
-    const context = { agent_id: 'lonely_agent_002', custom_data: {} };
+    const context = { agentId: 'lonely_agent_002', customData: {} };
 
     const result = await (tool as any)._execute(context, {
       recipient_name: 'any',

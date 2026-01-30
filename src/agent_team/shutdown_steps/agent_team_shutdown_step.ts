@@ -1,38 +1,39 @@
 import { BaseAgentTeamShutdownStep } from './base_agent_team_shutdown_step.js';
 import type { AgentTeamContext } from '../context/agent_team_context.js';
+import type { TeamManager } from '../context/team_manager.js';
 
 export class AgentTeamShutdownStep extends BaseAgentTeamShutdownStep {
   async execute(context: AgentTeamContext): Promise<boolean> {
-    const team_id = context.team_id;
-    console.info(`Team '${team_id}': Executing AgentTeamShutdownStep.`);
+    const teamId = context.teamId;
+    console.info(`Team '${teamId}': Executing AgentTeamShutdownStep.`);
 
-    const team_manager: any = context.team_manager;
-    if (!team_manager) {
-      console.warn(`Team '${team_id}': No TeamManager found, cannot shut down agents.`);
+    const teamManager = context.teamManager as TeamManager | null;
+    if (!teamManager) {
+      console.warn(`Team '${teamId}': No TeamManager found, cannot shut down agents.`);
       return true;
     }
 
-    const all_agents = team_manager.get_all_agents();
-    const running_agents = all_agents.filter((agent: any) => agent.is_running);
+    const allAgents = teamManager.getAllAgents();
+    const runningAgents = allAgents.filter((agent) => agent.isRunning);
 
-    if (!running_agents.length) {
-      console.info(`Team '${team_id}': No running agents to shut down.`);
+    if (!runningAgents.length) {
+      console.info(`Team '${teamId}': No running agents to shut down.`);
       return true;
     }
 
-    console.info(`Team '${team_id}': Shutting down ${running_agents.length} running agents.`);
-    const stop_tasks = running_agents.map((agent: any) => agent.stop(10.0));
-    const results = await Promise.allSettled(stop_tasks);
+    console.info(`Team '${teamId}': Shutting down ${runningAgents.length} running agents.`);
+    const stopTasks = runningAgents.map((agent) => agent.stop(10.0));
+    const results = await Promise.allSettled(stopTasks);
 
-    let all_successful = true;
+    let allSuccessful = true;
     results.forEach((result, idx) => {
       if (result.status === 'rejected') {
-        const agent = running_agents[idx];
-        console.error(`Team '${team_id}': Error stopping agent '${agent.agent_id}': ${result.reason}`);
-        all_successful = false;
+        const agent = runningAgents[idx];
+        console.error(`Team '${teamId}': Error stopping agent '${agent.agentId}': ${result.reason}`);
+        allSuccessful = false;
       }
     });
 
-    return all_successful;
+    return allSuccessful;
   }
 }

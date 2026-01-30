@@ -6,8 +6,8 @@ import type { BaseTool } from '../../../../src/tools/base_tool.js';
 type AgentContextLike = unknown;
 
 class DummySystemPromptProcessor extends BaseSystemPromptProcessor {
-  process(system_prompt: string, _tool_instances: Record<string, BaseTool>, _agent_id: string, _context: AgentContextLike): string {
-    return system_prompt;
+  process(systemPrompt: string, _toolInstances: Record<string, BaseTool>, _agentId: string, _context: AgentContextLike): string {
+    return systemPrompt;
   }
 }
 
@@ -15,7 +15,7 @@ describe('SystemPromptProcessorDefinition', () => {
   it('creates with valid name and processor class', () => {
     const definition = new SystemPromptProcessorDefinition('TestProcessor', DummySystemPromptProcessor);
     expect(definition.name).toBe('TestProcessor');
-    expect(definition.processor_class).toBe(DummySystemPromptProcessor);
+    expect(definition.processorClass).toBe(DummySystemPromptProcessor);
   });
 
   it('rejects invalid names', () => {
@@ -29,10 +29,10 @@ describe('SystemPromptProcessorDefinition', () => {
     class NotAProcessor {}
 
     expect(() => new SystemPromptProcessorDefinition('TestProcessor', new NotAProcessor() as unknown as typeof DummySystemPromptProcessor)).toThrow(
-      /processor_class must be a class type/
+      /processorClass must be a class type/
     );
     expect(() => new SystemPromptProcessorDefinition('TestProcessor', null as unknown as typeof DummySystemPromptProcessor)).toThrow(
-      /processor_class must be a class type/
+      /processorClass must be a class type/
     );
   });
 

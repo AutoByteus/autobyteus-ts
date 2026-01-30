@@ -10,12 +10,12 @@ export abstract class LLMExtension {
     this.llm = llm;
   }
 
-  abstract beforeInvoke(userMessage: LLMUserMessage, kwargs?: Record<string, any>): Promise<void>;
+  abstract beforeInvoke(userMessage: LLMUserMessage, kwargs?: Record<string, unknown>): Promise<void>;
 
   abstract afterInvoke(
     userMessage: LLMUserMessage,
     response: CompleteResponse | null,
-    kwargs?: Record<string, any>
+    kwargs?: Record<string, unknown>
   ): Promise<void>;
 
   onUserMessageAdded(message: Message): void {

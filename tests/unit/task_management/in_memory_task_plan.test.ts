@@ -63,25 +63,24 @@ describe('InMemoryTaskPlan', () => {
   it('initializes with empty state', () => {
     const plan = createPlan();
 
-    expect(plan.team_id).toBe('test_team');
+    expect(plan.teamId).toBe('test_team');
     expect(plan.tasks).toEqual([]);
-    expect(Object.keys(plan.task_statuses)).toEqual([]);
-    expect(plan._task_map.size).toBe(0);
+    expect(Object.keys(plan.taskStatuses)).toEqual([]);
   });
 
   it('adds tasks and emits creation event', () => {
     const plan = createPlan();
     const emitSpy = vi.spyOn(plan, 'emit');
 
-    const created = plan.add_tasks(basicPlanTasks);
+    const created = plan.addTasks(basicPlanTasks);
 
     expect(created.length).toBe(2);
     expect(plan.tasks.length).toBe(2);
-    expect(Object.keys(plan.task_statuses).length).toBe(2);
+    expect(Object.keys(plan.taskStatuses).length).toBe(2);
 
     const taskOneId = created.find((task) => task.task_name === 'task_one')?.task_id;
     expect(taskOneId).toBeTruthy();
-    expect(plan.task_statuses[taskOneId!]).toBe(TaskStatus.NOT_STARTED);
+    expect(plan.taskStatuses[taskOneId!]).toBe(TaskStatus.NOT_STARTED);
 
     expect(emitSpy).toHaveBeenCalledTimes(1);
     const [eventType, payloadWrapper] = emitSpy.mock.calls[0];
@@ -91,7 +90,7 @@ describe('InMemoryTaskPlan', () => {
     expect(parsed.tasks).toEqual(created);
   });
 
-  it('adds a single task via add_task', () => {
+  it('adds a single task via addTask', () => {
     const plan = createPlan();
     const definition: TaskDefinition = {
       task_name: 'single_task',
@@ -100,8 +99,8 @@ describe('InMemoryTaskPlan', () => {
       dependencies: []
     };
 
-    const addTasksSpy = vi.spyOn(plan, 'add_tasks');
-    const created = plan.add_task(definition);
+    const addTasksSpy = vi.spyOn(plan, 'addTasks');
+    const created = plan.addTask(definition);
 
     expect(addTasksSpy).toHaveBeenCalledWith([definition]);
     expect(created?.task_name).toBe('single_task');
@@ -110,14 +109,14 @@ describe('InMemoryTaskPlan', () => {
 
   it('updates task status and emits status update event', () => {
     const plan = createPlan();
-    plan.add_tasks(basicPlanTasks);
+    plan.addTasks(basicPlanTasks);
     const taskId = findTaskIdByName(plan, 'task_one');
 
     const emitSpy = vi.spyOn(plan, 'emit');
-    const result = plan.update_task_status(taskId, TaskStatus.IN_PROGRESS, 'Agent1');
+    const result = plan.updateTaskStatus(taskId, TaskStatus.IN_PROGRESS, 'Agent1');
 
     expect(result).toBe(true);
-    expect(plan.task_statuses[taskId]).toBe(TaskStatus.IN_PROGRESS);
+    expect(plan.taskStatuses[taskId]).toBe(TaskStatus.IN_PROGRESS);
 
     expect(emitSpy).toHaveBeenCalledTimes(1);
     const [eventType, payloadWrapper] = emitSpy.mock.calls[0];
@@ -131,20 +130,20 @@ describe('InMemoryTaskPlan', () => {
 
   it('returns false when updating a missing task', () => {
     const plan = createPlan();
-    const result = plan.update_task_status('fake_id', TaskStatus.COMPLETED, 'AgentX');
+    const result = plan.updateTaskStatus('fake_id', TaskStatus.COMPLETED, 'AgentX');
     expect(result).toBe(false);
   });
 
   it('returns no runnable tasks when empty', () => {
     const plan = createPlan();
-    expect(plan.get_next_runnable_tasks()).toEqual([]);
+    expect(plan.getNextRunnableTasks()).toEqual([]);
   });
 
   it('returns all tasks as runnable with no dependencies', () => {
     const plan = createPlan();
-    plan.add_tasks(basicPlanTasks);
+    plan.addTasks(basicPlanTasks);
 
-    const runnable = plan.get_next_runnable_tasks();
+    const runnable = plan.getNextRunnableTasks();
     expect(runnable.length).toBe(2);
     const runnableNames = new Set(runnable.map((task) => task.task_name));
     expect(runnableNames).toEqual(new Set(['task_one', 'task_two']));
@@ -152,75 +151,75 @@ describe('InMemoryTaskPlan', () => {
 
   it('returns only dependency-free tasks initially', () => {
     const plan = createPlan();
-    plan.add_tasks(dependentPlanTasks);
+    plan.addTasks(dependentPlanTasks);
 
-    const runnable = plan.get_next_runnable_tasks();
+    const runnable = plan.getNextRunnableTasks();
     expect(runnable.length).toBe(1);
     expect(runnable[0].task_name).toBe('A');
   });
 
   it('unlocks dependent tasks when prerequisites complete', () => {
     const plan = createPlan();
-    plan.add_tasks(dependentPlanTasks);
+    plan.addTasks(dependentPlanTasks);
 
     const taskAId = findTaskIdByName(plan, 'A');
-    plan.update_task_status(taskAId, TaskStatus.COMPLETED, 'Agent1');
+    plan.updateTaskStatus(taskAId, TaskStatus.COMPLETED, 'Agent1');
 
-    const runnable = plan.get_next_runnable_tasks();
+    const runnable = plan.getNextRunnableTasks();
     const runnableNames = new Set(runnable.map((task) => task.task_name));
     expect(runnableNames).toEqual(new Set(['B', 'C']));
   });
 
   it('handles multi-level dependency flow', () => {
     const plan = createPlan();
-    plan.add_tasks(dependentPlanTasks);
+    plan.addTasks(dependentPlanTasks);
 
     const taskAId = findTaskIdByName(plan, 'A');
     const taskBId = findTaskIdByName(plan, 'B');
 
-    expect(new Set(plan.get_next_runnable_tasks().map((task) => task.task_name))).toEqual(new Set(['A']));
+    expect(new Set(plan.getNextRunnableTasks().map((task) => task.task_name))).toEqual(new Set(['A']));
 
-    plan.update_task_status(taskAId, TaskStatus.COMPLETED, 'Agent1');
-    expect(new Set(plan.get_next_runnable_tasks().map((task) => task.task_name))).toEqual(new Set(['B', 'C']));
+    plan.updateTaskStatus(taskAId, TaskStatus.COMPLETED, 'Agent1');
+    expect(new Set(plan.getNextRunnableTasks().map((task) => task.task_name))).toEqual(new Set(['B', 'C']));
 
-    plan.update_task_status(taskBId, TaskStatus.COMPLETED, 'Agent2');
-    expect(new Set(plan.get_next_runnable_tasks().map((task) => task.task_name))).toEqual(new Set(['C', 'D']));
+    plan.updateTaskStatus(taskBId, TaskStatus.COMPLETED, 'Agent2');
+    expect(new Set(plan.getNextRunnableTasks().map((task) => task.task_name))).toEqual(new Set(['C', 'D']));
   });
 
   it('blocks tasks when a dependency fails', () => {
     const plan = createPlan();
-    plan.add_tasks(dependentPlanTasks);
+    plan.addTasks(dependentPlanTasks);
 
     const taskAId = findTaskIdByName(plan, 'A');
-    plan.update_task_status(taskAId, TaskStatus.FAILED, 'Agent1');
+    plan.updateTaskStatus(taskAId, TaskStatus.FAILED, 'Agent1');
 
-    expect(plan.get_next_runnable_tasks()).toEqual([]);
+    expect(plan.getNextRunnableTasks()).toEqual([]);
   });
 
   it('does not return tasks that are in progress', () => {
     const plan = createPlan();
-    plan.add_tasks(dependentPlanTasks);
+    plan.addTasks(dependentPlanTasks);
 
     const taskAId = findTaskIdByName(plan, 'A');
-    expect(new Set(plan.get_next_runnable_tasks().map((task) => task.task_name))).toEqual(new Set(['A']));
+    expect(new Set(plan.getNextRunnableTasks().map((task) => task.task_name))).toEqual(new Set(['A']));
 
-    plan.update_task_status(taskAId, TaskStatus.IN_PROGRESS, 'Agent1');
-    expect(plan.get_next_runnable_tasks()).toEqual([]);
+    plan.updateTaskStatus(taskAId, TaskStatus.IN_PROGRESS, 'Agent1');
+    expect(plan.getNextRunnableTasks()).toEqual([]);
   });
 
   it('provides a serializable status overview', () => {
     const plan = createPlan();
 
-    const overviewEmpty = plan.get_status_overview();
-    expect(overviewEmpty.task_statuses).toEqual({});
+    const overviewEmpty = plan.getStatusOverview();
+    expect(overviewEmpty.taskStatuses).toEqual({});
     expect(overviewEmpty.tasks).toEqual([]);
 
-    plan.add_tasks(basicPlanTasks);
+    plan.addTasks(basicPlanTasks);
     const taskOneId = findTaskIdByName(plan, 'task_one');
-    plan.update_task_status(taskOneId, TaskStatus.COMPLETED, 'Agent1');
+    plan.updateTaskStatus(taskOneId, TaskStatus.COMPLETED, 'Agent1');
 
-    const overviewLoaded = plan.get_status_overview();
+    const overviewLoaded = plan.getStatusOverview();
     expect(overviewLoaded.tasks.length).toBe(2);
-    expect(overviewLoaded.task_statuses[taskOneId]).toBe('completed');
+    expect(overviewLoaded.taskStatuses[taskOneId]).toBe('completed');
   });
 });

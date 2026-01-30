@@ -3,20 +3,20 @@ import { randomUUID } from 'node:crypto';
 type NodeDefinition = { name: string } & Record<string, any>;
 
 export class TeamNodeConfig {
-  node_definition: NodeDefinition;
+  nodeDefinition: NodeDefinition;
   dependencies: TeamNodeConfig[];
-  node_id: string;
+  nodeId: string;
 
-  constructor(options: { node_definition: NodeDefinition; dependencies?: TeamNodeConfig[] }) {
-    this.node_definition = options.node_definition;
+  constructor(options: { nodeDefinition: NodeDefinition; dependencies?: TeamNodeConfig[] }) {
+    this.nodeDefinition = options.nodeDefinition;
     this.dependencies = options.dependencies ?? [];
-    this.node_id = `node_${randomUUID().replace(/-/g, '')}`;
+    this.nodeId = `node_${randomUUID().replace(/-/g, '')}`;
     this.validate();
   }
 
   private validate(): void {
-    if (!this.node_definition || typeof this.node_definition.name !== 'string' || !this.node_definition.name) {
-      throw new TypeError("The 'node_definition' attribute must provide a non-empty name.");
+    if (!this.nodeDefinition || typeof this.nodeDefinition.name !== 'string' || !this.nodeDefinition.name) {
+      throw new TypeError("The 'nodeDefinition' attribute must provide a non-empty name.");
     }
 
     if (!Array.isArray(this.dependencies) || this.dependencies.some((dep) => !(dep instanceof TeamNodeConfig))) {
@@ -25,21 +25,21 @@ export class TeamNodeConfig {
   }
 
   get name(): string {
-    return this.node_definition.name;
+    return this.nodeDefinition.name;
   }
 
-  get effective_config(): NodeDefinition {
-    return this.node_definition;
+  get effectiveConfig(): NodeDefinition {
+    return this.nodeDefinition;
   }
 
-  get is_sub_team(): boolean {
-    const node = this.node_definition as Record<string, any> | null;
-    return Boolean(node && Array.isArray(node.nodes) && node.coordinator_node);
+  get isSubTeam(): boolean {
+    const node = this.nodeDefinition as Record<string, any> | null;
+    return Boolean(node && Array.isArray(node.nodes) && node.coordinatorNode);
   }
 
   equals(other: unknown): boolean {
     if (other instanceof TeamNodeConfig) {
-      return this.node_id === other.node_id;
+      return this.nodeId === other.nodeId;
     }
     return false;
   }

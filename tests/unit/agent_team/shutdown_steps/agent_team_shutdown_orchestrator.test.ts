@@ -16,7 +16,7 @@ import { SubTeamShutdownStep } from '../../../../src/agent_team/shutdown_steps/s
 import { AgentTeamShutdownStep } from '../../../../src/agent_team/shutdown_steps/agent_team_shutdown_step.js';
 import type { AgentTeamContext } from '../../../../src/agent_team/context/agent_team_context.js';
 
-const makeContext = (): AgentTeamContext => ({ team_id: 'team-1' } as AgentTeamContext);
+const makeContext = (): AgentTeamContext => ({ teamId: 'team-1' } as AgentTeamContext);
 
 describe('AgentTeamShutdownOrchestrator', () => {
   it('initializes with default steps', () => {
@@ -25,7 +25,7 @@ describe('AgentTeamShutdownOrchestrator', () => {
     expect(BridgeCleanupStep).toHaveBeenCalledTimes(1);
     expect(SubTeamShutdownStep).toHaveBeenCalledTimes(1);
     expect(AgentTeamShutdownStep).toHaveBeenCalledTimes(1);
-    expect(orchestrator.shutdown_steps.length).toBe(3);
+    expect(orchestrator.shutdownSteps.length).toBe(3);
   });
 
   it('initializes with custom steps', () => {
@@ -34,7 +34,7 @@ describe('AgentTeamShutdownOrchestrator', () => {
 
     const orchestrator = new AgentTeamShutdownOrchestrator([step1, step2]);
 
-    expect(orchestrator.shutdown_steps).toEqual([step1, step2]);
+    expect(orchestrator.shutdownSteps).toEqual([step1, step2]);
   });
 
   it('runs all steps successfully', async () => {

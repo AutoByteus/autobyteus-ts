@@ -5,7 +5,7 @@ import { AgentConfig } from '../src/agent/context/agent_config.js';
 import { AgentFactory } from '../src/agent/factory/agent_factory.js';
 import { BaseAgentWorkspace } from '../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../src/agent/workspace/workspace_config.js';
-import { run_agent_cli } from '../src/cli/index.js';
+import { runAgentCli } from '../src/cli/index.js';
 import { ToolOrigin } from '../src/tools/tool_origin.js';
 import { defaultToolRegistry } from '../src/tools/registry/tool_registry.js';
 import { registerTools } from '../src/tools/register_tools.js';
@@ -19,10 +19,6 @@ class LocalWorkspace extends BaseAgentWorkspace {
   constructor(rootPath: string) {
     super(new WorkspaceConfig({ root_path: rootPath }));
     this.rootPath = rootPath;
-  }
-
-  get_base_path(): string {
-    return this.rootPath;
   }
 
   getBasePath(): string {
@@ -88,11 +84,11 @@ async function main(): Promise<void> {
     workspace
   );
 
-  const agent = new AgentFactory().create_agent(agentConfig);
+  const agent = new AgentFactory().createAgent(agentConfig);
   const initialPrompt = `Hello! I'm ready to work. My current working directory is "${workspacePath}". What's the first task?`;
 
   try {
-    await run_agent_cli(agent, {
+    await runAgentCli(agent, {
       showToolLogs: !values['no-tool-logs'],
       initialPrompt
     });

@@ -14,33 +14,33 @@ import { TeamNodeConfig } from '../../../../src/agent_team/context/team_node_con
 import { AgentTeamStatus } from '../../../../src/agent_team/status/agent_team_status.js';
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: { name: 'Coordinator' } });
+  const node = new TeamNodeConfig({ nodeDefinition: { name: 'Coordinator' } });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1', current_status: AgentTeamStatus.IDLE });
-  state.input_event_queues = {
-    enqueue_internal_system_event: vi.fn(async () => undefined)
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1', currentStatus: AgentTeamStatus.IDLE });
+  state.inputEventQueues = {
+    enqueueInternalSystemEvent: vi.fn(async () => undefined)
   } as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
 describe('AgentTeamEventDispatcher', () => {
-  let agent_team_context: AgentTeamContext;
+  let agentTeamContext: AgentTeamContext;
 
   beforeEach(() => {
-    agent_team_context = makeContext();
+    agentTeamContext = makeContext();
   });
 
   it('logs warning when no handler registered', async () => {
-    const registry = { get_handler: () => undefined } as any;
+    const registry = { getHandler: () => undefined } as any;
     const dispatcher = new AgentTeamEventDispatcher(registry);
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
-    await dispatcher.dispatch(new BaseAgentTeamEvent(), agent_team_context);
+    await dispatcher.dispatch(new BaseAgentTeamEvent(), agentTeamContext);
 
     expect(warnSpy).toHaveBeenCalledTimes(1);
     warnSpy.mockRestore();
@@ -48,7 +48,7 @@ describe('AgentTeamEventDispatcher', () => {
 
   it('dispatches operational event and enqueues idle', async () => {
     const handler = { handle: vi.fn(async () => undefined) };
-    const registry = { get_handler: () => handler } as any;
+    const registry = { getHandler: () => handler } as any;
     const dispatcher = new AgentTeamEventDispatcher(registry);
 
     const event = new ProcessUserMessageEvent(
@@ -56,25 +56,25 @@ describe('AgentTeamEventDispatcher', () => {
       'Coordinator'
     );
 
-    await dispatcher.dispatch(event, agent_team_context);
+    await dispatcher.dispatch(event, agentTeamContext);
 
-    expect(handler.handle).toHaveBeenCalledWith(event, agent_team_context);
-    const enqueue = agent_team_context.state.input_event_queues?.enqueue_internal_system_event as any;
+    expect(handler.handle).toHaveBeenCalledWith(event, agentTeamContext);
+    const enqueue = agentTeamContext.state.inputEventQueues?.enqueueInternalSystemEvent as any;
     expect(enqueue).toHaveBeenCalledTimes(1);
-    const enqueued_event = enqueue.mock.calls[0][0];
-    expect(enqueued_event).toBeInstanceOf(AgentTeamIdleEvent);
+    const enqueuedEvent = enqueue.mock.calls[0][0];
+    expect(enqueuedEvent).toBeInstanceOf(AgentTeamIdleEvent);
   });
 
   it('enqueues error event when handler throws', async () => {
     const handler = { handle: vi.fn(async () => { throw new Error('boom'); }) };
-    const registry = { get_handler: () => handler } as any;
+    const registry = { getHandler: () => handler } as any;
     const dispatcher = new AgentTeamEventDispatcher(registry);
 
-    await dispatcher.dispatch(new BaseAgentTeamEvent(), agent_team_context);
+    await dispatcher.dispatch(new BaseAgentTeamEvent(), agentTeamContext);
 
-    const enqueue = agent_team_context.state.input_event_queues?.enqueue_internal_system_event as any;
+    const enqueue = agentTeamContext.state.inputEventQueues?.enqueueInternalSystemEvent as any;
     expect(enqueue).toHaveBeenCalledTimes(1);
-    const enqueued_event = enqueue.mock.calls[0][0];
-    expect(enqueued_event).toBeInstanceOf(AgentTeamErrorEvent);
+    const enqueuedEvent = enqueue.mock.calls[0][0];
+    expect(enqueuedEvent).toBeInstanceOf(AgentTeamErrorEvent);
   });
 });

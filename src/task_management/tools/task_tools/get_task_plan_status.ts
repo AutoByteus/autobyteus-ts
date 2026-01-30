@@ -1,6 +1,7 @@
 import { BaseTool } from '../../../tools/base_tool.js';
 import { ToolCategory } from '../../../tools/tool_category.js';
 import { TaskPlanConverter } from '../../converters/task_plan_converter.js';
+import type { TaskToolContext } from './types.js';
 
 export class GetTaskPlanStatus extends BaseTool {
   static CATEGORY = ToolCategory.TASK_MANAGEMENT;
@@ -20,19 +21,19 @@ export class GetTaskPlanStatus extends BaseTool {
     return null;
   }
 
-  protected async _execute(context: any): Promise<string> {
-    const teamContext = context?.custom_data?.team_context;
+  protected async _execute(context: TaskToolContext): Promise<string> {
+    const teamContext = context?.customData?.teamContext;
     if (!teamContext) {
       return 'Error: Team context is not available to the agent. Cannot access the task plan.';
     }
 
-    const taskPlan = teamContext.state?.task_plan;
+    const taskPlan = teamContext.state?.taskPlan ?? null;
     if (!taskPlan) {
       return 'Error: Task plan has not been initialized for this team.';
     }
 
     try {
-      const statusReport = TaskPlanConverter.to_schema(taskPlan);
+      const statusReport = TaskPlanConverter.toSchema(taskPlan);
       if (!statusReport) {
         return 'The task plan is currently empty. No tasks have been published.';
       }

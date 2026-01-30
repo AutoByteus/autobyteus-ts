@@ -14,13 +14,13 @@ import type { AgentStatusManager } from '../status/manager.js';
 type MessagePayload = Record<string, any>;
 
 export class AgentContext {
-  agent_id: string;
+  agentId: string;
   config: AgentConfig;
   state: AgentRuntimeState;
 
-  constructor(agent_id: string, config: AgentConfig, state: AgentRuntimeState) {
-    if (!agent_id || typeof agent_id !== 'string') {
-      throw new Error("AgentContext requires a non-empty string 'agent_id'.");
+  constructor(agentId: string, config: AgentConfig, state: AgentRuntimeState) {
+    if (!agentId || typeof agentId !== 'string') {
+      throw new Error("AgentContext requires a non-empty string 'agentId'.");
     }
     if (!(config instanceof AgentConfig)) {
       throw new TypeError(`AgentContext 'config' must be an AgentConfig instance. Got ${typeof config}`);
@@ -29,124 +29,124 @@ export class AgentContext {
       throw new TypeError(`AgentContext 'state' must be an AgentRuntimeState instance. Got ${typeof state}`);
     }
 
-    if (agent_id !== state.agent_id) {
+    if (agentId !== state.agentId) {
       console.warn(
-        `AgentContext created with mismatched agent_id ('${agent_id}') and state's ID ('${state.agent_id}'). Using context's ID for logging.`
+        `AgentContext created with mismatched agentId ('${agentId}') and state's ID ('${state.agentId}'). Using context's ID for logging.`
       );
     }
 
-    this.agent_id = agent_id;
+    this.agentId = agentId;
     this.config = config;
     this.state = state;
 
-    console.info(`AgentContext composed for agent_id '${this.agent_id}'. Config and State linked.`);
+    console.info(`AgentContext composed for agent_id '${this.agentId}'. Config and State linked.`);
   }
 
-  get tool_instances(): Record<string, BaseTool> {
-    return this.state.tool_instances ?? {};
+  get toolInstances(): Record<string, BaseTool> {
+    return this.state.toolInstances ?? {};
   }
 
-  get auto_execute_tools(): boolean {
-    return this.config.auto_execute_tools;
+  get autoExecuteTools(): boolean {
+    return this.config.autoExecuteTools;
   }
 
-  get llm_instance(): BaseLLM | null {
-    return this.state.llm_instance;
+  get llmInstance(): BaseLLM | null {
+    return this.state.llmInstance;
   }
 
-  set llm_instance(value: BaseLLM | null) {
-    this.state.llm_instance = value;
+  set llmInstance(value: BaseLLM | null) {
+    this.state.llmInstance = value;
   }
 
-  get input_event_queues(): AgentInputEventQueueManager {
-    if (!this.state.input_event_queues) {
+  get inputEventQueues(): AgentInputEventQueueManager {
+    if (!this.state.inputEventQueues) {
       console.error(
-        `AgentContext for '${this.agent_id}': Attempted to access 'input_event_queues' before they were initialized by AgentWorker.`
+        `AgentContext for '${this.agentId}': Attempted to access 'inputEventQueues' before they were initialized by AgentWorker.`
       );
       throw new Error(
-        `Agent '${this.agent_id}': Input event queues have not been initialized. This typically occurs during agent bootstrapping.`
+        `Agent '${this.agentId}': Input event queues have not been initialized. This typically occurs during agent bootstrapping.`
       );
     }
-    return this.state.input_event_queues;
+    return this.state.inputEventQueues;
   }
 
-  get current_status(): AgentStatus {
-    return this.state.current_status;
+  get currentStatus(): AgentStatus {
+    return this.state.currentStatus;
   }
 
-  set current_status(value: AgentStatus) {
+  set currentStatus(value: AgentStatus) {
     if (!Object.values(AgentStatus).includes(value)) {
-      throw new TypeError(`current_status must be an AgentStatus instance. Got ${typeof value}`);
+      throw new TypeError(`currentStatus must be an AgentStatus instance. Got ${typeof value}`);
     }
-    this.state.current_status = value;
+    this.state.currentStatus = value;
   }
 
-  get status_manager(): AgentStatusManager | null {
-    return this.state.status_manager_ref;
+  get statusManager(): AgentStatusManager | null {
+    return this.state.statusManagerRef;
   }
 
-  get event_store(): AgentEventStore | null {
-    return this.state.event_store;
+  get eventStore(): AgentEventStore | null {
+    return this.state.eventStore;
   }
 
-  get status_deriver(): AgentStatusDeriver | null {
-    return this.state.status_deriver;
+  get statusDeriver(): AgentStatusDeriver | null {
+    return this.state.statusDeriver;
   }
 
-  get conversation_history(): MessagePayload[] {
-    return this.state.conversation_history;
+  get conversationHistory(): MessagePayload[] {
+    return this.state.conversationHistory;
   }
 
-  get pending_tool_approvals(): Record<string, ToolInvocation> {
-    return this.state.pending_tool_approvals;
+  get pendingToolApprovals(): Record<string, ToolInvocation> {
+    return this.state.pendingToolApprovals;
   }
 
-  get custom_data(): Record<string, any> {
-    return this.state.custom_data;
+  get customData(): Record<string, any> {
+    return this.state.customData;
   }
 
   get workspace(): BaseAgentWorkspace | null {
     return this.state.workspace;
   }
 
-  get processed_system_prompt(): string | null {
-    return this.state.processed_system_prompt;
+  get processedSystemPrompt(): string | null {
+    return this.state.processedSystemPrompt;
   }
 
-  set processed_system_prompt(value: string | null) {
-    this.state.processed_system_prompt = value;
+  set processedSystemPrompt(value: string | null) {
+    this.state.processedSystemPrompt = value;
   }
 
-  add_message_to_history(message: MessagePayload): void {
-    this.state.add_message_to_history(message);
+  addMessageToHistory(message: MessagePayload): void {
+    this.state.addMessageToHistory(message);
   }
 
-  get_tool(tool_name: string): BaseTool | undefined {
-    const tool = this.tool_instances[tool_name];
+  getTool(toolName: string): BaseTool | undefined {
+    const tool = this.toolInstances[toolName];
     if (!tool) {
       console.warn(
-        `Tool '${tool_name}' not found in AgentContext.state.tool_instances for agent '${this.agent_id}'. Available tools: ${Object.keys(this.tool_instances)}`
+        `Tool '${toolName}' not found in AgentContext.state.toolInstances for agent '${this.agentId}'. Available tools: ${Object.keys(this.toolInstances)}`
       );
     }
     return tool;
   }
 
-  store_pending_tool_invocation(invocation: ToolInvocation): void {
-    this.state.store_pending_tool_invocation(invocation);
+  storePendingToolInvocation(invocation: ToolInvocation): void {
+    this.state.storePendingToolInvocation(invocation);
   }
 
-  retrieve_pending_tool_invocation(invocation_id: string): ToolInvocation | undefined {
-    return this.state.retrieve_pending_tool_invocation(invocation_id);
+  retrievePendingToolInvocation(invocationId: string): ToolInvocation | undefined {
+    return this.state.retrievePendingToolInvocation(invocationId);
   }
 
   toString(): string {
-    const input_q_status = this.state.input_event_queues ? 'Initialized' : 'Pending Init';
+    const inputQueueStatus = this.state.inputEventQueues ? 'Initialized' : 'Pending Init';
     return (
-      `AgentContext(agent_id='${this.agent_id}', ` +
-      `current_status='${this.state.current_status}', ` +
-      `llm_initialized=${this.state.llm_instance !== null}, ` +
-      `tools_initialized=${this.state.tool_instances !== null}, ` +
-      `input_queues_status='${input_q_status}')`
+      `AgentContext(agentId='${this.agentId}', ` +
+      `currentStatus='${this.state.currentStatus}', ` +
+      `llmInitialized=${this.state.llmInstance !== null}, ` +
+      `toolsInitialized=${this.state.toolInstances !== null}, ` +
+      `inputQueuesStatus='${inputQueueStatus}')`
     );
   }
 }

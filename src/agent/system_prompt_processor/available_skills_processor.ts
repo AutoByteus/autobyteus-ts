@@ -4,49 +4,48 @@ import type { BaseTool } from '../../tools/base_tool.js';
 import type { AgentContextLike } from '../context/agent_context_like.js';
 
 export class AvailableSkillsProcessor extends BaseSystemPromptProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'AvailableSkillsProcessor';
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return true;
   }
 
-
   process(
-    system_prompt: string,
-    _tool_instances: Record<string, BaseTool>,
-    agent_id: string,
+    systemPrompt: string,
+    _toolInstances: Record<string, BaseTool>,
+    agentId: string,
     context: AgentContextLike
   ): string {
     const registry = new SkillRegistry();
-    const all_skills = registry.listSkills();
+    const allSkills = registry.listSkills();
 
-    if (!all_skills.length) {
-      console.info(`Agent '${agent_id}': No skills found in registry. Skipping injection.`);
-      return system_prompt;
+    if (!allSkills.length) {
+      console.info(`Agent '${agentId}': No skills found in registry. Skipping injection.`);
+      return systemPrompt;
     }
 
-    const preloaded_skills_names = context?.config?.skills ?? [];
-    const catalog_entries: string[] = [];
-    const detailed_sections: string[] = [];
+    const preloadedSkills = context?.config?.skills ?? [];
+    const catalogEntries: string[] = [];
+    const detailedSections: string[] = [];
 
-    for (const skill of all_skills) {
-      catalog_entries.push(`- **${skill.name}**: ${skill.description}`);
-      if (preloaded_skills_names.includes(skill.name)) {
-        detailed_sections.push(
+    for (const skill of allSkills) {
+      catalogEntries.push(`- **${skill.name}**: ${skill.description}`);
+      if (preloadedSkills.includes(skill.name)) {
+        detailedSections.push(
           `#### ${skill.name}\n**Root Path:** \`${skill.rootPath}\`\n\n${skill.content}`
         );
       }
     }
 
-    let skills_block = '\n\n## Agent Skills\n';
-    skills_block += '### Skill Catalog\n';
-    skills_block += `${catalog_entries.join('\n')}\n`;
-    skills_block += '\nTo load a skill not shown in detail below, use the `load_skill` tool.\n';
+    let skillsBlock = '\n\n## Agent Skills\n';
+    skillsBlock += '### Skill Catalog\n';
+    skillsBlock += `${catalogEntries.join('\n')}\n`;
+    skillsBlock += '\nTo load a skill not shown in detail below, use the `load_skill` tool.\n';
 
-    if (detailed_sections.length) {
-      skills_block += `
+    if (detailedSections.length) {
+      skillsBlock += `
 ### Critical Rules for Using Skills
 
 > **Path Resolution Required for Skill Files**
@@ -67,13 +66,13 @@ export class AvailableSkillsProcessor extends BaseSystemPromptProcessor {
 >    Result: \`/path/to/skill/scripts/run.sh\`
 
 `;
-      skills_block += '### Skill Details\n';
-      skills_block += `${detailed_sections.join('\n')}\n`;
+      skillsBlock += '### Skill Details\n';
+      skillsBlock += `${detailedSections.join('\n')}\n`;
     }
 
     console.info(
-      `Agent '${agent_id}': Injected ${catalog_entries.length} skills in catalog, ${detailed_sections.length} with details.`
+      `Agent '${agentId}': Injected ${catalogEntries.length} skills in catalog, ${detailedSections.length} with details.`
     );
-    return system_prompt + skills_block;
+    return systemPrompt + skillsBlock;
   }
 }

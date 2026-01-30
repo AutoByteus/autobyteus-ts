@@ -7,7 +7,7 @@ export class InterAgentMessageType extends DynamicEnum {
   static CLARIFICATION = InterAgentMessageType.add('CLARIFICATION', 'clarification') as InterAgentMessageType;
   static ERROR = InterAgentMessageType.add('ERROR', 'error') as InterAgentMessageType;
 
-  static add_type(name: string, value: string): InterAgentMessageType | null {
+  static addType(name: string, value: string): InterAgentMessageType | null {
     try {
       return this.add(name, value) as InterAgentMessageType;
     } catch (error) {

@@ -33,7 +33,7 @@ describe('PassThroughStreamingResponseHandler', () => {
 
     expect(events).toHaveLength(2);
     expect(events[1].payload.delta).toBe('<write_file>');
-    expect(handler.get_all_invocations()).toEqual([]);
+    expect(handler.getAllInvocations()).toEqual([]);
   });
 
   it('finalize emits end event', () => {
@@ -45,13 +45,13 @@ describe('PassThroughStreamingResponseHandler', () => {
     expect(events[0].event_type).toBe(SegmentEventType.END);
   });
 
-  it('get_all_invocations is empty', () => {
+  it('getAllInvocations is empty', () => {
     const handler = new PassThroughStreamingResponseHandler();
     handler.feed(chunk('<tool name="foo"></tool>'));
     handler.finalize();
 
-    expect(handler.get_all_invocations()).toEqual([]);
-    const events = handler.get_all_events();
+    expect(handler.getAllInvocations()).toEqual([]);
+    const events = handler.getAllEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     expect(contentEvents[0].payload.delta).toBe('<tool name="foo"></tool>');
   });

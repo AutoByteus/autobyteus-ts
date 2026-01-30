@@ -11,15 +11,17 @@ const DESCRIPTION = [
   'Returns: A formatted context block containing the skill\'s map, its absolute root path, and path resolution guidance.'
 ].join(' ');
 
-export async function loadSkill(_context: any, skill_name: string): Promise<string> {
+export async function loadSkill(_context: unknown, skill_name: string): Promise<string> {
   const registry = new SkillRegistry();
-  let skill = registry.getSkill(skill_name);
+  const skillName = skill_name;
+  let skill = registry.getSkill(skillName);
 
   if (!skill) {
     try {
-      skill = registry.registerSkillFromPath(skill_name);
-    } catch (error: any) {
-      throw new Error(`Skill '${skill_name}' not found and is not a valid skill path: ${error?.message ?? String(error)}`);
+      skill = registry.registerSkillFromPath(skillName);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Skill '${skillName}' not found and is not a valid skill path: ${message}`);
     }
   }
 

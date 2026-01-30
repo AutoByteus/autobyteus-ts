@@ -1,6 +1,6 @@
 import { AgentFactory } from '../../agent/factory/agent_factory.js';
-import { wait_for_agent_to_be_idle } from '../../agent/utils/wait_for_idle.js';
-import { wait_for_team_to_be_idle } from '../utils/wait_for_idle.js';
+import { waitForAgentToBeIdle } from '../../agent/utils/wait_for_idle.js';
+import { waitForTeamToBeIdle } from '../utils/wait_for_idle.js';
 import { TeamNodeNotFoundException } from '../exceptions.js';
 import { Agent } from '../../agent/agent.js';
 import { AgentTeam } from '../agent_team.js';
@@ -12,128 +12,128 @@ import type { InterAgentMessageRequestEvent, ProcessUserMessageEvent } from '../
 export type ManagedNode = Agent | AgentTeam;
 
 export class TeamManager {
-  team_id: string;
-  private _runtime: AgentTeamRuntime;
-  private _multiplexer: AgentEventMultiplexer;
-  _agent_factory: AgentFactory;
-  _nodes_cache: Map<string, ManagedNode> = new Map();
-  _agent_id_to_name_map: Map<string, string> = new Map();
-  private _coordinator_agent: Agent | null = null;
+  teamId: string;
+  private runtime: AgentTeamRuntime;
+  private multiplexer: AgentEventMultiplexer;
+  private agentFactory: AgentFactory;
+  private nodesCache: Map<string, ManagedNode> = new Map();
+  private agentIdToNameMap: Map<string, string> = new Map();
+  private coordinatorAgentRef: Agent | null = null;
 
-  constructor(team_id: string, runtime: AgentTeamRuntime, multiplexer: AgentEventMultiplexer) {
-    this.team_id = team_id;
-    this._runtime = runtime;
-    this._multiplexer = multiplexer;
-    this._agent_factory = new AgentFactory();
-    console.info(`TeamManager created for team '${this.team_id}'.`);
+  constructor(teamId: string, runtime: AgentTeamRuntime, multiplexer: AgentEventMultiplexer) {
+    this.teamId = teamId;
+    this.runtime = runtime;
+    this.multiplexer = multiplexer;
+    this.agentFactory = new AgentFactory();
+    console.info(`TeamManager created for team '${this.teamId}'.`);
   }
 
-  async dispatch_inter_agent_message_request(event: InterAgentMessageRequestEvent): Promise<void> {
-    await this._runtime.submit_event(event);
+  async dispatchInterAgentMessageRequest(event: InterAgentMessageRequestEvent): Promise<void> {
+    await this.runtime.submitEvent(event);
   }
 
-  async dispatch_user_message_to_agent(event: ProcessUserMessageEvent): Promise<void> {
-    await this._runtime.submit_event(event);
+  async dispatchUserMessageToAgent(event: ProcessUserMessageEvent): Promise<void> {
+    await this.runtime.submitEvent(event);
   }
 
-  async ensure_node_is_ready(name_or_agent_id: string): Promise<ManagedNode> {
-    const unique_name = this._agent_id_to_name_map.get(name_or_agent_id) ?? name_or_agent_id;
+  async ensureNodeIsReady(nameOrAgentId: string): Promise<ManagedNode> {
+    const uniqueName = this.agentIdToNameMap.get(nameOrAgentId) ?? nameOrAgentId;
 
-    let node_instance = this._nodes_cache.get(unique_name);
-    let was_created = false;
+    let nodeInstance = this.nodesCache.get(uniqueName);
+    let wasCreated = false;
 
-    if (!node_instance) {
-      console.debug(`Node '${unique_name}' not in cache for team '${this.team_id}'. Attempting lazy creation.`);
+    if (!nodeInstance) {
+      console.debug(`Node '${uniqueName}' not in cache for team '${this.teamId}'. Attempting lazy creation.`);
 
-      const node_config_wrapper = this._runtime.context.get_node_config_by_name(unique_name);
-      if (!node_config_wrapper) {
-        throw new TeamNodeNotFoundException(name_or_agent_id, this.team_id);
+      const nodeConfigWrapper = this.runtime.context.getNodeConfigByName(uniqueName);
+      if (!nodeConfigWrapper) {
+        throw new TeamNodeNotFoundException(nameOrAgentId, this.teamId);
       }
 
-      if (node_config_wrapper.is_sub_team) {
+      if (nodeConfigWrapper.isSubTeam) {
         const { AgentTeamFactory } = await import('../factory/agent_team_factory.js');
-        const node_definition = node_config_wrapper.node_definition;
-        if (!(node_definition instanceof AgentTeamConfig)) {
+        const nodeDefinition = nodeConfigWrapper.nodeDefinition;
+        if (!(nodeDefinition instanceof AgentTeamConfig)) {
           throw new TypeError(
-            `Expected AgentTeamConfig for node '${unique_name}', but found ${
-              node_definition?.constructor?.name ?? typeof node_definition
+            `Expected AgentTeamConfig for node '${uniqueName}', but found ${
+              nodeDefinition?.constructor?.name ?? typeof nodeDefinition
             }`
           );
         }
-        console.info(`Lazily creating sub-team node '${unique_name}' in team '${this.team_id}'.`);
-        const team_factory = new AgentTeamFactory();
-        node_instance = team_factory.create_team(node_definition);
+        console.info(`Lazily creating sub-team node '${uniqueName}' in team '${this.teamId}'.`);
+        const teamFactory = new AgentTeamFactory();
+        nodeInstance = teamFactory.createTeam(nodeDefinition);
       } else {
-        const final_config = this._runtime.context.state.final_agent_configs[unique_name];
-        if (!final_config) {
+        const finalConfig = this.runtime.context.state.finalAgentConfigs[uniqueName];
+        if (!finalConfig) {
           throw new Error(
-            `No pre-prepared agent configuration found for '${unique_name}'. Bootstrap step may have failed or skipped this agent.`
+            `No pre-prepared agent configuration found for '${uniqueName}'. Bootstrap step may have failed or skipped this agent.`
           );
         }
 
-        console.info(`Lazily creating agent node '${unique_name}' using pre-prepared configuration.`);
-        node_instance = this._agent_factory.create_agent(final_config);
+        console.info(`Lazily creating agent node '${uniqueName}' using pre-prepared configuration.`);
+        nodeInstance = this.agentFactory.createAgent(finalConfig);
       }
 
-      this._nodes_cache.set(unique_name, node_instance);
-      was_created = true;
+      this.nodesCache.set(uniqueName, nodeInstance);
+      wasCreated = true;
 
-      if (node_instance instanceof Agent) {
-        this._agent_id_to_name_map.set(node_instance.agent_id, unique_name);
-      }
-    }
-
-    if (was_created && node_instance) {
-      if (node_instance instanceof AgentTeam) {
-        this._multiplexer.start_bridging_team_events(node_instance, unique_name);
-      } else if (node_instance instanceof Agent) {
-        this._multiplexer.start_bridging_agent_events(node_instance, unique_name);
+      if (nodeInstance instanceof Agent) {
+        this.agentIdToNameMap.set(nodeInstance.agentId, uniqueName);
       }
     }
 
-    if (!node_instance.is_running) {
-      console.info(`Team '${this.team_id}': Node '${unique_name}' is not running. Starting on-demand.`);
-      await this._start_node(node_instance, unique_name);
+    if (wasCreated && nodeInstance) {
+      if (nodeInstance instanceof AgentTeam) {
+        this.multiplexer.startBridgingTeamEvents(nodeInstance, uniqueName);
+      } else if (nodeInstance instanceof Agent) {
+        this.multiplexer.startBridgingAgentEvents(nodeInstance, uniqueName);
+      }
     }
 
-    return node_instance;
+    if (!nodeInstance.isRunning) {
+      console.info(`Team '${this.teamId}': Node '${uniqueName}' is not running. Starting on-demand.`);
+      await this.startNode(nodeInstance, uniqueName);
+    }
+
+    return nodeInstance;
   }
 
-  private async _start_node(node: ManagedNode, name: string): Promise<void> {
+  private async startNode(node: ManagedNode, name: string): Promise<void> {
     try {
       node.start();
       if (node instanceof AgentTeam) {
-        await wait_for_team_to_be_idle(node, 120.0);
+        await waitForTeamToBeIdle(node, 120.0);
       } else {
-        await wait_for_agent_to_be_idle(node, 60.0);
+        await waitForAgentToBeIdle(node, 60.0);
       }
     } catch (error) {
-      console.error(`Team '${this.team_id}': Failed to start node '${name}' on-demand: ${error}`);
+      console.error(`Team '${this.teamId}': Failed to start node '${name}' on-demand: ${error}`);
       throw new Error(`Failed to start node '${name}' on-demand.`);
     }
   }
 
-  get_all_agents(): Agent[] {
-    return Array.from(this._nodes_cache.values()).filter((node) => node instanceof Agent) as Agent[];
+  getAllAgents(): Agent[] {
+    return Array.from(this.nodesCache.values()).filter((node) => node instanceof Agent) as Agent[];
   }
 
-  get_all_sub_teams(): AgentTeam[] {
-    return Array.from(this._nodes_cache.values()).filter((node) => node instanceof AgentTeam) as AgentTeam[];
+  getAllSubTeams(): AgentTeam[] {
+    return Array.from(this.nodesCache.values()).filter((node) => node instanceof AgentTeam) as AgentTeam[];
   }
 
-  get coordinator_agent(): Agent | null {
-    return this._coordinator_agent;
+  get coordinatorAgent(): Agent | null {
+    return this.coordinatorAgentRef;
   }
 
-  async ensure_coordinator_is_ready(coordinator_name: string): Promise<Agent> {
-    const node = await this.ensure_node_is_ready(coordinator_name);
+  async ensureCoordinatorIsReady(coordinatorName: string): Promise<Agent> {
+    const node = await this.ensureNodeIsReady(coordinatorName);
     if (!(node instanceof Agent)) {
       throw new TypeError(
-        `Coordinator node '${coordinator_name}' resolved to a non-agent type: ${node?.constructor?.name ?? typeof node}`
+        `Coordinator node '${coordinatorName}' resolved to a non-agent type: ${node?.constructor?.name ?? typeof node}`
       );
     }
 
-    this._coordinator_agent = node;
+    this.coordinatorAgentRef = node;
     return node;
   }
 }

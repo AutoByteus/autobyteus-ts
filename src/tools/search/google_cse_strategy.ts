@@ -19,17 +19,21 @@ export class GoogleCSESearchStrategy extends SearchStrategy {
     this.cseId = cseId;
   }
 
-  protected formatResults(data: Record<string, any>): string {
-    if (!Array.isArray(data.items) || data.items.length === 0) {
+  protected formatResults(data: Record<string, unknown>): string {
+    const items = data['items'];
+    if (!Array.isArray(items) || items.length === 0) {
       return 'No relevant information found for the query via Google CSE.';
     }
 
-    const resultsStr = data.items
-      .map((result: Record<string, any>, index: number) => (
-        `${index + 1}. ${result.title ?? 'No Title'}\n` +
-        `   Link: ${result.link ?? 'No Link'}\n` +
-        `   Snippet: ${result.snippet ?? 'No Snippet'}`
-      ))
+    const resultsStr = items
+      .map((result: unknown, index: number) => {
+        const record = result as Record<string, unknown>;
+        return (
+          `${index + 1}. ${String(record['title'] ?? 'No Title')}\n` +
+          `   Link: ${String(record['link'] ?? 'No Link')}\n` +
+          `   Snippet: ${String(record['snippet'] ?? 'No Snippet')}`
+        );
+      })
       .join('\n');
 
     return `Search Results:\n${resultsStr}`;

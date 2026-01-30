@@ -10,10 +10,10 @@ describe('CustomXmlTagWriteFileParsingState basics', () => {
     ctx.append("print('hello')</write_file>");
 
     const state = new CustomXmlTagWriteFileParsingState(ctx, "<write_file path='/test.py'>");
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].segment_type).toBe(SegmentType.WRITE_FILE);
@@ -23,7 +23,7 @@ describe('CustomXmlTagWriteFileParsingState basics', () => {
     const content = contentEvents.map((e) => e.payload.delta).join('');
     expect(content).toBe("print('hello')");
 
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
   });
 
   it('treats missing path as text', () => {
@@ -31,10 +31,10 @@ describe('CustomXmlTagWriteFileParsingState basics', () => {
     ctx.append('content</write_file>');
 
     const state = new CustomXmlTagWriteFileParsingState(ctx, '<write_file>');
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].segment_type).toBe(SegmentType.TEXT);
@@ -47,10 +47,10 @@ describe('CustomXmlTagWriteFileParsingState streaming', () => {
     ctx.append('hello world content</wri');
 
     const state = new CustomXmlTagWriteFileParsingState(ctx, "<write_file path='/a.py'>");
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const content = contentEvents.map((e) => e.payload.delta).join('');
     expect(content).toContain('hello world');
@@ -64,11 +64,11 @@ describe('CustomXmlTagWriteFileParsingState finalize', () => {
     ctx.append('partial content');
 
     const state = new CustomXmlTagWriteFileParsingState(ctx, "<write_file path='/a.py'>");
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
     state.finalize();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const endEvents = events.filter((e) => e.event_type === SegmentEventType.END);
     expect(endEvents).toHaveLength(1);
   });

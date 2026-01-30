@@ -59,7 +59,7 @@ describe('AgentFactory skill integration', () => {
       const model = new LLMModel({
         name: 'dummy',
         value: 'dummy',
-        canonical_name: 'dummy',
+        canonicalName: 'dummy',
         provider: LLMProvider.OPENAI
       });
       const llm = new DummyLLM(model, new LLMConfig());
@@ -83,11 +83,11 @@ describe('AgentFactory skill integration', () => {
       );
 
       const factory = new AgentFactory();
-      const agent = factory.create_agent(config);
+      const agent = factory.createAgent(config);
 
       let systemPrompt = 'Initial prompt';
-      for (const processor of agent.context.config.system_prompt_processors) {
-        systemPrompt = processor.process(systemPrompt, {}, agent.agent_id, agent.context);
+      for (const processor of agent.context.config.systemPromptProcessors) {
+        systemPrompt = processor.process(systemPrompt, {}, agent.agentId, agent.context);
       }
 
       expect(systemPrompt).toContain('## Agent Skills');
@@ -109,7 +109,7 @@ describe('AgentFactory skill integration', () => {
       const model = new LLMModel({
         name: 'dummy',
         value: 'dummy',
-        canonical_name: 'dummy',
+        canonicalName: 'dummy',
         provider: LLMProvider.OPENAI
       });
       const llm = new DummyLLM(model, new LLMConfig());
@@ -133,11 +133,11 @@ describe('AgentFactory skill integration', () => {
       );
 
       const factory = new AgentFactory();
-      const agent = factory.create_agent(config);
+      const agent = factory.createAgent(config);
 
       let systemPrompt = 'Initial';
-      for (const processor of agent.context.config.system_prompt_processors) {
-        systemPrompt = processor.process(systemPrompt, {}, agent.agent_id, agent.context);
+      for (const processor of agent.context.config.systemPromptProcessors) {
+        systemPrompt = processor.process(systemPrompt, {}, agent.agentId, agent.context);
       }
 
       expect(systemPrompt).toContain('### Skill Catalog');

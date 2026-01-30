@@ -14,15 +14,15 @@ vi.mock('../../../../src/agent_team/task_notification/system_event_driven_agent_
 import { SystemEventDrivenAgentTaskNotifier } from '../../../../src/agent_team/task_notification/system_event_driven_agent_task_notifier.js';
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: { name: 'Coordinator' } });
+  const node = new TeamNodeConfig({ nodeDefinition: { name: 'Coordinator' } });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
-  state.team_manager = { team_id: 'team-1' } as any;
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
+  state.teamManager = { teamId: 'team-1' } as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
@@ -41,7 +41,7 @@ describe('TaskNotifierInitializationStep', () => {
       name: context.config.name,
       description: context.config.description,
       nodes: context.config.nodes,
-      coordinator_node: context.config.coordinator_node
+      coordinatorNode: context.config.coordinatorNode
     });
     context.config = manualConfig;
 
@@ -49,7 +49,7 @@ describe('TaskNotifierInitializationStep', () => {
 
     expect(success).toBe(true);
     expect(SystemEventDrivenAgentTaskNotifier).not.toHaveBeenCalled();
-    expect(context.state.task_notifier).toBeNull();
+    expect(context.state.taskNotifier).toBeNull();
   });
 
   it('initializes notifier in event-driven mode', async () => {
@@ -58,12 +58,12 @@ describe('TaskNotifierInitializationStep', () => {
       name: context.config.name,
       description: context.config.description,
       nodes: context.config.nodes,
-      coordinator_node: context.config.coordinator_node
+      coordinatorNode: context.config.coordinatorNode
     });
     context.config = config;
-    context.state.task_plan = new InMemoryTaskPlan('team-1');
+    context.state.taskPlan = new InMemoryTaskPlan('team-1');
 
-    const mockNotifierInstance = { start_monitoring: vi.fn() };
+    const mockNotifierInstance = { startMonitoring: vi.fn() };
     (SystemEventDrivenAgentTaskNotifier as any).mockImplementation(function () {
       return mockNotifierInstance;
     });
@@ -72,11 +72,11 @@ describe('TaskNotifierInitializationStep', () => {
 
     expect(success).toBe(true);
     expect(SystemEventDrivenAgentTaskNotifier).toHaveBeenCalledWith(
-      context.state.task_plan,
-      context.team_manager
+      context.state.taskPlan,
+      context.teamManager
     );
-    expect(mockNotifierInstance.start_monitoring).toHaveBeenCalledTimes(1);
-    expect(context.state.task_notifier).toBe(mockNotifierInstance as any);
+    expect(mockNotifierInstance.startMonitoring).toHaveBeenCalledTimes(1);
+    expect(context.state.taskNotifier).toBe(mockNotifierInstance as any);
   });
 
   it('fails if task plan missing in event-driven mode', async () => {
@@ -85,10 +85,10 @@ describe('TaskNotifierInitializationStep', () => {
       name: context.config.name,
       description: context.config.description,
       nodes: context.config.nodes,
-      coordinator_node: context.config.coordinator_node
+      coordinatorNode: context.config.coordinatorNode
     });
     context.config = config;
-    context.state.task_plan = null;
+    context.state.taskPlan = null;
 
     const success = await step.execute(context);
 
@@ -101,11 +101,11 @@ describe('TaskNotifierInitializationStep', () => {
       name: context.config.name,
       description: context.config.description,
       nodes: context.config.nodes,
-      coordinator_node: context.config.coordinator_node
+      coordinatorNode: context.config.coordinatorNode
     });
     context.config = config;
-    context.state.task_plan = new InMemoryTaskPlan('team-1');
-    context.state.team_manager = null;
+    context.state.taskPlan = new InMemoryTaskPlan('team-1');
+    context.state.teamManager = null;
 
     const success = await step.execute(context);
 

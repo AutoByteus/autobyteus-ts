@@ -34,18 +34,18 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
-  const inputQueues = { enqueue_user_message: vi.fn(async () => undefined) } as any;
-  state.input_event_queues = inputQueues;
+  const inputQueues = { enqueueUserMessage: vi.fn(async () => undefined) } as any;
+  state.inputEventQueues = inputQueues;
   const notifier = {
-    notify_agent_data_inter_agent_message_received: vi.fn()
+    notifyAgentDataInterAgentMessageReceived: vi.fn()
   };
-  state.status_manager_ref = { notifier } as any;
+  state.statusManagerRef = { notifier } as any;
   const context = new AgentContext('agent-1', config, state);
   return { context, inputQueues, notifier };
 };
@@ -74,7 +74,7 @@ describe('InterAgentMessageReceivedEventHandler', () => {
 
     const interAgentMsg = new InterAgentMessage(
       recipientRole,
-      context.agent_id,
+      context.agentId,
       content,
       messageType,
       senderId
@@ -90,18 +90,18 @@ describe('InterAgentMessageReceivedEventHandler', () => {
         )
       )
     ).toBe(true);
-    expect(notifier.notify_agent_data_inter_agent_message_received).toHaveBeenCalledWith({
+    expect(notifier.notifyAgentDataInterAgentMessageReceived).toHaveBeenCalledWith({
       sender_agent_id: senderId,
       recipient_role_name: recipientRole,
       content,
       message_type: messageType.value
     });
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(UserMessageReceivedEvent);
-    expect(enqueued.agent_input_user_message).toBeInstanceOf(AgentInputUserMessage);
-    const contentSent = enqueued.agent_input_user_message.content;
+    expect(enqueued.agentInputUserMessage).toBeInstanceOf(AgentInputUserMessage);
+    const contentSent = enqueued.agentInputUserMessage.content;
     expect(contentSent).toContain(`Sender Agent ID: ${senderId}`);
     expect(contentSent).toContain(`Message Type: ${messageType.value}`);
     expect(contentSent).toContain(`--- Message Content ---\n${content}`);
@@ -121,7 +121,7 @@ describe('InterAgentMessageReceivedEventHandler', () => {
         )
       )
     ).toBe(true);
-    expect(inputQueues.enqueue_user_message).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueUserMessage).not.toHaveBeenCalled();
   });
 
   it('logs initialization', () => {

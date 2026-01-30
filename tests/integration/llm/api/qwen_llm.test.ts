@@ -12,7 +12,7 @@ const buildModel = () =>
   new LLMModel({
     name: 'qwen3-max',
     value: 'qwen3-max',
-    canonical_name: 'qwen3-max',
+    canonicalName: 'qwen3-max',
     provider: LLMProvider.QWEN
   });
 

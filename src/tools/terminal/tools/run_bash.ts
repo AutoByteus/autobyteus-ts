@@ -12,7 +12,7 @@ export type AgentContextLike = { workspace?: WorkspaceLike | null; agentId?: str
 
 let defaultTerminalManager: TerminalSessionManager | null = null;
 
-function _get_terminal_manager(context: AgentContextLike | null | undefined): TerminalSessionManager {
+function getTerminalManager(context: AgentContextLike | null | undefined): TerminalSessionManager {
   if (!context) {
     if (!defaultTerminalManager) {
       defaultTerminalManager = new TerminalSessionManager();
@@ -20,15 +20,23 @@ function _get_terminal_manager(context: AgentContextLike | null | undefined): Te
     return defaultTerminalManager;
   }
 
-  const contextAny = context as Record<string, any>;
-  if (!contextAny._terminal_session_manager) {
-    contextAny._terminal_session_manager = new TerminalSessionManager();
+  const contextRecord = context as Record<string, unknown>;
+  const existing = contextRecord._terminalSessionManager as TerminalSessionManager | undefined;
+
+  if (!existing) {
+    const manager = new TerminalSessionManager();
+    contextRecord._terminalSessionManager = manager;
+    return manager;
   }
 
-  return contextAny._terminal_session_manager as TerminalSessionManager;
+  if (!contextRecord._terminalSessionManager) {
+    contextRecord._terminalSessionManager = existing;
+  }
+
+  return existing;
 }
 
-function _get_cwd(context: AgentContextLike | null | undefined): string {
+function getCwd(context: AgentContextLike | null | undefined): string {
   if (context?.workspace) {
     try {
       const basePath = context.workspace.getBasePath();
@@ -43,16 +51,16 @@ function _get_cwd(context: AgentContextLike | null | undefined): string {
   return os.tmpdir();
 }
 
-export async function run_bash(
+export async function runBash(
   context: AgentContextLike | null,
   command: string,
-  timeout_seconds: number = 30
+  timeoutSeconds: number = 30
 ): Promise<TerminalResult> {
-  const manager = _get_terminal_manager(context);
-  const cwd = _get_cwd(context);
+  const manager = getTerminalManager(context);
+  const cwd = getCwd(context);
 
-  await manager.ensure_started(cwd);
-  return manager.execute_command(command, timeout_seconds);
+  await manager.ensureStarted(cwd);
+  return manager.executeCommand(command, timeoutSeconds);
 }
 
 const argumentSchema = new ParameterSchema();
@@ -79,8 +87,9 @@ export function registerRunBashTool(): BaseTool {
       name: TOOL_NAME,
       description: 'Execute a shell command in a stateful terminal session.',
       argumentSchema,
-      category: ToolCategory.SYSTEM
-    })(run_bash) as BaseTool;
+      category: ToolCategory.SYSTEM,
+      paramNames: ['context', 'command', 'timeout_seconds']
+    })(runBash) as BaseTool;
     return cachedTool;
   }
 

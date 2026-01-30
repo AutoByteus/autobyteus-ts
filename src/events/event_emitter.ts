@@ -3,45 +3,45 @@ import { EventManager, Subscription, Topic, type Listener } from './event_manage
 import { EventType } from './event_types.js';
 
 export class EventEmitter {
-  object_id: string;
-  event_manager: EventManager;
+  objectId: string;
+  eventManager: EventManager;
 
   constructor() {
-    this.object_id = randomUUID();
-    this.event_manager = EventManager.getInstance();
+    this.objectId = randomUUID();
+    this.eventManager = EventManager.getInstance();
   }
 
   subscribe(event: EventType, listener: Listener): void {
-    const subscription = new Subscription(this.object_id, listener);
+    const subscription = new Subscription(this.objectId, listener);
     const topic = new Topic(event, null);
-    this.event_manager.subscribe(subscription, topic);
+    this.eventManager.subscribe(subscription, topic);
   }
 
-  subscribe_from(sender: EventEmitter, event: EventType, listener: Listener): void {
-    const subscription = new Subscription(this.object_id, listener);
-    const senderId = sender?.object_id ?? null;
+  subscribeFrom(sender: EventEmitter, event: EventType, listener: Listener): void {
+    const subscription = new Subscription(this.objectId, listener);
+    const senderId = sender?.objectId ?? null;
     const topic = new Topic(event, senderId);
-    this.event_manager.subscribe(subscription, topic);
+    this.eventManager.subscribe(subscription, topic);
   }
 
   unsubscribe(event: EventType, listener: Listener): void {
-    const subscription = new Subscription(this.object_id, listener);
+    const subscription = new Subscription(this.objectId, listener);
     const topic = new Topic(event, null);
-    this.event_manager.unsubscribe(subscription, topic);
+    this.eventManager.unsubscribe(subscription, topic);
   }
 
-  unsubscribe_from(sender: EventEmitter, event: EventType, listener: Listener): void {
-    const subscription = new Subscription(this.object_id, listener);
-    const senderId = sender?.object_id ?? null;
+  unsubscribeFrom(sender: EventEmitter, event: EventType, listener: Listener): void {
+    const subscription = new Subscription(this.objectId, listener);
+    const senderId = sender?.objectId ?? null;
     const topic = new Topic(event, senderId);
-    this.event_manager.unsubscribe(subscription, topic);
+    this.eventManager.unsubscribe(subscription, topic);
   }
 
-  unsubscribe_all_listeners(): void {
-    this.event_manager.unsubscribe_all_for_subscriber(this.object_id);
+  unsubscribeAllListeners(): void {
+    this.eventManager.unsubscribeAllForSubscriber(this.objectId);
   }
 
-  emit(event: EventType, kwargs: Record<string, any> = {}): void {
-    this.event_manager.emit(event, this.object_id, kwargs);
+  emit(event: EventType, kwargs: Record<string, unknown> = {}): void {
+    this.eventManager.emit(event, this.objectId, kwargs);
   }
 }

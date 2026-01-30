@@ -23,8 +23,8 @@ export class DefaultJsonExampleFormatter implements UsageFormatter {
     return output;
   }
 
-  private createExampleStructure(tool: ToolDefinition, mode: 'basic' | 'advanced'): Record<string, any> {
-    const argumentsPayload: Record<string, any> = {};
+  private createExampleStructure(tool: ToolDefinition, mode: 'basic' | 'advanced'): Record<string, unknown> {
+    const argumentsPayload: Record<string, unknown> = {};
     const schema = tool.argumentSchema;
 
     if (schema && schema.parameters.length > 0) {
@@ -63,7 +63,7 @@ export class DefaultJsonExampleFormatter implements UsageFormatter {
     return false;
   }
 
-  private generatePlaceholderValue(param: ParameterDefinition, mode: 'basic' | 'advanced'): any {
+  private generatePlaceholderValue(param: ParameterDefinition, mode: 'basic' | 'advanced'): unknown {
     if (param.type === ParameterType.OBJECT && param.objectSchema) {
       return DefaultJsonExampleFormatter.generateExampleFromSchema(param.objectSchema, param.objectSchema, mode);
     }
@@ -88,10 +88,10 @@ export class DefaultJsonExampleFormatter implements UsageFormatter {
   }
 
   static generateExampleFromSchema(
-    subSchema: Record<string, any> | ParameterSchema | ParameterType,
-    fullSchema: Record<string, any> | ParameterSchema | ParameterType,
+    subSchema: Record<string, unknown> | ParameterSchema | ParameterType,
+    fullSchema: Record<string, unknown> | ParameterSchema | ParameterType,
     mode: 'basic' | 'advanced' = 'basic'
-  ): any {
+  ): unknown {
     if (typeof subSchema === 'string') {
       if (subSchema === ParameterType.STRING) return 'example_string';
       if (subSchema === ParameterType.INTEGER) return 1;
@@ -106,14 +106,21 @@ export class DefaultJsonExampleFormatter implements UsageFormatter {
     if (normalizedSubSchema && typeof normalizedSubSchema === 'object' && '$ref' in normalizedSubSchema) {
       const refPath = String((normalizedSubSchema as any).$ref);
       const parts = refPath.replace(/^#\//, '').split('/');
-      let resolved: any = normalizedFullSchema;
+      let resolved: unknown = normalizedFullSchema;
       for (const part of parts) {
         if (!resolved || typeof resolved !== 'object') {
           return { error: `Could not resolve schema reference: ${refPath}` };
         }
-        resolved = resolved[part];
+        resolved = (resolved as Record<string, unknown>)[part];
       }
-      return DefaultJsonExampleFormatter.generateExampleFromSchema(resolved, normalizedFullSchema, mode);
+      if (typeof resolved === 'string' || (resolved && typeof resolved === 'object')) {
+        return DefaultJsonExampleFormatter.generateExampleFromSchema(
+          resolved as Record<string, unknown> | ParameterSchema | ParameterType,
+          normalizedFullSchema,
+          mode
+        );
+      }
+      return { error: `Could not resolve schema reference: ${refPath}` };
     }
 
     if (!normalizedSubSchema || typeof normalizedSubSchema !== 'object') {
@@ -131,13 +138,13 @@ export class DefaultJsonExampleFormatter implements UsageFormatter {
     }
 
     if (schemaType === 'object') {
-      const exampleObj: Record<string, any> = {};
+      const exampleObj: Record<string, unknown> = {};
       const properties = (normalizedSubSchema as any).properties || {};
       const requiredFields: string[] = (normalizedSubSchema as any).required || [];
       for (const [propName, propSchema] of Object.entries(properties)) {
         if (mode === 'advanced' || requiredFields.includes(propName)) {
           exampleObj[propName] = DefaultJsonExampleFormatter.generateExampleFromSchema(
-            propSchema as Record<string, any>,
+            propSchema as Record<string, unknown>,
             normalizedFullSchema,
             mode
           );

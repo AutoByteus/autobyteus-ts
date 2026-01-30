@@ -63,7 +63,7 @@ describe('EventManager', () => {
     manager.subscribe(new Subscription('sub-1', listenerA), new Topic(EventType.TASK_PLAN_TASKS_CREATED, null));
     manager.subscribe(new Subscription('sub-1', listenerB), new Topic(EventType.TASK_PLAN_STATUS_UPDATED, null));
 
-    manager.unsubscribe_all_for_subscriber('sub-1');
+    manager.unsubscribeAllForSubscriber('sub-1');
 
     manager.emit(EventType.TASK_PLAN_TASKS_CREATED, 'origin', { payload: 'a' });
     manager.emit(EventType.TASK_PLAN_STATUS_UPDATED, 'origin', { payload: 'b' });

@@ -3,16 +3,16 @@ import { BaseManagedMcpServer } from './base_managed_mcp_server.js';
 import type { WebsocketMcpServerConfig } from '../types.js';
 
 type ClientLike = {
-  connect?: (transport: any) => Promise<void>;
+  connect?: (transport: unknown) => Promise<void>;
   initialize?: () => Promise<void>;
   close?: () => Promise<void> | void;
-  listTools: () => Promise<any>;
-  callTool: (...args: any[]) => Promise<any>;
+  listTools: () => Promise<unknown>;
+  callTool: (...args: unknown[]) => Promise<unknown>;
 };
 
 type SdkModule = {
-  Client: new (...args: any[]) => ClientLike;
-  Transport: new (...args: any[]) => any;
+  Client: new (...args: unknown[]) => ClientLike;
+  Transport: new (...args: unknown[]) => unknown;
 };
 
 function normalizeSubprotocols(subprotocols: string[] = []): string[] {
@@ -24,12 +24,12 @@ function normalizeSubprotocols(subprotocols: string[] = []): string[] {
   return provided;
 }
 
-function buildTlsOptions(config: WebsocketMcpServerConfig): Record<string, any> | undefined {
+function buildTlsOptions(config: WebsocketMcpServerConfig): Record<string, unknown> | undefined {
   if (!config.url?.toLowerCase().startsWith('wss://')) {
     return undefined;
   }
 
-  const tlsOptions: Record<string, any> = {
+  const tlsOptions: Record<string, unknown> = {
     rejectUnauthorized: config.verify_tls !== false
   };
 
@@ -73,10 +73,10 @@ export class WebsocketManagedMcpServer extends BaseManagedMcpServer {
   }
 
   protected async createClientSession(): Promise<ClientLike> {
-    const config = this.config_object as WebsocketMcpServerConfig;
+    const config = this.configObject as WebsocketMcpServerConfig;
     const sdk = await (WebsocketManagedMcpServer.sdkLoader ?? loadSdk)();
 
-    const transportOptions: Record<string, any> = {
+    const transportOptions: Record<string, unknown> = {
       url: config.url,
       headers: config.headers ?? {},
       origin: config.origin ?? undefined,
@@ -87,15 +87,15 @@ export class WebsocketManagedMcpServer extends BaseManagedMcpServer {
       tls: buildTlsOptions(config)
     };
 
-    let transport: any;
+    let transport: unknown;
     try {
       transport = new sdk.Transport(config.url, transportOptions);
     } catch {
       transport = new sdk.Transport(transportOptions);
     }
 
-    if (typeof transport.close === 'function') {
-      this.registerCleanup(() => transport.close());
+    if (typeof (transport as { close?: () => void }).close === 'function') {
+      this.registerCleanup(() => (transport as { close: () => void }).close());
     }
 
     const client = this.createClientInstance(sdk.Client);
@@ -111,7 +111,7 @@ export class WebsocketManagedMcpServer extends BaseManagedMcpServer {
     return client;
   }
 
-  private createClientInstance(ClientCtor: new (...args: any[]) => ClientLike): ClientLike {
+  private createClientInstance(ClientCtor: new (...args: unknown[]) => ClientLike): ClientLike {
     try {
       return new ClientCtor({ name: 'autobyteus', version: '1.0.0' });
     } catch {

@@ -32,9 +32,9 @@ const collectStreamResults = async <T>(
 const makeStreamer = (agentId = 'stream_test_agent_001') => {
   const notifier = new AgentExternalEventNotifier(agentId);
   const agent = {
-    agent_id: agentId,
+    agentId,
     context: {
-      status_manager: { notifier }
+      statusManager: { notifier }
     }
   };
   return { notifier, streamer: new AgentEventStream(agent) };
@@ -46,11 +46,11 @@ describe('AgentEventStream', () => {
     const chunk1 = new ChunkResponse({ content: 'Hello ' });
     const chunk2 = new ChunkResponse({ content: 'World' });
 
-    const consumer = collectStreamResults(streamer.stream_assistant_chunks(), streamer, 40);
+    const consumer = collectStreamResults(streamer.streamAssistantChunks(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_agent_data_assistant_chunk(chunk1);
-      notifier.notify_agent_data_assistant_chunk(chunk2);
+      notifier.notifyAgentDataAssistantChunk(chunk1);
+      notifier.notifyAgentDataAssistantChunk(chunk2);
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -61,10 +61,10 @@ describe('AgentEventStream', () => {
     const { notifier, streamer } = makeStreamer();
     const finalMsg = new CompleteResponse({ content: 'This is the final message.' });
 
-    const consumer = collectStreamResults(streamer.stream_assistant_final_response(), streamer, 40);
+    const consumer = collectStreamResults(streamer.streamAssistantFinalResponse(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_agent_data_assistant_complete_response(finalMsg);
+      notifier.notifyAgentDataAssistantCompleteResponse(finalMsg);
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -72,14 +72,14 @@ describe('AgentEventStream', () => {
     expect(results[0].content).toBe(finalMsg.content);
   });
 
-  it('all_events receives status changes', async () => {
+  it('allEvents receives status changes', async () => {
     const agentId = 'stream_test_agent_001';
     const { notifier, streamer } = makeStreamer(agentId);
 
-    const consumer = collectStreamResults(streamer.all_events(), streamer, 40);
+    const consumer = collectStreamResults(streamer.allEvents(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_status_updated(AgentStatus.IDLE, AgentStatus.BOOTSTRAPPING);
+      notifier.notifyStatusUpdated(AgentStatus.IDLE, AgentStatus.BOOTSTRAPPING);
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -93,14 +93,14 @@ describe('AgentEventStream', () => {
     expect(payload.old_status).toBe(AgentStatus.BOOTSTRAPPING);
   });
 
-  it('all_events receives assistant chunk', async () => {
+  it('allEvents receives assistant chunk', async () => {
     const { notifier, streamer } = makeStreamer();
     const chunk = new ChunkResponse({ content: 'test chunk' });
 
-    const consumer = collectStreamResults(streamer.all_events(), streamer, 40);
+    const consumer = collectStreamResults(streamer.allEvents(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_agent_data_assistant_chunk(chunk);
+      notifier.notifyAgentDataAssistantChunk(chunk);
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -111,14 +111,14 @@ describe('AgentEventStream', () => {
     expect((event.data as AssistantChunkData).content).toBe('test chunk');
   });
 
-  it('all_events receives complete response', async () => {
+  it('allEvents receives complete response', async () => {
     const { notifier, streamer } = makeStreamer();
     const finalMsg = new CompleteResponse({ content: 'Final response content.' });
 
-    const consumer = collectStreamResults(streamer.all_events(), streamer, 40);
+    const consumer = collectStreamResults(streamer.allEvents(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_agent_data_assistant_complete_response(finalMsg);
+      notifier.notifyAgentDataAssistantCompleteResponse(finalMsg);
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -129,13 +129,13 @@ describe('AgentEventStream', () => {
     expect((event.data as AssistantCompleteResponseData).content).toBe('Final response content.');
   });
 
-  it('all_events receives error event', async () => {
+  it('allEvents receives error event', async () => {
     const { notifier, streamer } = makeStreamer();
 
-    const consumer = collectStreamResults(streamer.all_events(), streamer, 40);
+    const consumer = collectStreamResults(streamer.allEvents(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_agent_error_output_generation('Test.Source', 'A test error occurred.', 'Detailed traceback.');
+      notifier.notifyAgentErrorOutputGeneration('Test.Source', 'A test error occurred.', 'Detailed traceback.');
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -149,19 +149,19 @@ describe('AgentEventStream', () => {
     expect(payload.details).toBe('Detailed traceback.');
   });
 
-  it('all_events receives mixed events in order', async () => {
+  it('allEvents receives mixed events in order', async () => {
     const { notifier, streamer } = makeStreamer();
     const chunk = new ChunkResponse({ content: 'c1' });
     const finalMsg = new CompleteResponse({ content: 'final' });
 
-    const consumer = collectStreamResults(streamer.all_events(), streamer, 80);
+    const consumer = collectStreamResults(streamer.allEvents(), streamer, 80);
     const producer = (async () => {
       await delay(5);
-      notifier.notify_status_updated(AgentStatus.IDLE, AgentStatus.BOOTSTRAPPING);
+      notifier.notifyStatusUpdated(AgentStatus.IDLE, AgentStatus.BOOTSTRAPPING);
       await delay(5);
-      notifier.notify_agent_data_assistant_chunk(chunk);
+      notifier.notifyAgentDataAssistantChunk(chunk);
       await delay(5);
-      notifier.notify_agent_data_assistant_complete_response(finalMsg);
+      notifier.notifyAgentDataAssistantCompleteResponse(finalMsg);
     })();
 
     const [results] = await Promise.all([consumer, producer]);

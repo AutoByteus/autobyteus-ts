@@ -1,33 +1,35 @@
 import { Singleton } from '../../../utils/singleton.js';
 import type { BaseState } from './states/base_state.js';
+import type { ParserContext } from './parser_context.js';
 import { XmlWriteFileToolParsingState } from './states/xml_write_file_tool_parsing_state.js';
 import { XmlPatchFileToolParsingState } from './states/xml_patch_file_tool_parsing_state.js';
 import { XmlRunBashToolParsingState } from './states/xml_run_bash_tool_parsing_state.js';
 import { TOOL_NAME_WRITE_FILE, TOOL_NAME_PATCH_FILE, TOOL_NAME_RUN_BASH } from './tool_constants.js';
 
-export type XmlToolParsingStateClass = new (...args: any[]) => BaseState;
+export type XmlToolParsingStateClass = new (context: ParserContext, openingTag: string) => BaseState;
 
 export class XmlToolParsingStateRegistry extends Singleton {
+  protected static instance?: XmlToolParsingStateRegistry;
+
   private toolStates: Map<string, XmlToolParsingStateClass> = new Map();
 
   constructor() {
     super();
-    const existing = (XmlToolParsingStateRegistry as any).instance as XmlToolParsingStateRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (XmlToolParsingStateRegistry.instance) {
+      return XmlToolParsingStateRegistry.instance;
     }
-    (XmlToolParsingStateRegistry as any).instance = this;
+    XmlToolParsingStateRegistry.instance = this;
 
-    this.register_tool_state(TOOL_NAME_WRITE_FILE, XmlWriteFileToolParsingState);
-    this.register_tool_state(TOOL_NAME_PATCH_FILE, XmlPatchFileToolParsingState);
-    this.register_tool_state(TOOL_NAME_RUN_BASH, XmlRunBashToolParsingState);
+    this.registerToolState(TOOL_NAME_WRITE_FILE, XmlWriteFileToolParsingState);
+    this.registerToolState(TOOL_NAME_PATCH_FILE, XmlPatchFileToolParsingState);
+    this.registerToolState(TOOL_NAME_RUN_BASH, XmlRunBashToolParsingState);
   }
 
-  register_tool_state(toolName: string, stateClass: XmlToolParsingStateClass): void {
+  registerToolState(toolName: string, stateClass: XmlToolParsingStateClass): void {
     this.toolStates.set(toolName, stateClass);
   }
 
-  get_state_for_tool(toolName: string): XmlToolParsingStateClass | undefined {
+  getStateForTool(toolName: string): XmlToolParsingStateClass | undefined {
     return this.toolStates.get(toolName);
   }
 }

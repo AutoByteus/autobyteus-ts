@@ -15,7 +15,7 @@ describe('ToolInvocationAdapter basics', () => {
       })
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(1);
     expect(invocations[0].id).toBe('seg_5');
     expect(invocations[0].name).toBe('read_file');
@@ -31,8 +31,8 @@ describe('ToolInvocationAdapter basics', () => {
       payload: { metadata: { tool_name: 'write_file' } }
     });
 
-    adapter.process_event(start);
-    const result = adapter.process_event(end);
+    adapter.processEvent(start);
+    const result = adapter.processEvent(end);
     expect(result).not.toBeNull();
     expect(result!.id).toBe('my-unique-id-123');
   });
@@ -45,7 +45,7 @@ describe('ToolInvocationAdapter basics', () => {
       SegmentEvent.end('seg_1')
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(0);
   });
 
@@ -57,7 +57,7 @@ describe('ToolInvocationAdapter basics', () => {
       SegmentEvent.end('seg_2')
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('write_file');
     expect(invocations[0].arguments).toEqual({ path: '/test.py', content: 'code' });
@@ -71,7 +71,7 @@ describe('ToolInvocationAdapter basics', () => {
       SegmentEvent.end('seg_3')
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('run_bash');
     expect(invocations[0].arguments).toEqual({ command: 'ls -la' });
@@ -85,7 +85,7 @@ describe('ToolInvocationAdapter basics', () => {
       SegmentEvent.end('seg_json')
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('search');
     expect(invocations[0].arguments).toEqual({ query: 'autobyteus' });
@@ -110,7 +110,7 @@ describe('ToolInvocationAdapter basics', () => {
       })
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(2);
     expect(invocations[0].id).toBe('seg_1');
     expect(invocations[0].name).toBe('tool_a');
@@ -128,7 +128,7 @@ describe('ToolInvocationAdapter basics', () => {
       SegmentEvent.end('seg_x')
     ];
 
-    const invocations = adapter.process_events(events);
+    const invocations = adapter.processEvents(events);
     expect(invocations).toHaveLength(0);
   });
 });
@@ -136,47 +136,47 @@ describe('ToolInvocationAdapter basics', () => {
 describe('ToolInvocationAdapter state', () => {
   it('tracks active segments', () => {
     const adapter = new ToolInvocationAdapter();
-    adapter.process_event(SegmentEvent.start('seg_1', SegmentType.TOOL_CALL, { tool_name: 'test' }));
-    expect(adapter.get_active_segment_ids()).toContain('seg_1');
+    adapter.processEvent(SegmentEvent.start('seg_1', SegmentType.TOOL_CALL, { tool_name: 'test' }));
+    expect(adapter.getActiveSegmentIds()).toContain('seg_1');
 
-    adapter.process_event(
+    adapter.processEvent(
       new SegmentEvent({
         event_type: SegmentEventType.END,
         segment_id: 'seg_1',
         payload: { metadata: { tool_name: 'test' } }
       })
     );
-    expect(adapter.get_active_segment_ids()).not.toContain('seg_1');
+    expect(adapter.getActiveSegmentIds()).not.toContain('seg_1');
   });
 
   it('reset clears state', () => {
     const adapter = new ToolInvocationAdapter();
-    adapter.process_event(SegmentEvent.start('seg_1', SegmentType.TOOL_CALL, { tool_name: 'test' }));
-    adapter.process_event(SegmentEvent.start('seg_2', SegmentType.TOOL_CALL, { tool_name: 'test' }));
-    expect(adapter.get_active_segment_ids()).toHaveLength(2);
+    adapter.processEvent(SegmentEvent.start('seg_1', SegmentType.TOOL_CALL, { tool_name: 'test' }));
+    adapter.processEvent(SegmentEvent.start('seg_2', SegmentType.TOOL_CALL, { tool_name: 'test' }));
+    expect(adapter.getActiveSegmentIds()).toHaveLength(2);
 
     adapter.reset();
-    expect(adapter.get_active_segment_ids()).toHaveLength(0);
+    expect(adapter.getActiveSegmentIds()).toHaveLength(0);
   });
 });
 
 describe('ToolInvocationAdapter edge cases', () => {
   it('ignores end without start', () => {
     const adapter = new ToolInvocationAdapter();
-    const result = adapter.process_event(SegmentEvent.end('unknown_seg'));
+    const result = adapter.processEvent(SegmentEvent.end('unknown_seg'));
     expect(result).toBeNull();
   });
 
   it('ignores content without start', () => {
     const adapter = new ToolInvocationAdapter();
-    const result = adapter.process_event(SegmentEvent.content('unknown_seg', 'data'));
+    const result = adapter.processEvent(SegmentEvent.content('unknown_seg', 'data'));
     expect(result).toBeNull();
   });
 
   it('keeps incomplete segments active', () => {
     const adapter = new ToolInvocationAdapter();
-    adapter.process_event(SegmentEvent.start('seg_1', SegmentType.TOOL_CALL, { tool_name: 'test' }));
-    adapter.process_event(SegmentEvent.content('seg_1', 'content'));
-    expect(adapter.get_active_segment_ids()).toHaveLength(1);
+    adapter.processEvent(SegmentEvent.start('seg_1', SegmentType.TOOL_CALL, { tool_name: 'test' }));
+    adapter.processEvent(SegmentEvent.content('seg_1', 'content'));
+    expect(adapter.getActiveSegmentIds()).toHaveLength(1);
   });
 });

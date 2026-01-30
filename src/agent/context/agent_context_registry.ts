@@ -2,19 +2,20 @@ import { Singleton } from '../../utils/singleton.js';
 import type { AgentContextLike } from './agent_context_like.js';
 
 export class AgentContextRegistry extends Singleton {
+  protected static instance?: AgentContextRegistry;
+
   private contexts: Map<string, WeakRef<AgentContextLike>> = new Map();
 
   constructor() {
     super();
-    const existing = (AgentContextRegistry as any).instance as AgentContextRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (AgentContextRegistry.instance) {
+      return AgentContextRegistry.instance;
     }
-    (AgentContextRegistry as any).instance = this;
+    AgentContextRegistry.instance = this;
   }
 
   registerContext(context: AgentContextLike): void {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     const existingRef = this.contexts.get(agentId);
     const existing = existingRef?.deref();
     if (existing) {

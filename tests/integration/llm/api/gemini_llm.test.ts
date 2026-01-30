@@ -28,7 +28,7 @@ const buildGeminiModel = () =>
   new LLMModel({
     name: 'gemini-3-flash-preview',
     value: 'gemini-3-flash-preview',
-    canonical_name: 'gemini-3-flash',
+    canonicalName: 'gemini-3-flash',
     provider: LLMProvider.GEMINI
   });
 

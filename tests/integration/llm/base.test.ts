@@ -21,7 +21,7 @@ describe('BaseLLM (integration)', () => {
     const model = new LLMModel({
       name: 'test',
       value: 'test',
-      canonical_name: 'test',
+      canonicalName: 'test',
       provider: LLMProvider.OPENAI
     });
     const llm = new ConcreteLLM(model, new LLMConfig());

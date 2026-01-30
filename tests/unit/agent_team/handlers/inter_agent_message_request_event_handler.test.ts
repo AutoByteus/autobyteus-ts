@@ -10,28 +10,28 @@ import { InterAgentMessage } from '../../../../src/agent/message/inter_agent_mes
 import { AgentInputUserMessage } from '../../../../src/agent/message/agent_input_user_message.js';
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: { name: 'Coordinator' } });
+  const node = new TeamNodeConfig({ nodeDefinition: { name: 'Coordinator' } });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1', current_status: AgentTeamStatus.IDLE });
-  state.input_event_queues = {
-    enqueue_internal_system_event: vi.fn(async () => undefined)
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1', currentStatus: AgentTeamStatus.IDLE });
+  state.inputEventQueues = {
+    enqueueInternalSystemEvent: vi.fn(async () => undefined)
   } as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
 describe('InterAgentMessageRequestEventHandler', () => {
   let handler: InterAgentMessageRequestEventHandler;
-  let agent_team_context: AgentTeamContext;
+  let agentTeamContext: AgentTeamContext;
   let event: InterAgentMessageRequestEvent;
 
   beforeEach(() => {
     handler = new InterAgentMessageRequestEventHandler();
-    agent_team_context = makeContext();
+    agentTeamContext = makeContext();
     event = new InterAgentMessageRequestEvent(
       'sender_agent_id_123',
       'Recipient',
@@ -41,54 +41,54 @@ describe('InterAgentMessageRequestEventHandler', () => {
   });
 
   it('posts inter-agent message to recipient agent', async () => {
-    const mock_agent = {
-      agent_id: 'agent-1',
+    const mockAgent = {
+      agentId: 'agent-1',
       context: { config: { role: 'RecipientRole' } },
-      post_inter_agent_message: vi.fn(async () => undefined)
+      postInterAgentMessage: vi.fn(async () => undefined)
     };
-    agent_team_context.state.team_manager = {
-      ensure_node_is_ready: vi.fn(async () => mock_agent)
+    agentTeamContext.state.teamManager = {
+      ensureNodeIsReady: vi.fn(async () => mockAgent)
     } as any;
 
-    await handler.handle(event, agent_team_context);
+    await handler.handle(event, agentTeamContext);
 
-    expect(agent_team_context.state.team_manager?.ensure_node_is_ready).toHaveBeenCalledWith('Recipient');
-    expect(mock_agent.post_inter_agent_message).toHaveBeenCalledTimes(1);
-    const posted_message = (mock_agent.post_inter_agent_message as any).mock.calls[0][0];
-    expect(posted_message).toBeInstanceOf(InterAgentMessage);
-    expect(posted_message.content).toBe(event.content);
-    expect(posted_message.sender_agent_id).toBe(event.sender_agent_id);
-    const enqueue = agent_team_context.state.input_event_queues?.enqueue_internal_system_event as any;
+    expect(agentTeamContext.state.teamManager?.ensureNodeIsReady).toHaveBeenCalledWith('Recipient');
+    expect(mockAgent.postInterAgentMessage).toHaveBeenCalledTimes(1);
+    const postedMessage = (mockAgent.postInterAgentMessage as any).mock.calls[0][0];
+    expect(postedMessage).toBeInstanceOf(InterAgentMessage);
+    expect(postedMessage.content).toBe(event.content);
+    expect(postedMessage.senderAgentId).toBe(event.senderAgentId);
+    const enqueue = agentTeamContext.state.inputEventQueues?.enqueueInternalSystemEvent as any;
     expect(enqueue).not.toHaveBeenCalled();
   });
 
   it('posts user message to sub-team recipient', async () => {
-    const mock_sub_team = {
-      post_message: vi.fn(async () => undefined)
+    const mockSubTeam = {
+      postMessage: vi.fn(async () => undefined)
     };
-    agent_team_context.state.team_manager = {
-      ensure_node_is_ready: vi.fn(async () => mock_sub_team)
+    agentTeamContext.state.teamManager = {
+      ensureNodeIsReady: vi.fn(async () => mockSubTeam)
     } as any;
 
-    await handler.handle(event, agent_team_context);
+    await handler.handle(event, agentTeamContext);
 
-    expect(agent_team_context.state.team_manager?.ensure_node_is_ready).toHaveBeenCalledWith('Recipient');
-    expect(mock_sub_team.post_message).toHaveBeenCalledTimes(1);
-    const posted_message = (mock_sub_team.post_message as any).mock.calls[0][0];
-    expect(posted_message).toBeInstanceOf(AgentInputUserMessage);
-    expect(posted_message.content).toBe(event.content);
+    expect(agentTeamContext.state.teamManager?.ensureNodeIsReady).toHaveBeenCalledWith('Recipient');
+    expect(mockSubTeam.postMessage).toHaveBeenCalledTimes(1);
+    const postedMessage = (mockSubTeam.postMessage as any).mock.calls[0][0];
+    expect(postedMessage).toBeInstanceOf(AgentInputUserMessage);
+    expect(postedMessage.content).toBe(event.content);
   });
 
   it('enqueues error when recipient not found or failed to start', async () => {
-    agent_team_context.state.team_manager = {
-      ensure_node_is_ready: vi.fn(async () => { throw new Error('Test Failure'); })
+    agentTeamContext.state.teamManager = {
+      ensureNodeIsReady: vi.fn(async () => { throw new Error('Test Failure'); })
     } as any;
 
-    await handler.handle(event, agent_team_context);
+    await handler.handle(event, agentTeamContext);
 
-    const enqueue = agent_team_context.state.input_event_queues?.enqueue_internal_system_event as any;
+    const enqueue = agentTeamContext.state.inputEventQueues?.enqueueInternalSystemEvent as any;
     expect(enqueue).toHaveBeenCalledTimes(1);
-    const enqueued_event = enqueue.mock.calls[0][0];
-    expect(enqueued_event).toBeInstanceOf(AgentTeamErrorEvent);
+    const enqueuedEvent = enqueue.mock.calls[0][0];
+    expect(enqueuedEvent).toBeInstanceOf(AgentTeamErrorEvent);
   });
 });

@@ -12,31 +12,31 @@ export class BaseAgentUserInputMessageProcessor {
     }
   }
 
-  static get_name(): string {
+  static getName(): string {
     return this.name;
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 500;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return false;
   }
 
-  get_name(): string {
+  getName(): string {
     const ctor = this.constructor as typeof BaseAgentUserInputMessageProcessor;
-    return ctor.get_name();
+    return ctor.getName();
   }
 
-  get_order(): number {
+  getOrder(): number {
     const ctor = this.constructor as typeof BaseAgentUserInputMessageProcessor;
-    return ctor.get_order();
+    return ctor.getOrder();
   }
 
-  is_mandatory(): boolean {
+  isMandatory(): boolean {
     const ctor = this.constructor as typeof BaseAgentUserInputMessageProcessor;
-    return ctor.is_mandatory();
+    return ctor.isMandatory();
   }
 
   async process(

@@ -30,7 +30,7 @@ class MockTeamEventStream {
     return new Promise((resolve) => this.waiters.push(resolve));
   }
 
-  async *all_events(): AsyncGenerator<AgentTeamStreamEvent, void, unknown> {
+  async *allEvents(): AsyncGenerator<AgentTeamStreamEvent, void, unknown> {
     while (true) {
       const item = await this.get();
       if (item === SENTINEL) {
@@ -43,11 +43,11 @@ class MockTeamEventStream {
 
 describe('TeamEventBridge', () => {
   it('forwards sub-team events to parent notifier', async () => {
-    const notifier = { publish_sub_team_event: vi.fn() } as any;
+    const notifier = { publishSubTeamEvent: vi.fn() } as any;
     const stream = new MockTeamEventStream();
 
     const bridge = new TeamEventBridge(
-      { team_id: 'sub-team-1' } as any,
+      { teamId: 'sub-team-1' } as any,
       'SubTeam',
       notifier,
       { stream } as any
@@ -69,9 +69,9 @@ describe('TeamEventBridge', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    expect(notifier.publish_sub_team_event).toHaveBeenCalledTimes(2);
-    expect(notifier.publish_sub_team_event).toHaveBeenCalledWith('SubTeam', event1);
-    expect(notifier.publish_sub_team_event).toHaveBeenCalledWith('SubTeam', event2);
+    expect(notifier.publishSubTeamEvent).toHaveBeenCalledTimes(2);
+    expect(notifier.publishSubTeamEvent).toHaveBeenCalledWith('SubTeam', event1);
+    expect(notifier.publishSubTeamEvent).toHaveBeenCalledWith('SubTeam', event2);
 
     await bridge.cancel();
     expect(stream.close).toHaveBeenCalledTimes(1);

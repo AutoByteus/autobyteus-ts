@@ -9,31 +9,31 @@ import { JsonInitializationState } from './states/json_initialization_state.js';
 import { JsonToolParsingState } from './states/json_tool_parsing_state.js';
 
 export class StateFactory {
-  static text_state(context: ParserContext): BaseState {
+  static textState(context: ParserContext): BaseState {
     return new TextState(context);
   }
 
-  static xml_tag_init_state(context: ParserContext): BaseState {
+  static xmlTagInitState(context: ParserContext): BaseState {
     return new XmlTagInitializationState(context);
   }
 
-  static write_file_parsing_state(context: ParserContext, openingTag: string): BaseState {
+  static writeFileParsingState(context: ParserContext, openingTag: string): BaseState {
     return new CustomXmlTagWriteFileParsingState(context, openingTag);
   }
 
-  static run_bash_parsing_state(context: ParserContext, openingTag: string): BaseState {
+  static runBashParsingState(context: ParserContext, openingTag: string): BaseState {
     return new CustomXmlTagRunBashParsingState(context, openingTag);
   }
 
-  static xml_tool_parsing_state(context: ParserContext, signatureBuffer: string): BaseState {
+  static xmlToolParsingState(context: ParserContext, signatureBuffer: string): BaseState {
     return new XmlToolParsingState(context, signatureBuffer);
   }
 
-  static json_init_state(context: ParserContext): BaseState {
+  static jsonInitState(context: ParserContext): BaseState {
     return new JsonInitializationState(context);
   }
 
-  static json_tool_parsing_state(context: ParserContext, signatureBuffer: string): BaseState {
+  static jsonToolParsingState(context: ParserContext, signatureBuffer: string): BaseState {
     return new JsonToolParsingState(context, signatureBuffer);
   }
 }

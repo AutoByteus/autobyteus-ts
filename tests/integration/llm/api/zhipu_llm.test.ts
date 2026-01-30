@@ -12,7 +12,7 @@ const buildModel = () =>
   new LLMModel({
     name: 'glm-4.7',
     value: 'glm-4.7',
-    canonical_name: 'glm-4.7',
+    canonicalName: 'glm-4.7',
     provider: LLMProvider.ZHIPU
   });
 

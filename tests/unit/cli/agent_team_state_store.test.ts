@@ -16,12 +16,12 @@ const buildTeam = (): AgentTeam => {
   return {
     name: 'Alpha',
     role: 'Lead',
-    _runtime: {
+    runtime: {
       context: {
         config: {
           nodes: [
-            { node_definition: { name: 'AgentOne', role: 'Engineer' } },
-            { node_definition: { name: 'SubTeamA', role: 'Ops' } }
+            { nodeDefinition: { name: 'AgentOne', role: 'Engineer' } },
+            { nodeDefinition: { name: 'SubTeamA', role: 'Ops' } }
           ]
         }
       }
@@ -32,7 +32,7 @@ const buildTeam = (): AgentTeam => {
 describe('TuiStateStore', () => {
   it('initializes tree with the root team', () => {
     const store = new TuiStateStore(buildTeam());
-    expect(store.get_tree_data()).toEqual({
+    expect(store.getTreeData()).toEqual({
       Alpha: {
         type: 'team',
         name: 'Alpha',
@@ -55,13 +55,13 @@ describe('TuiStateStore', () => {
       data: payload
     });
 
-    store.process_event(teamEvent);
+    store.processEvent(teamEvent);
 
-    const tree = store.get_tree_data();
+    const tree = store.getTreeData();
     expect(tree.Alpha.children.AgentOne).toBeDefined();
     expect(tree.Alpha.children.AgentOne.role).toBe('Engineer');
-    expect(store._agent_statuses.AgentOne).toBe(AgentStatus.IDLE);
-    expect(store.get_history_for_node('AgentOne', 'agent')).toHaveLength(1);
+    expect(store.agentStatuses.AgentOne).toBe(AgentStatus.IDLE);
+    expect(store.getHistoryForNode('AgentOne', 'agent')).toHaveLength(1);
   });
 
   it('tracks speaking agents based on assistant chunk events', () => {
@@ -71,7 +71,7 @@ describe('TuiStateStore', () => {
       data: { content: 'hi', is_complete: false }
     });
     const chunkPayload = new AgentEventRebroadcastPayload({ agent_name: 'AgentOne', agent_event: chunkEvent });
-    store.process_event(
+    store.processEvent(
       new AgentTeamStreamEvent({
         team_id: 'team_alpha',
         event_source_type: 'AGENT',
@@ -79,14 +79,14 @@ describe('TuiStateStore', () => {
       })
     );
 
-    expect(store._speaking_agents.AgentOne).toBe(true);
+    expect(store.speakingAgents.AgentOne).toBe(true);
 
     const completeEvent = new StreamEvent({
       event_type: StreamEventType.ASSISTANT_COMPLETE_RESPONSE,
       data: { content: 'done' }
     });
     const completePayload = new AgentEventRebroadcastPayload({ agent_name: 'AgentOne', agent_event: completeEvent });
-    store.process_event(
+    store.processEvent(
       new AgentTeamStreamEvent({
         team_id: 'team_alpha',
         event_source_type: 'AGENT',
@@ -94,7 +94,7 @@ describe('TuiStateStore', () => {
       })
     );
 
-    expect(store._speaking_agents.AgentOne).toBe(false);
+    expect(store.speakingAgents.AgentOne).toBe(false);
   });
 
   it('tracks task plan updates and sub-team status changes', () => {
@@ -116,7 +116,7 @@ describe('TuiStateStore', () => {
         ]
       }
     });
-    store.process_event(tasksEvent);
+    store.processEvent(tasksEvent);
 
     const statusEvent = new AgentTeamStreamEvent({
       team_id: 'team_alpha',
@@ -136,10 +136,10 @@ describe('TuiStateStore', () => {
         ]
       }
     });
-    store.process_event(statusEvent);
+    store.processEvent(statusEvent);
 
-    expect(store.get_task_plan_tasks('Alpha')).toHaveLength(1);
-    expect(store.get_task_plan_statuses('Alpha')?.task_1).toBe(TaskStatus.COMPLETED);
+    expect(store.getTaskPlanTasks('Alpha')).toHaveLength(1);
+    expect(store.getTaskPlanStatuses('Alpha')?.task_1).toBe(TaskStatus.COMPLETED);
 
     const subTeamInner = new AgentTeamStreamEvent({
       team_id: 'sub_team',
@@ -156,10 +156,10 @@ describe('TuiStateStore', () => {
       data: subPayload
     });
 
-    store.process_event(subEvent);
+    store.processEvent(subEvent);
 
-    const tree = store.get_tree_data();
+    const tree = store.getTreeData();
     expect(tree.Alpha.children.SubTeamA).toBeDefined();
-    expect(store._team_statuses.SubTeamA).toBe(AgentTeamStatus.IDLE);
+    expect(store.teamStatuses.SubTeamA).toBe(AgentTeamStatus.IDLE);
   });
 });

@@ -18,11 +18,11 @@ export class CustomXmlTagWriteFileParsingState extends DelimitedContentState {
     }
   }
 
-  protected _can_start_segment(): boolean {
+  protected _canStartSegment(): boolean {
     return this.filePath !== undefined;
   }
 
-  protected _get_start_metadata(): Record<string, any> {
+  protected _getStartMetadata(): Record<string, any> {
     return this.filePath ? { path: this.filePath } : {};
   }
 }

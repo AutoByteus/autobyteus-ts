@@ -277,7 +277,7 @@ const parseUsage = (usageData: unknown): TokenUsage | undefined => {
   return parsed.data;
 };
 
-export const create_assistant_chunk_data = (chunkObj: unknown): AssistantChunkData => {
+export const createAssistantChunkData = (chunkObj: unknown): AssistantChunkData => {
   if (!isRecord(chunkObj)) {
     throw new Error(`Cannot create AssistantChunkData from ${typeof chunkObj}`);
   }
@@ -287,7 +287,7 @@ export const create_assistant_chunk_data = (chunkObj: unknown): AssistantChunkDa
   return new AssistantChunkData(data);
 };
 
-export const create_assistant_complete_response_data = (
+export const createAssistantCompleteResponseData = (
   completeRespObj: unknown
 ): AssistantCompleteResponseData => {
   if (!isRecord(completeRespObj)) {
@@ -299,28 +299,28 @@ export const create_assistant_complete_response_data = (
   return new AssistantCompleteResponseData(data);
 };
 
-export const create_tool_interaction_log_entry_data = (logData: unknown): ToolInteractionLogEntryData => {
+export const createToolInteractionLogEntryData = (logData: unknown): ToolInteractionLogEntryData => {
   if (!isRecord(logData)) {
     throw new Error('Cannot create ToolInteractionLogEntryData from non-object');
   }
   return new ToolInteractionLogEntryData(logData);
 };
 
-export const create_agent_status_update_data = (statusData: unknown): AgentStatusUpdateData => {
+export const createAgentStatusUpdateData = (statusData: unknown): AgentStatusUpdateData => {
   if (!isRecord(statusData)) {
     throw new Error('Cannot create AgentStatusUpdateData from non-object');
   }
   return new AgentStatusUpdateData(statusData);
 };
 
-export const create_error_event_data = (errorData: unknown): ErrorEventData => {
+export const createErrorEventData = (errorData: unknown): ErrorEventData => {
   if (!isRecord(errorData)) {
     throw new Error('Cannot create ErrorEventData from non-object');
   }
   return new ErrorEventData(errorData);
 };
 
-export const create_tool_invocation_approval_requested_data = (
+export const createToolInvocationApprovalRequestedData = (
   approvalData: unknown
 ): ToolInvocationApprovalRequestedData => {
   if (!isRecord(approvalData)) {
@@ -329,7 +329,7 @@ export const create_tool_invocation_approval_requested_data = (
   return new ToolInvocationApprovalRequestedData(approvalData);
 };
 
-export const create_tool_invocation_auto_executing_data = (
+export const createToolInvocationAutoExecutingData = (
   autoExecData: unknown
 ): ToolInvocationAutoExecutingData => {
   if (!isRecord(autoExecData)) {
@@ -338,7 +338,7 @@ export const create_tool_invocation_auto_executing_data = (
   return new ToolInvocationAutoExecutingData(autoExecData);
 };
 
-export const create_segment_event_data = (eventData: unknown): SegmentEventData => {
+export const createSegmentEventData = (eventData: unknown): SegmentEventData => {
   if (eventData instanceof SegmentEventData) {
     return eventData;
   }
@@ -348,21 +348,21 @@ export const create_segment_event_data = (eventData: unknown): SegmentEventData 
   return new SegmentEventData(eventData);
 };
 
-export const create_inter_agent_message_data = (msgData: unknown): InterAgentMessageData => {
+export const createInterAgentMessageData = (msgData: unknown): InterAgentMessageData => {
   if (!isRecord(msgData)) {
     throw new Error('Cannot create InterAgentMessageData from non-object');
   }
   return new InterAgentMessageData(msgData);
 };
 
-export const create_system_task_notification_data = (notificationData: unknown): SystemTaskNotificationData => {
+export const createSystemTaskNotificationData = (notificationData: unknown): SystemTaskNotificationData => {
   if (!isRecord(notificationData)) {
     throw new Error('Cannot create SystemTaskNotificationData from non-object');
   }
   return new SystemTaskNotificationData(notificationData);
 };
 
-export const create_todo_list_update_data = (todoData: unknown): ToDoListUpdateData => {
+export const createTodoListUpdateData = (todoData: unknown): ToDoListUpdateData => {
   if (!isRecord(todoData)) {
     throw new Error('Cannot create ToDoListUpdateData from non-object');
   }
@@ -385,14 +385,14 @@ export const create_todo_list_update_data = (todoData: unknown): ToDoListUpdateD
   return new ToDoListUpdateData({ todos: todoItems });
 };
 
-export const create_artifact_persisted_data = (data: unknown): ArtifactPersistedData => {
+export const createArtifactPersistedData = (data: unknown): ArtifactPersistedData => {
   if (!isRecord(data)) {
     throw new Error('Cannot create ArtifactPersistedData from non-object');
   }
   return new ArtifactPersistedData(data);
 };
 
-export const create_artifact_updated_data = (data: unknown): ArtifactUpdatedData => {
+export const createArtifactUpdatedData = (data: unknown): ArtifactUpdatedData => {
   if (!isRecord(data)) {
     throw new Error('Cannot create ArtifactUpdatedData from non-object');
   }

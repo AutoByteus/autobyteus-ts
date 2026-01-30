@@ -29,7 +29,7 @@ const planTasks: TaskDefinition[] = [
 
 function buildPlan(): InMemoryTaskPlan {
   const taskPlan = new InMemoryTaskPlan('test_team_converter');
-  taskPlan.add_tasks(planTasks);
+  taskPlan.addTasks(planTasks);
 
   const taskOne = taskPlan.tasks.find((task) => task.task_name === 'task_one');
   const taskThree = taskPlan.tasks.find((task) => task.task_name === 'task_three');
@@ -38,8 +38,8 @@ function buildPlan(): InMemoryTaskPlan {
     throw new Error('Expected tasks missing in plan.');
   }
 
-  taskPlan.update_task_status(taskOne.task_id, TaskStatus.COMPLETED, 'Agent1');
-  taskPlan.update_task_status(taskThree.task_id, TaskStatus.IN_PROGRESS, 'Agent1');
+  taskPlan.updateTaskStatus(taskOne.task_id, TaskStatus.COMPLETED, 'Agent1');
+  taskPlan.updateTaskStatus(taskThree.task_id, TaskStatus.IN_PROGRESS, 'Agent1');
 
   taskOne.file_deliverables.push(
     createFileDeliverable({
@@ -56,7 +56,7 @@ describe('TaskPlanConverter', () => {
   it('converts a populated task plan to a status report schema', () => {
     const taskPlan = buildPlan();
 
-    const report = TaskPlanConverter.to_schema(taskPlan);
+    const report = TaskPlanConverter.toSchema(taskPlan);
 
     expect(report).not.toBeNull();
     const parsed = TaskStatusReportSchema.parse(report);
@@ -85,7 +85,7 @@ describe('TaskPlanConverter', () => {
   it('returns null for an empty task plan', () => {
     const emptyPlan = new InMemoryTaskPlan('empty_team');
 
-    const report = TaskPlanConverter.to_schema(emptyPlan);
+    const report = TaskPlanConverter.toSchema(emptyPlan);
 
     expect(report).toBeNull();
   });

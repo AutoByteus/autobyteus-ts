@@ -9,8 +9,8 @@ export class OutputBuffer {
   private buffer: string[];
   private totalBytes: number;
 
-  constructor(max_bytes: number = 1_000_000) {
-    this.maxBytes = max_bytes;
+  constructor(maxBytes: number = 1_000_000) {
+    this.maxBytes = maxBytes;
     this.buffer = [];
     this.totalBytes = 0;
   }
@@ -38,14 +38,14 @@ export class OutputBuffer {
     }
   }
 
-  get_lines(n: number = 100): string {
+  getLines(n: number = 100): string {
     if (n >= this.buffer.length) {
       return this.buffer.join('');
     }
     return this.buffer.slice(-n).join('');
   }
 
-  get_all(): string {
+  getAll(): string {
     return this.buffer.join('');
   }
 
@@ -58,7 +58,7 @@ export class OutputBuffer {
     return this.totalBytes;
   }
 
-  get line_count(): number {
+  get lineCount(): number {
     return this.buffer.length;
   }
 }

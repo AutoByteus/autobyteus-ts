@@ -17,8 +17,8 @@ vi.mock('../../../../src/agent_team/runtime/agent_team_runtime.js', () => ({
 }));
 
 vi.mock('../../../../src/agent_team/context/team_manager.js', () => ({
-  TeamManager: function (team_id: string, runtime: any, multiplexer: any) {
-    mocks.teamManagerCtor(team_id, runtime, multiplexer);
+  TeamManager: function (teamId: string, runtime: any, multiplexer: any) {
+    mocks.teamManagerCtor(teamId, runtime, multiplexer);
     return mocks.teamManagerInstance;
   }
 }));
@@ -53,17 +53,17 @@ const makeTeamConfig = (): AgentTeamConfig => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const coordinator = new AgentConfig('Coordinator', 'Coordinator', 'desc', llm);
-  const coordinatorNode = new TeamNodeConfig({ node_definition: coordinator });
+  const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinator });
   return new AgentTeamConfig({
     name: 'TestTeam',
     description: 'Test team description',
     nodes: [coordinatorNode],
-    coordinator_node: coordinatorNode
+    coordinatorNode: coordinatorNode
   });
 };
 
@@ -85,8 +85,8 @@ describe('AgentTeamFactory', () => {
 
   it('creates a default event handler registry', () => {
     const factory = new AgentTeamFactory();
-    const registry = (factory as any)._get_default_event_handler_registry();
-    const handler = registry.get_handler(ProcessUserMessageEvent);
+    const registry = (factory as any).getDefaultEventHandlerRegistry();
+    const handler = registry.getHandler(ProcessUserMessageEvent);
     expect(handler).toBeInstanceOf(ProcessUserMessageEventHandler);
   });
 
@@ -94,12 +94,12 @@ describe('AgentTeamFactory', () => {
     const factory = new AgentTeamFactory();
     const config = makeTeamConfig();
 
-    const team = factory.create_team(config);
+    const team = factory.createTeam(config);
 
     expect(team).toBeInstanceOf(AgentTeam);
-    const teamId = factory.list_active_team_ids()[0];
+    const teamId = factory.listActiveTeamIds()[0];
     expect(teamId).toBeDefined();
-    expect(factory.get_team(teamId)).toBe(team);
+    expect(factory.getTeam(teamId)).toBe(team);
 
     expect(mocks.runtimeCtor).toHaveBeenCalledOnce();
     const runtimeArgs = mocks.runtimeCtor.mock.calls[0];
@@ -114,6 +114,6 @@ describe('AgentTeamFactory', () => {
     expect(teamManagerArgs[1]).toBe(mocks.runtimeInstance);
     expect(teamManagerArgs[2]).toBe(mocks.runtimeInstance.multiplexer);
 
-    expect(contextArg.state.team_manager).toBe(mocks.teamManagerInstance);
+    expect(contextArg.state.teamManager).toBe(mocks.teamManagerInstance);
   });
 });

@@ -74,7 +74,7 @@ describe('ApiToolCallStreamingResponseHandler basics', () => {
     );
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('write_file');
     expect(invocations[0].arguments).toEqual({ path: 'hello.py', content: 'print()' });
@@ -111,7 +111,7 @@ describe('ApiToolCallStreamingResponseHandler parallel tool calls', () => {
     );
 
     handler.finalize();
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(2);
 
     const writeInv = invocations.find((inv) => inv.name === 'write_file');
@@ -217,17 +217,17 @@ describe('ApiToolCallStreamingResponseHandler file streaming', () => {
 
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].arguments).toEqual({ path: 'a.txt', content: 'hi\\nthere' });
   });
 });
 
 describe('ApiToolCallStreamingResponseHandler callbacks', () => {
-  it('invokes on_segment_event callback', () => {
+  it('invokes onSegmentEvent callback', () => {
     const received: SegmentEvent[] = [];
     const handler = new ApiToolCallStreamingResponseHandler({
-      on_segment_event: (event) => received.push(event)
+      onSegmentEvent: (event) => received.push(event)
     });
     handler.feed(new ChunkResponse({ content: 'Hello' }));
     handler.finalize();
@@ -235,10 +235,10 @@ describe('ApiToolCallStreamingResponseHandler callbacks', () => {
     expect(received.every((event) => event instanceof SegmentEvent)).toBe(true);
   });
 
-  it('invokes on_tool_invocation callback', () => {
+  it('invokes onToolInvocation callback', () => {
     const invocations: any[] = [];
     const handler = new ApiToolCallStreamingResponseHandler({
-      on_tool_invocation: (invocation) => invocations.push(invocation)
+      onToolInvocation: (invocation) => invocations.push(invocation)
     });
 
     handler.feed(
@@ -266,15 +266,15 @@ describe('ApiToolCallStreamingResponseHandler reset', () => {
     handler.feed(new ChunkResponse({ content: 'test' }));
     handler.finalize();
 
-    expect(handler.get_all_events().length).toBeGreaterThan(0);
+    expect(handler.getAllEvents().length).toBeGreaterThan(0);
 
     handler.reset();
-    expect(handler.get_all_events()).toHaveLength(0);
-    expect(handler.get_all_invocations()).toHaveLength(0);
+    expect(handler.getAllEvents()).toHaveLength(0);
+    expect(handler.getAllInvocations()).toHaveLength(0);
 
     handler.feed(new ChunkResponse({ content: 'new data' }));
     handler.finalize();
-    expect(handler.get_all_events().length).toBeGreaterThan(0);
+    expect(handler.getAllEvents().length).toBeGreaterThan(0);
   });
 
   it('feed after finalize throws', () => {

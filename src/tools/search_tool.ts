@@ -5,7 +5,7 @@ import { ToolCategory } from './tool_category.js';
 import { SearchClientFactory } from './search/factory.js';
 import { SearchClient } from './search/client.js';
 
-export class Search extends BaseTool {
+export class Search extends BaseTool<unknown, Record<string, unknown>, string> {
   static CATEGORY = ToolCategory.WEB;
   private searchClient: SearchClient;
 
@@ -58,12 +58,13 @@ export class Search extends BaseTool {
     return null;
   }
 
-  protected async _execute(_context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const query = String(kwargs.query ?? '').trim();
-    const num_results = Number.isFinite(kwargs.num_results) ? Number(kwargs.num_results) : 5;
+  protected async _execute(_context: unknown, args: Record<string, unknown> = {}): Promise<string> {
+    const query = String(args['query'] ?? '').trim();
+    const rawNumResults = args['num_results'];
+    const numResults = Number.isFinite(rawNumResults as number) ? Number(rawNumResults) : 5;
     if (!query) {
       throw new Error("Parameter 'query' is required for search_web.");
     }
-    return this.searchClient.search(query, num_results);
+    return this.searchClient.search(query, numResults);
   }
 }

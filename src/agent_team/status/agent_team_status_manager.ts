@@ -14,14 +14,14 @@ export class AgentTeamStatusManager {
     this.context = context;
     this.notifier = notifier;
 
-    if (!Object.values(AgentTeamStatus).includes(this.context.current_status)) {
-      this.context.current_status = AgentTeamStatus.UNINITIALIZED;
+    if (!Object.values(AgentTeamStatus).includes(this.context.currentStatus)) {
+      this.context.currentStatus = AgentTeamStatus.UNINITIALIZED;
     }
 
-    console.debug(`AgentTeamStatusManager initialized for team '${context.team_id}'.`);
+    console.debug(`AgentTeamStatusManager initialized for team '${context.teamId}'.`);
   }
 
-  async emit_status_update(
+  async emitStatusUpdate(
     old_status: AgentTeamStatus,
     new_status: AgentTeamStatus,
     additional_data: Record<string, any> | null = null
@@ -30,6 +30,6 @@ export class AgentTeamStatusManager {
       return;
     }
 
-    this.notifier.notify_status_updated(new_status, old_status, additional_data ?? null);
+    this.notifier.notifyStatusUpdated(new_status, old_status, additional_data ?? null);
   }
 }

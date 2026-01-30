@@ -67,7 +67,7 @@ export class MistralLLM extends BaseLLM {
       new LLMModel({
         name: 'mistral-large',
         value: 'mistral-large-latest',
-        canonical_name: 'mistral-large',
+        canonicalName: 'mistral-large',
         provider: LLMProvider.MISTRAL
       });
 
@@ -80,7 +80,7 @@ export class MistralLLM extends BaseLLM {
     }
 
     this.client = new Mistral({ apiKey });
-    this.maxTokens = config.max_tokens ?? null;
+    this.maxTokens = config.maxTokens ?? null;
   }
 
   private toTokenUsage(usage: any): TokenUsage | null {
@@ -92,7 +92,7 @@ export class MistralLLM extends BaseLLM {
     };
   }
 
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse> {
+  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
     const formattedMessages = await formatMistralMessages(this.messages);
@@ -101,13 +101,13 @@ export class MistralLLM extends BaseLLM {
       model: this.model.value,
       messages: formattedMessages,
       temperature: this.config.temperature,
-      topP: this.config.top_p ?? undefined,
+      topP: this.config.topP ?? undefined,
       maxTokens: this.maxTokens ?? undefined,
       ...kwargs
     };
 
-    if (this.config.extra_params) {
-      Object.assign(params, this.config.extra_params);
+    if (this.config.extraParams) {
+      Object.assign(params, this.config.extraParams);
     }
 
     try {
@@ -134,7 +134,7 @@ export class MistralLLM extends BaseLLM {
     }
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown> {
+  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
 
     const formattedMessages = await formatMistralMessages(this.messages);
@@ -142,14 +142,14 @@ export class MistralLLM extends BaseLLM {
       model: this.model.value,
       messages: formattedMessages,
       temperature: this.config.temperature,
-      topP: this.config.top_p ?? undefined,
+      topP: this.config.topP ?? undefined,
       maxTokens: this.maxTokens ?? undefined,
       stream: true,
       ...kwargs
     };
 
-    if (this.config.extra_params) {
-      Object.assign(params, this.config.extra_params);
+    if (this.config.extraParams) {
+      Object.assign(params, this.config.extraParams);
     }
 
     let accumulated = '';
@@ -175,7 +175,8 @@ export class MistralLLM extends BaseLLM {
         }
 
         if (delta?.toolCalls) {
-          const toolDeltas = convertMistralToolCalls(delta.toolCalls as any);
+          const toolCalls = Array.isArray(delta.toolCalls) ? delta.toolCalls : null;
+          const toolDeltas = convertMistralToolCalls(toolCalls);
           if (toolDeltas) {
             yield new ChunkResponse({ content: '', tool_calls: toolDeltas });
           }

@@ -8,7 +8,7 @@ import type { AgentContextLike } from './run_bash.js';
 
 let defaultBackgroundManager: BackgroundProcessManager | null = null;
 
-function _get_background_manager(context: AgentContextLike | null | undefined): BackgroundProcessManager {
+function getBackgroundManager(context: AgentContextLike | null | undefined): BackgroundProcessManager {
   if (!context) {
     if (!defaultBackgroundManager) {
       defaultBackgroundManager = new BackgroundProcessManager();
@@ -16,35 +16,43 @@ function _get_background_manager(context: AgentContextLike | null | undefined): 
     return defaultBackgroundManager;
   }
 
-  const contextAny = context as Record<string, any>;
-  if (!contextAny._background_process_manager) {
-    contextAny._background_process_manager = new BackgroundProcessManager();
+  const contextRecord = context as Record<string, unknown>;
+  const existing = contextRecord._backgroundProcessManager as BackgroundProcessManager | undefined;
+
+  if (!existing) {
+    const manager = new BackgroundProcessManager();
+    contextRecord._backgroundProcessManager = manager;
+    return manager;
   }
 
-  return contextAny._background_process_manager as BackgroundProcessManager;
+  if (!contextRecord._backgroundProcessManager) {
+    contextRecord._backgroundProcessManager = existing;
+  }
+
+  return existing;
 }
 
-export async function get_process_output(
+export async function getProcessOutput(
   context: AgentContextLike | null,
-  process_id: string,
+  processId: string,
   lines: number = 100
-): Promise<{ output: string; is_running: boolean; process_id: string; error?: string }>
+): Promise<{ output: string; isRunning: boolean; processId: string; error?: string }>
 {
-  const manager = _get_background_manager(context);
+  const manager = getBackgroundManager(context);
 
   try {
-    const result = manager.get_output(process_id, lines);
+    const result = manager.getOutput(processId, lines);
     return {
       output: result.output,
-      is_running: result.is_running,
-      process_id: result.process_id
+      isRunning: result.isRunning,
+      processId: result.processId
     };
   } catch {
     return {
       output: '',
-      is_running: false,
-      process_id,
-      error: `Process '${process_id}' not found. It may have already stopped or never existed.`
+      isRunning: false,
+      processId,
+      error: `Process '${processId}' not found. It may have already stopped or never existed.`
     };
   }
 }
@@ -73,8 +81,9 @@ export function registerGetProcessOutputTool(): BaseTool {
       name: TOOL_NAME,
       description: 'Get recent output from a background process.',
       argumentSchema,
-      category: ToolCategory.SYSTEM
-    })(get_process_output) as BaseTool;
+      category: ToolCategory.SYSTEM,
+      paramNames: ['context', 'process_id', 'lines']
+    })(getProcessOutput) as BaseTool;
     return cachedTool;
   }
 

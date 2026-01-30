@@ -21,21 +21,21 @@ describe('XmlToolParsingStateRegistry', () => {
 
   it('registers core defaults', () => {
     const registry = new XmlToolParsingStateRegistry();
-    expect(registry.get_state_for_tool(TOOL_NAME_WRITE_FILE)).toBeDefined();
-    expect(registry.get_state_for_tool(TOOL_NAME_PATCH_FILE)).toBeDefined();
-    expect(registry.get_state_for_tool(TOOL_NAME_RUN_BASH)).toBeDefined();
+    expect(registry.getStateForTool(TOOL_NAME_WRITE_FILE)).toBeDefined();
+    expect(registry.getStateForTool(TOOL_NAME_PATCH_FILE)).toBeDefined();
+    expect(registry.getStateForTool(TOOL_NAME_RUN_BASH)).toBeDefined();
   });
 
   it('registers custom state', () => {
     const registry = new XmlToolParsingStateRegistry();
-    registry.register_tool_state('custom_tool', MockState);
-    expect(registry.get_state_for_tool('custom_tool')).toBe(MockState);
+    registry.registerToolState('custom_tool', MockState);
+    expect(registry.getStateForTool('custom_tool')).toBe(MockState);
   });
 
   it('is case sensitive for tool names', () => {
     const registry = new XmlToolParsingStateRegistry();
-    registry.register_tool_state('MyTool', MockState);
-    expect(registry.get_state_for_tool('MyTool')).toBe(MockState);
-    expect(registry.get_state_for_tool('mytool')).toBeUndefined();
+    registry.registerToolState('MyTool', MockState);
+    expect(registry.getStateForTool('MyTool')).toBe(MockState);
+    expect(registry.getStateForTool('mytool')).toBeUndefined();
   });
 });

@@ -2,16 +2,16 @@ import { BaseManagedMcpServer } from './base_managed_mcp_server.js';
 import type { StdioMcpServerConfig } from '../types.js';
 
 type ClientLike = {
-  connect?: (transport: any) => Promise<void>;
+  connect?: (transport: unknown) => Promise<void>;
   initialize?: () => Promise<void>;
   close?: () => Promise<void> | void;
-  listTools: () => Promise<any>;
-  callTool: (...args: any[]) => Promise<any>;
+  listTools: () => Promise<unknown>;
+  callTool: (...args: unknown[]) => Promise<unknown>;
 };
 
 type SdkModule = {
-  Client: new (...args: any[]) => ClientLike;
-  Transport: new (...args: any[]) => any;
+  Client: new (...args: unknown[]) => ClientLike;
+  Transport: new (...args: unknown[]) => unknown;
 };
 
 async function loadSdk(): Promise<SdkModule> {
@@ -41,7 +41,7 @@ export class StdioManagedMcpServer extends BaseManagedMcpServer {
   }
 
   protected async createClientSession(): Promise<ClientLike> {
-    const config = this.config_object as StdioMcpServerConfig;
+    const config = this.configObject as StdioMcpServerConfig;
     const sdk = await (StdioManagedMcpServer.sdkLoader ?? loadSdk)();
 
     const transport = new sdk.Transport({
@@ -51,8 +51,8 @@ export class StdioManagedMcpServer extends BaseManagedMcpServer {
       cwd: config.cwd ?? undefined
     });
 
-    if (typeof transport.close === 'function') {
-      this.registerCleanup(() => transport.close());
+    if (typeof (transport as { close?: () => void }).close === 'function') {
+      this.registerCleanup(() => (transport as { close: () => void }).close());
     }
 
     const client = this.createClientInstance(sdk.Client);
@@ -68,7 +68,7 @@ export class StdioManagedMcpServer extends BaseManagedMcpServer {
     return client;
   }
 
-  private createClientInstance(ClientCtor: new (...args: any[]) => ClientLike): ClientLike {
+  private createClientInstance(ClientCtor: new (...args: unknown[]) => ClientLike): ClientLike {
     try {
       return new ClientCtor({ name: 'autobyteus', version: '1.0.0' });
     } catch {

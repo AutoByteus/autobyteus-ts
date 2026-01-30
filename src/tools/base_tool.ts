@@ -2,12 +2,24 @@ import { EventEmitter } from 'events';
 import { ParameterSchema, ParameterDefinition, ParameterType } from '../utils/parameter_schema.js';
 import { ToolConfig } from './tool_config.js';
 import { ToolState } from './tool_state.js';
+import type { ToolDefinition } from './registry/tool_definition.js';
 
-export type ToolClass = (new (config?: ToolConfig) => BaseTool) & typeof BaseTool;
+export type ToolClass = {
+  new (config?: ToolConfig): BaseTool;
+  getName(): string;
+  getDescription(): string;
+  getArgumentSchema(): ParameterSchema | null;
+  getConfigSchema(): ParameterSchema | null;
+  CATEGORY?: string;
+};
 
-export abstract class BaseTool extends EventEmitter {
+export abstract class BaseTool<
+  TContext = unknown,
+  TArgs extends Record<string, unknown> = Record<string, unknown>,
+  TResult = unknown
+> extends EventEmitter {
   protected agentId: string | null = null;
-  public definition: any = null; // Injected by registry
+  public definition: ToolDefinition | null = null; // Injected by registry
   protected config: ToolConfig | undefined;
   public toolState: ToolState;
 
@@ -49,16 +61,16 @@ export abstract class BaseTool extends EventEmitter {
     return (this.constructor as typeof BaseTool).getName();
   }
 
-  private coerceArgumentTypes(kwargs: Record<string, any>): Record<string, any> {
+  private coerceArgumentTypes(args: Record<string, unknown>): Record<string, unknown> {
     const argSchema = this.getArgumentSchema();
     if (!argSchema) {
-      return kwargs;
+      return args;
     }
-    return this.coerceObjectRecursively(kwargs, argSchema);
+    return this.coerceObjectRecursively(args, argSchema);
   }
 
-  private coerceObjectRecursively(data: Record<string, any>, schema: ParameterSchema): Record<string, any> {
-    const coerced: Record<string, any> = { ...data };
+  private coerceObjectRecursively(data: Record<string, unknown>, schema: ParameterSchema): Record<string, unknown> {
+    const coerced: Record<string, unknown> = { ...data };
     for (const [name, value] of Object.entries(data)) {
       const paramDef = schema.getParameter(name);
       if (paramDef) {
@@ -68,7 +80,7 @@ export abstract class BaseTool extends EventEmitter {
     return coerced;
   }
 
-  private coerceValueRecursively(value: any, paramDef: ParameterDefinition): any {
+  private coerceValueRecursively(value: unknown, paramDef: ParameterDefinition): unknown {
     if (value === null || value === undefined) {
       return value;
     }
@@ -87,7 +99,7 @@ export abstract class BaseTool extends EventEmitter {
         return value.map((item) => (this.isPlainObject(item) ? this.coerceObjectRecursively(item, itemSchema) : item));
       }
       if (itemSchema && typeof itemSchema === 'object' && (itemSchema as any).type === 'object') {
-        const tempSchema = this.buildSchemaFromJsonSchema(itemSchema as Record<string, any>);
+        const tempSchema = this.buildSchemaFromJsonSchema(itemSchema as Record<string, unknown>);
         if (tempSchema) {
           return value.map((item) => (this.isPlainObject(item) ? this.coerceObjectRecursively(item, tempSchema) : item));
         }
@@ -124,20 +136,28 @@ export abstract class BaseTool extends EventEmitter {
     return value;
   }
 
-  private buildSchemaFromJsonSchema(schema: Record<string, any>): ParameterSchema | null {
+  private buildSchemaFromJsonSchema(schema: Record<string, unknown>): ParameterSchema | null {
     const props = schema.properties ?? {};
     const required: string[] = Array.isArray(schema.required) ? schema.required : [];
     const tempSchema = new ParameterSchema();
     for (const [propName, propDetails] of Object.entries(props)) {
-      const details = propDetails as Record<string, any>;
+      const details = propDetails as Record<string, unknown>;
       const typeStr = (details.type ?? 'string') as string;
       const paramType = this.mapJsonType(typeStr);
+      let arrayItemSchema: ParameterType | ParameterSchema | Record<string, unknown> | undefined;
+      if (details.items !== undefined) {
+        if (typeof details.items === 'string' && Object.values(ParameterType).includes(details.items as ParameterType)) {
+          arrayItemSchema = details.items as ParameterType;
+        } else if (details.items && typeof details.items === 'object') {
+          arrayItemSchema = details.items as Record<string, unknown>;
+        }
+      }
       tempSchema.addParameter(new ParameterDefinition({
         name: propName,
         type: paramType,
         description: String(details.description ?? ''),
         required: required.includes(propName),
-        arrayItemSchema: details.items
+        arrayItemSchema
       }));
     }
     return tempSchema;
@@ -161,7 +181,7 @@ export abstract class BaseTool extends EventEmitter {
     }
   }
 
-  private validateAgainstSchema(schema: ParameterSchema, data: Record<string, any>): string[] {
+  private validateAgainstSchema(schema: ParameterSchema, data: Record<string, unknown>): string[] {
     const errors: string[] = [];
     for (const [key, value] of Object.entries(data)) {
       const paramDef = schema.getParameter(key);
@@ -178,7 +198,7 @@ export abstract class BaseTool extends EventEmitter {
     return errors;
   }
 
-  private validateValue(value: any, paramDef: ParameterDefinition): boolean {
+  private validateValue(value: unknown, paramDef: ParameterDefinition): boolean {
     if (value === null || value === undefined) {
       return !paramDef.required;
     }
@@ -213,18 +233,19 @@ export abstract class BaseTool extends EventEmitter {
     }
   }
 
-  private isPlainObject(value: any): value is Record<string, any> {
+  private isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
-  public async execute(context: any, kwargs: Record<string, any> = {}): Promise<any> {
+  public async execute(context: TContext, args: TArgs = {} as TArgs): Promise<TResult> {
      const toolName = this.getName();
 
-     if (this.agentId === null && context?.agentId) {
-       this.setAgentId(context.agentId);
+     const contextAgentId = (context as { agentId?: string } | null | undefined)?.agentId;
+     if (this.agentId === null && typeof contextAgentId === 'string') {
+       this.setAgentId(contextAgentId);
      }
 
-     const coercedArgs = this.coerceArgumentTypes(kwargs);
+     const coercedArgs = this.coerceArgumentTypes(args);
      const argSchema = this.getArgumentSchema();
 
      if (argSchema) {
@@ -242,10 +263,10 @@ export abstract class BaseTool extends EventEmitter {
        );
      }
 
-     return this._execute(context, coercedArgs);
+     return this._execute(context, coercedArgs as TArgs);
   }
 
-  protected abstract _execute(context: any, kwargs?: Record<string, any>): Promise<any>;
+  protected abstract _execute(context: TContext, args?: TArgs): Promise<TResult>;
 
   public async cleanup(): Promise<void> {
     // no-op

@@ -10,16 +10,16 @@ const buildTaskPlan = () => {
     { task_name: 'task_a', assignee_name: 'Agent1', description: 'First task.', dependencies: [] },
     { task_name: 'task_b', assignee_name: 'Agent2', description: 'Second task.', dependencies: [] }
   ];
-  plan.add_tasks(taskDefs);
+  plan.addTasks(taskDefs);
   return plan;
 };
 
 const buildAgentContext = (taskPlan: InMemoryTaskPlan) => ({
   agentId: 'test_agent',
   config: { name: 'TestAgent' },
-  custom_data: {
-    team_context: {
-      state: { task_plan: taskPlan }
+  customData: {
+    teamContext: {
+      state: { taskPlan: taskPlan }
     }
   }
 });
@@ -32,7 +32,7 @@ describe('UpdateTaskStatus tool', () => {
 
     const taskIdToCheck = taskPlan.tasks.find((task) => task.task_name === 'task_a')?.task_id;
     expect(taskIdToCheck).toBe('task_0001');
-    expect(taskPlan.task_statuses[taskIdToCheck!]).toBe(TaskStatus.NOT_STARTED);
+    expect(taskPlan.taskStatuses[taskIdToCheck!]).toBe(TaskStatus.NOT_STARTED);
 
     const result = await (tool as any)._execute(context, {
       task_name: 'task_a',
@@ -40,7 +40,7 @@ describe('UpdateTaskStatus tool', () => {
     });
 
     expect(result).toBe("Successfully updated status of task 'task_a' to 'in_progress'.");
-    expect(taskPlan.task_statuses[taskIdToCheck!]).toBe(TaskStatus.IN_PROGRESS);
+    expect(taskPlan.taskStatuses[taskIdToCheck!]).toBe(TaskStatus.IN_PROGRESS);
   });
 
   it('updates status and adds deliverables', async () => {
@@ -69,7 +69,7 @@ describe('UpdateTaskStatus tool', () => {
     const tool = new UpdateTaskStatus();
 
     const taskIdToCheck = taskPlan.tasks.find((task) => task.task_name === 'task_a')?.task_id;
-    expect(taskPlan.task_statuses[taskIdToCheck!]).toBe(TaskStatus.NOT_STARTED);
+    expect(taskPlan.taskStatuses[taskIdToCheck!]).toBe(TaskStatus.NOT_STARTED);
 
     const result = await (tool as any)._execute(context, {
       task_name: 'task_a',
@@ -78,6 +78,6 @@ describe('UpdateTaskStatus tool', () => {
     });
 
     expect(result).toContain('Error: Failed to process deliverables due to invalid data');
-    expect(taskPlan.task_statuses[taskIdToCheck!]).toBe(TaskStatus.NOT_STARTED);
+    expect(taskPlan.taskStatuses[taskIdToCheck!]).toBe(TaskStatus.NOT_STARTED);
   });
 });

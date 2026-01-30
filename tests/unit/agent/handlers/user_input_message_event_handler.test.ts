@@ -32,21 +32,21 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
-  const inputQueues = { enqueue_internal_system_event: vi.fn(async () => undefined) } as any;
-  state.input_event_queues = inputQueues;
+  const inputQueues = { enqueueInternalSystemEvent: vi.fn(async () => undefined) } as any;
+  state.inputEventQueues = inputQueues;
   return { context: new AgentContext('agent-1', config, state), inputQueues };
 };
 
 class MockInputProcessor extends BaseAgentUserInputMessageProcessor {
   async process(message: AgentInputUserMessage): Promise<AgentInputUserMessage> {
     message.content = `Processed: ${message.content}`;
-    message.metadata['processed_by'] = this.get_name();
+    message.metadata['processed_by'] = this.getName();
     return message;
   }
 }
@@ -54,7 +54,7 @@ class MockInputProcessor extends BaseAgentUserInputMessageProcessor {
 class AnotherMockInputProcessor extends BaseAgentUserInputMessageProcessor {
   async process(message: AgentInputUserMessage): Promise<AgentInputUserMessage> {
     message.content += ' [Another]';
-    message.metadata['another_processed_by'] = this.get_name();
+    message.metadata['another_processed_by'] = this.getName();
     return message;
   }
 }
@@ -90,7 +90,7 @@ describe('UserInputMessageEventHandler', () => {
       { user_id: 'user123' }
     );
     const event = new UserMessageReceivedEvent(agentInput);
-    context.config.input_processors = [];
+    context.config.inputProcessors = [];
 
     await handler.handle(event, context);
 
@@ -114,37 +114,37 @@ describe('UserInputMessageEventHandler', () => {
       )
     ).toBe(true);
 
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(LLMUserMessageReadyEvent);
-    expect(enqueued.llm_user_message).toBeInstanceOf(LLMUserMessage);
-    expect(enqueued.llm_user_message.content).toBe('Hello, agent!');
-    expect(enqueued.llm_user_message.image_urls).toEqual([imageUrl]);
+    expect(enqueued.llmUserMessage).toBeInstanceOf(LLMUserMessage);
+    expect(enqueued.llmUserMessage.content).toBe('Hello, agent!');
+    expect(enqueued.llmUserMessage.image_urls).toEqual([imageUrl]);
   });
 
   it('handles user input with one processor', async () => {
     const handler = new UserInputMessageEventHandler();
     const { context, inputQueues } = makeContext();
     const event = new UserMessageReceivedEvent(new AgentInputUserMessage('Needs processing.', SenderType.USER));
-    context.config.input_processors = [new MockInputProcessor()];
+    context.config.inputProcessors = [new MockInputProcessor()];
 
     await handler.handle(event, context);
 
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(LLMUserMessageReadyEvent);
-    expect(enqueued.llm_user_message.content).toBe('Processed: Needs processing.');
+    expect(enqueued.llmUserMessage.content).toBe('Processed: Needs processing.');
   });
 
   it('handles user input with multiple processors', async () => {
     const handler = new UserInputMessageEventHandler();
     const { context, inputQueues } = makeContext();
     const event = new UserMessageReceivedEvent(new AgentInputUserMessage('Sequential processing.'));
-    context.config.input_processors = [new MockInputProcessor(), new AnotherMockInputProcessor()];
+    context.config.inputProcessors = [new MockInputProcessor(), new AnotherMockInputProcessor()];
 
     await handler.handle(event, context);
 
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
-    expect(enqueued.llm_user_message.content).toBe('Processed: Sequential processing. [Another]');
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
+    expect(enqueued.llmUserMessage.content).toBe('Processed: Sequential processing. [Another]');
   });
 
   it('continues when a processor throws', async () => {
@@ -157,7 +157,7 @@ describe('UserInputMessageEventHandler', () => {
     errorProcessor.process = vi.fn(async () => {
       throw new Error('Simulated processor error');
     });
-    context.config.input_processors = [errorProcessor, new AnotherMockInputProcessor()];
+    context.config.inputProcessors = [errorProcessor, new AnotherMockInputProcessor()];
 
     await handler.handle(event, context);
 
@@ -174,8 +174,8 @@ describe('UserInputMessageEventHandler', () => {
       )
     ).toBe(true);
 
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
-    expect(enqueued.llm_user_message.content).toBe('This will cause processor error. [Another]');
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
+    expect(enqueued.llmUserMessage.content).toBe('This will cause processor error. [Another]');
   });
 
   it('skips invalid event type', async () => {
@@ -192,7 +192,7 @@ describe('UserInputMessageEventHandler', () => {
         )
       )
     ).toBe(true);
-    expect(inputQueues.enqueue_internal_system_event).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueInternalSystemEvent).not.toHaveBeenCalled();
   });
 
   it('emits system notification for system sender', async () => {
@@ -205,22 +205,22 @@ describe('UserInputMessageEventHandler', () => {
       { sender_id: TASK_NOTIFIER_SENDER_ID }
     );
     const event = new UserMessageReceivedEvent(systemNotification);
-    const notifier = { notify_agent_data_system_task_notification_received: vi.fn() };
-    (context as any).state.status_manager_ref = { notifier };
-    context.config.input_processors = [];
+    const notifier = { notifyAgentDataSystemTaskNotificationReceived: vi.fn() };
+    (context as any).state.statusManagerRef = { notifier };
+    context.config.inputProcessors = [];
 
     await handler.handle(event, context);
 
-    expect(notifier.notify_agent_data_system_task_notification_received).toHaveBeenCalledWith({
+    expect(notifier.notifyAgentDataSystemTaskNotificationReceived).toHaveBeenCalledWith({
       sender_id: TASK_NOTIFIER_SENDER_ID,
       content: 'Your task is now ready.'
     });
     expect(
       infoSpy.mock.calls.some(([msg]: [unknown]) =>
-        String(msg).includes('emitted system task notification for TUI based on SYSTEM sender_type')
+        String(msg).includes('emitted system task notification for TUI based on SYSTEM senderType')
       )
     ).toBe(true);
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
   });
 
   it('handles message from tool sender', async () => {
@@ -229,7 +229,7 @@ describe('UserInputMessageEventHandler', () => {
     const event = new UserMessageReceivedEvent(
       new AgentInputUserMessage('Tool result: 42', SenderType.TOOL)
     );
-    context.config.input_processors = [];
+    context.config.inputProcessors = [];
 
     await handler.handle(event, context);
 
@@ -248,7 +248,7 @@ describe('UserInputMessageEventHandler', () => {
     const event = new UserMessageReceivedEvent(
       new AgentInputUserMessage('Hello from another agent.', SenderType.AGENT)
     );
-    context.config.input_processors = [];
+    context.config.inputProcessors = [];
 
     await handler.handle(event, context);
 

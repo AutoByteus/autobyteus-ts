@@ -3,7 +3,7 @@ import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { AgentTeamBuilder } from '../../../src/agent_team/agent_team_builder.js';
 import { AgentTeamConfig } from '../../../src/agent_team/context/agent_team_config.js';
 import { TeamNodeConfig } from '../../../src/agent_team/context/team_node_config.js';
-import { run_agent_team_cli } from '../../../src/cli/index.js';
+import { runAgentTeamCli } from '../../../src/cli/index.js';
 import { SendMessageTo } from '../../../src/agent/message/send_message_to.js';
 import { loadEnv } from '../../shared/example_paths.js';
 import { createLlmOrThrow, printAvailableModels } from '../../shared/llm_helpers.js';
@@ -15,14 +15,14 @@ function buildSubTeamConfig(
   coordinatorConfig: AgentConfig,
   memberConfig: AgentConfig
 ): AgentTeamConfig {
-  const coordinatorNode = new TeamNodeConfig({ node_definition: coordinatorConfig });
-  const memberNode = new TeamNodeConfig({ node_definition: memberConfig });
+  const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorConfig });
+  const memberNode = new TeamNodeConfig({ nodeDefinition: memberConfig });
   return new AgentTeamConfig({
     name,
     description: `${name} sub-team`,
     role,
     nodes: [coordinatorNode, memberNode],
-    coordinator_node: coordinatorNode
+    coordinatorNode: coordinatorNode
   });
 }
 
@@ -129,13 +129,13 @@ async function main(): Promise<void> {
   );
 
   const debateTeam = new AgentTeamBuilder('Grand_Debate', 'Hierarchical debate team')
-    .set_coordinator(moderatorConfig)
-    .add_sub_team_node(affirmativeTeamConfig)
-    .add_sub_team_node(negativeTeamConfig)
+    .setCoordinator(moderatorConfig)
+    .addSubTeamNode(affirmativeTeamConfig)
+    .addSubTeamNode(negativeTeamConfig)
     .build();
 
   try {
-    await run_agent_team_cli(debateTeam);
+    await runAgentTeamCli(debateTeam);
   } finally {
     await moderatorLlm.cleanup();
     await affirmativeLlm.cleanup();

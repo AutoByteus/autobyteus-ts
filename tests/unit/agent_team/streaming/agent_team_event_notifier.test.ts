@@ -19,7 +19,7 @@ describe('AgentTeamExternalEventNotifier', () => {
     const notifier = makeNotifier();
     const emitSpy = vi.spyOn(notifier, 'emit');
 
-    notifier.notify_status_updated(
+    notifier.notifyStatusUpdated(
       AgentTeamStatus.IDLE,
       AgentTeamStatus.BOOTSTRAPPING,
       { error_message: 'An error' }
@@ -50,7 +50,7 @@ describe('AgentTeamExternalEventNotifier', () => {
       data: { content: 'chunk text', is_complete: false }
     });
 
-    notifier.publish_agent_event('Researcher', mock_agent_event);
+    notifier.publishAgentEvent('Researcher', mock_agent_event);
 
     const [eventType, kwargs] = emitSpy.mock.calls[0];
     expect(eventType).toBe(EventType.TEAM_STREAM_EVENT);
@@ -73,7 +73,7 @@ describe('AgentTeamExternalEventNotifier', () => {
       data: new AgentTeamStatusUpdateData({ new_status: AgentTeamStatus.IDLE })
     });
 
-    notifier.publish_sub_team_event('ResearchTeam', mock_sub_team_event);
+    notifier.publishSubTeamEvent('ResearchTeam', mock_sub_team_event);
 
     const [eventType, kwargs] = emitSpy.mock.calls[0];
     expect(eventType).toBe(EventType.TEAM_STREAM_EVENT);

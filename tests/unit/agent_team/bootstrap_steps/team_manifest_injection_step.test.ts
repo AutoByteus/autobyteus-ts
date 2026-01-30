@@ -26,7 +26,7 @@ const makeAgentConfig = (name: string): AgentConfig => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -35,18 +35,18 @@ const makeAgentConfig = (name: string): AgentConfig => {
 
 const rebuildContextWithConfig = (context: AgentTeamContext, newConfig: AgentTeamConfig) => {
   context.config = newConfig;
-  (context as any).node_config_map = null;
+  (context as any).nodeConfigMap = null;
 };
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: makeAgentConfig('Coordinator') });
+  const node = new TeamNodeConfig({ nodeDefinition: makeAgentConfig('Coordinator') });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
   return new AgentTeamContext('team-1', config, state);
 };
 
@@ -55,55 +55,55 @@ describe('TeamManifestInjectionStep', () => {
     const step = new TeamManifestInjectionStep();
     const context = makeContext();
 
-    const coordinator_def = makeAgentConfig('Coordinator');
-    coordinator_def.system_prompt = 'Team Manifest:\n{{team}}';
+    const coordinatorDef = makeAgentConfig('Coordinator');
+    coordinatorDef.systemPrompt = 'Team Manifest:\n{{team}}';
 
-    const member_def = makeAgentConfig('Member');
-    member_def.system_prompt = 'Known team:\n{{team}}';
-    member_def.description = 'This is the member agent.';
+    const memberDef = makeAgentConfig('Member');
+    memberDef.systemPrompt = 'Known team:\n{{team}}';
+    memberDef.description = 'This is the member agent.';
 
-    const coordinator_node = new TeamNodeConfig({ node_definition: coordinator_def });
-    const member_node = new TeamNodeConfig({ node_definition: member_def });
+    const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorDef });
+    const memberNode = new TeamNodeConfig({ nodeDefinition: memberDef });
 
-    const new_team_config = new AgentTeamConfig({
+    const newTeamConfig = new AgentTeamConfig({
       name: 'Team',
       description: 'desc',
-      nodes: [coordinator_node, member_node],
-      coordinator_node: coordinator_node
+      nodes: [coordinatorNode, memberNode],
+      coordinatorNode: coordinatorNode
     });
-    rebuildContextWithConfig(context, new_team_config);
+    rebuildContextWithConfig(context, newTeamConfig);
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
-    const prompts = context.state.prepared_agent_prompts;
-    expect(prompts[coordinator_node.name]).toBe(
+    const prompts = context.state.preparedAgentPrompts;
+    expect(prompts[coordinatorNode.name]).toBe(
       'Team Manifest:\n- name: Member\n  description: This is the member agent.'
     );
-    const expectedMemberView = `Known team:\n- name: Coordinator\n  description: ${coordinator_def.description}`;
-    expect(prompts[member_node.name]).toBe(expectedMemberView);
+    const expectedMemberView = `Known team:\n- name: Coordinator\n  description: ${coordinatorDef.description}`;
+    expect(prompts[memberNode.name]).toBe(expectedMemberView);
   });
 
   it('handles solo agent', async () => {
     const step = new TeamManifestInjectionStep();
     const context = makeContext();
 
-    const coordinator_def = makeAgentConfig('Solo');
-    coordinator_def.system_prompt = 'My Team: {{team}}';
-    const coordinator_node = new TeamNodeConfig({ node_definition: coordinator_def });
+    const coordinatorDef = makeAgentConfig('Solo');
+    coordinatorDef.systemPrompt = 'My Team: {{team}}';
+    const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorDef });
 
-    const solo_config = new AgentTeamConfig({
+    const soloConfig = new AgentTeamConfig({
       name: 'Solo Team',
-      nodes: [coordinator_node],
-      coordinator_node: coordinator_node,
+      nodes: [coordinatorNode],
+      coordinatorNode: coordinatorNode,
       description: 'Solo agent team'
     });
-    rebuildContextWithConfig(context, solo_config);
+    rebuildContextWithConfig(context, soloConfig);
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
-    const prompts = context.state.prepared_agent_prompts;
+    const prompts = context.state.preparedAgentPrompts;
     expect(prompts['Solo']).toBe(
       'My Team: You are working alone. You have no team members to delegate to.'
     );
@@ -113,55 +113,55 @@ describe('TeamManifestInjectionStep', () => {
     const step = new TeamManifestInjectionStep();
     const context = makeContext();
 
-    const coordinator_def = makeAgentConfig('Coordinator');
-    coordinator_def.system_prompt = 'Intro\\n\\n### Your Team\\nThese are your peers.';
+    const coordinatorDef = makeAgentConfig('Coordinator');
+    coordinatorDef.systemPrompt = 'Intro\\n\\n### Your Team\\nThese are your peers.';
 
-    const member_def = makeAgentConfig('Member');
-    member_def.system_prompt = 'Intro\\n\\n### Your Team\\nThese are your peers.';
-    member_def.description = 'Member description.';
+    const memberDef = makeAgentConfig('Member');
+    memberDef.systemPrompt = 'Intro\\n\\n### Your Team\\nThese are your peers.';
+    memberDef.description = 'Member description.';
 
-    const coordinator_node = new TeamNodeConfig({ node_definition: coordinator_def });
-    const member_node = new TeamNodeConfig({ node_definition: member_def });
+    const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorDef });
+    const memberNode = new TeamNodeConfig({ nodeDefinition: memberDef });
 
-    const new_team_config = new AgentTeamConfig({
+    const newTeamConfig = new AgentTeamConfig({
       name: 'Team',
       description: 'desc',
-      nodes: [coordinator_node, member_node],
-      coordinator_node: coordinator_node
+      nodes: [coordinatorNode, memberNode],
+      coordinatorNode: coordinatorNode
     });
-    rebuildContextWithConfig(context, new_team_config);
+    rebuildContextWithConfig(context, newTeamConfig);
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
-    const prompts = context.state.prepared_agent_prompts;
-    expect(prompts[coordinator_node.name]).toContain('### Your Team');
-    expect(prompts[coordinator_node.name]).toContain('- name: Member');
-    expect(prompts[member_node.name]).toContain('- name: Coordinator');
+    const prompts = context.state.preparedAgentPrompts;
+    expect(prompts[coordinatorNode.name]).toContain('### Your Team');
+    expect(prompts[coordinatorNode.name]).toContain('- name: Member');
+    expect(prompts[memberNode.name]).toContain('- name: Coordinator');
   });
 
   it('returns false when manifest generation fails', async () => {
     const step = new TeamManifestInjectionStep();
     const context = makeContext();
 
-    const coordinator_def = makeAgentConfig('Coordinator');
-    coordinator_def.system_prompt = '{{team}}';
-    const coordinator_node = new TeamNodeConfig({ node_definition: coordinator_def });
-    const new_config = new AgentTeamConfig({
+    const coordinatorDef = makeAgentConfig('Coordinator');
+    coordinatorDef.systemPrompt = '{{team}}';
+    const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorDef });
+    const newConfig = new AgentTeamConfig({
       name: 'FailTeam',
       description: 'Desc',
-      nodes: [coordinator_node],
-      coordinator_node
+      nodes: [coordinatorNode],
+      coordinatorNode
     });
-    rebuildContextWithConfig(context, new_config);
+    rebuildContextWithConfig(context, newConfig);
 
-    (step as any).generate_team_manifest = () => {
+    (step as any).generateTeamManifest = () => {
       throw new Error('Synthetic error');
     };
 
     const success = await step.execute(context);
 
     expect(success).toBe(false);
-    expect(context.state.prepared_agent_prompts).toEqual({});
+    expect(context.state.preparedAgentPrompts).toEqual({});
   });
 });

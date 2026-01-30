@@ -18,15 +18,15 @@ describe('EventHandlerRegistry', () => {
   });
 
   it('initializes empty', () => {
-    expect(registry.get_all_registered_event_types()).toEqual([]);
+    expect(registry.getAllRegisteredEventTypes()).toEqual([]);
   });
 
   it('registers and retrieves a handler', () => {
     const handler = new DummyEventHandler();
     registry.register(UserMessageReceivedEvent, handler);
 
-    expect(registry.get_handler(UserMessageReceivedEvent)).toBe(handler);
-    expect(registry.get_all_registered_event_types()).toEqual([UserMessageReceivedEvent]);
+    expect(registry.getHandler(UserMessageReceivedEvent)).toBe(handler);
+    expect(registry.getAllRegisteredEventTypes()).toEqual([UserMessageReceivedEvent]);
   });
 
   it('throws when overwriting a handler registration', () => {
@@ -38,7 +38,7 @@ describe('EventHandlerRegistry', () => {
   });
 
   it('returns null when handler is not found', () => {
-    expect(registry.get_handler(UserMessageReceivedEvent)).toBeNull();
+    expect(registry.getHandler(UserMessageReceivedEvent)).toBeNull();
   });
 
   it('throws when event class is not a type', () => {

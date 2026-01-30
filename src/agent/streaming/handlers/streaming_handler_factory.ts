@@ -4,7 +4,7 @@ import { ParsingStreamingResponseHandler } from './parsing_streaming_response_ha
 import { PassThroughStreamingResponseHandler } from './pass_through_streaming_response_handler.js';
 import { ApiToolCallStreamingResponseHandler } from './api_tool_call_streaming_response_handler.js';
 import { ParserConfig } from '../parser/parser_context.js';
-import { get_json_tool_parsing_profile } from '../parser/json_parsing_strategies/registry.js';
+import { getJsonToolParsingProfile } from '../parser/json_parsing_strategies/registry.js';
 import { SegmentEvent } from '../segments/segment_events.js';
 import { ToolInvocation } from '../../tool_invocation.js';
 import { LLMProvider } from '../../../llm/providers.js';
@@ -13,27 +13,27 @@ import { ToolSchemaProvider } from '../../../tools/usage/providers/tool_schema_p
 
 export class StreamingHandlerResult {
   handler: StreamingResponseHandler;
-  tool_schemas: Array<Record<string, any>> | null;
+  toolSchemas: Array<Record<string, any>> | null;
 
   constructor(handler: StreamingResponseHandler, toolSchemas: Array<Record<string, any>> | null = null) {
     this.handler = handler;
-    this.tool_schemas = toolSchemas;
+    this.toolSchemas = toolSchemas;
   }
 }
 
 export class StreamingResponseHandlerFactory {
   static create(options: {
-    tool_names: string[];
+    toolNames: string[];
     provider?: LLMProvider | null;
-    segment_id_prefix?: string | null;
-    on_segment_event?: (event: SegmentEvent) => void;
-    on_tool_invocation?: (invocation: ToolInvocation) => void;
-    agent_id?: string | null;
+    segmentIdPrefix?: string | null;
+    onSegmentEvent?: (event: SegmentEvent) => void;
+    onToolInvocation?: (invocation: ToolInvocation) => void;
+    agentId?: string | null;
   }): StreamingHandlerResult {
     const formatOverride = resolveToolCallFormat();
-    const parseToolCalls = options.tool_names.length > 0;
+    const parseToolCalls = options.toolNames.length > 0;
 
-    let segmentIdPrefix = options.segment_id_prefix ?? undefined;
+    let segmentIdPrefix = options.segmentIdPrefix ?? undefined;
     if (!segmentIdPrefix) {
       segmentIdPrefix = `turn_${randomUUID().replace(/-/g, '')}:`;
     }
@@ -41,65 +41,65 @@ export class StreamingResponseHandlerFactory {
     if (!parseToolCalls) {
       return new StreamingHandlerResult(
         new PassThroughStreamingResponseHandler({
-          on_segment_event: options.on_segment_event,
-          on_tool_invocation: options.on_tool_invocation,
-          segment_id_prefix: segmentIdPrefix
+          onSegmentEvent: options.onSegmentEvent,
+          onToolInvocation: options.onToolInvocation,
+          segmentIdPrefix: segmentIdPrefix
         }),
         null
       );
     }
 
     if (formatOverride === 'api_tool_call') {
-      const toolSchemas = StreamingResponseHandlerFactory.build_tool_schemas(
-        options.tool_names,
+      const toolSchemas = StreamingResponseHandlerFactory.buildToolSchemas(
+        options.toolNames,
         options.provider ?? null
       );
       return new StreamingHandlerResult(
         new ApiToolCallStreamingResponseHandler({
-          on_segment_event: options.on_segment_event,
-          on_tool_invocation: options.on_tool_invocation,
-          segment_id_prefix: segmentIdPrefix
+          onSegmentEvent: options.onSegmentEvent,
+          onToolInvocation: options.onToolInvocation,
+          segmentIdPrefix: segmentIdPrefix
         }),
         toolSchemas
       );
     }
 
-    const parserName = StreamingResponseHandlerFactory.resolve_parser_name({
-      format_override: formatOverride,
+    const parserName = StreamingResponseHandlerFactory.resolveParserName({
+      formatOverride: formatOverride,
       provider: options.provider ?? null
     });
 
-    const jsonProfile = get_json_tool_parsing_profile(options.provider ?? null);
+    const jsonProfile = getJsonToolParsingProfile(options.provider ?? null);
     const parserConfig = new ParserConfig({
-      parse_tool_calls: parseToolCalls,
-      json_tool_patterns: jsonProfile.signature_patterns,
-      json_tool_parser: jsonProfile.parser,
-      segment_id_prefix: segmentIdPrefix
+      parseToolCalls: parseToolCalls,
+      jsonToolPatterns: jsonProfile.signaturePatterns,
+      jsonToolParser: jsonProfile.parser,
+      segmentIdPrefix: segmentIdPrefix
     });
 
     return new StreamingHandlerResult(
       new ParsingStreamingResponseHandler({
-        on_segment_event: options.on_segment_event,
-        on_tool_invocation: options.on_tool_invocation,
+        onSegmentEvent: options.onSegmentEvent,
+        onToolInvocation: options.onToolInvocation,
         config: parserConfig,
-        parser_name: parserName
+        parserName: parserName
       }),
       null
     );
   }
 
-  static resolve_parser_name(options: {
-    format_override?: string | null;
+  static resolveParserName(options: {
+    formatOverride?: string | null;
     provider?: LLMProvider | null;
   }): string {
-    const override = options.format_override ?? undefined;
+    const override = options.formatOverride ?? undefined;
     if (override === 'xml' || override === 'json' || override === 'sentinel') {
       return override;
     }
     return options.provider === LLMProvider.ANTHROPIC ? 'xml' : 'json';
   }
 
-  static build_tool_schemas(toolNames: string[], provider?: LLMProvider | null): Array<Record<string, any>> | null {
+  static buildToolSchemas(toolNames: string[], provider?: LLMProvider | null): Array<Record<string, any>> | null {
     if (!toolNames.length) {
       return null;
     }

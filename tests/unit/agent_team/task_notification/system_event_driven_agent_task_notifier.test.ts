@@ -33,86 +33,86 @@ const makeTasks = () => {
 };
 
 describe('SystemEventDrivenAgentTaskNotifier', () => {
-  let task_plan: InMemoryTaskPlan;
-  let mock_policy: any;
-  let mock_activator: any;
+  let taskPlan: InMemoryTaskPlan;
+  let mockPolicy: any;
+  let mockActivator: any;
 
   beforeEach(() => {
-    task_plan = new InMemoryTaskPlan('test_orchestrator_team');
-    mock_policy = { reset: vi.fn(), determine_activations: vi.fn(() => []) };
-    mock_activator = { activate_agent: vi.fn(async () => undefined) };
+    taskPlan = new InMemoryTaskPlan('test_orchestrator_team');
+    mockPolicy = { reset: vi.fn(), determineActivations: vi.fn(() => []) };
+    mockActivator = { activateAgent: vi.fn(async () => undefined) };
 
     (ActivationPolicy as any).mockImplementation(function () {
-      return mock_policy;
+      return mockPolicy;
     });
     (TaskActivator as any).mockImplementation(function () {
-      return mock_activator;
+      return mockActivator;
     });
   });
 
   it('resets policy and activates on tasks created', async () => {
-    const team_manager = { team_id: 'test_orchestrator_team' } as any;
-    const notifier = new SystemEventDrivenAgentTaskNotifier(task_plan, team_manager);
+    const teamManager = { teamId: 'test_orchestrator_team' } as any;
+    const notifier = new SystemEventDrivenAgentTaskNotifier(taskPlan, teamManager);
 
-    const created_tasks = task_plan.add_tasks(makeTasks());
-    const task_a = created_tasks[0];
+    const createdTasks = taskPlan.addTasks(makeTasks());
+    const taskA = createdTasks[0];
 
-    mock_policy.determine_activations.mockReturnValue(['AgentA']);
+    mockPolicy.determineActivations.mockReturnValue(['AgentA']);
 
-    const event: TasksCreatedEvent = { team_id: task_plan.team_id, tasks: created_tasks } as any;
-    await notifier._handle_tasks_changed(event);
+    const event: TasksCreatedEvent = { team_id: taskPlan.teamId, tasks: createdTasks } as any;
+    await notifier.handleTasksChanged(event);
 
-    expect(mock_policy.reset).toHaveBeenCalledTimes(1);
-    expect(mock_policy.determine_activations).toHaveBeenCalledTimes(1);
-    expect(task_plan.task_statuses[task_a.task_id]).toBe(TaskStatus.QUEUED);
-    expect(mock_activator.activate_agent).toHaveBeenCalledWith('AgentA');
+    expect(mockPolicy.reset).toHaveBeenCalledTimes(1);
+    expect(mockPolicy.determineActivations).toHaveBeenCalledTimes(1);
+    expect(taskPlan.taskStatuses[taskA.task_id]).toBe(TaskStatus.QUEUED);
+    expect(mockActivator.activateAgent).toHaveBeenCalledWith('AgentA');
   });
 
   it('does not reset policy on status update and activates handoff', async () => {
-    const team_manager = { team_id: 'test_orchestrator_team' } as any;
-    const notifier = new SystemEventDrivenAgentTaskNotifier(task_plan, team_manager);
+    const teamManager = { teamId: 'test_orchestrator_team' } as any;
+    const notifier = new SystemEventDrivenAgentTaskNotifier(taskPlan, teamManager);
 
-    const created_tasks = task_plan.add_tasks(makeTasks());
-    const task_b = created_tasks[1];
+    const createdTasks = taskPlan.addTasks(makeTasks());
+    const taskB = createdTasks[1];
 
-    mock_policy.determine_activations.mockReturnValue(['AgentB']);
+    mockPolicy.determineActivations.mockReturnValue(['AgentB']);
 
-    task_plan.update_task_status(created_tasks[0].task_id, TaskStatus.COMPLETED, 'AgentA');
+    taskPlan.updateTaskStatus(createdTasks[0].task_id, TaskStatus.COMPLETED, 'AgentA');
     const event: TaskStatusUpdatedEvent = {
-      team_id: task_plan.team_id,
+      team_id: taskPlan.teamId,
       task_id: 'any_id',
       new_status: TaskStatus.COMPLETED,
       agent_name: 'AgentA'
     } as any;
 
-    await notifier._handle_tasks_changed(event);
+    await notifier.handleTasksChanged(event);
 
-    expect(mock_policy.reset).not.toHaveBeenCalled();
-    expect(mock_policy.determine_activations).toHaveBeenCalledTimes(1);
-    expect(task_plan.task_statuses[task_b.task_id]).toBe(TaskStatus.QUEUED);
-    expect(mock_activator.activate_agent).toHaveBeenCalledWith('AgentB');
+    expect(mockPolicy.reset).not.toHaveBeenCalled();
+    expect(mockPolicy.determineActivations).toHaveBeenCalledTimes(1);
+    expect(taskPlan.taskStatuses[taskB.task_id]).toBe(TaskStatus.QUEUED);
+    expect(mockActivator.activateAgent).toHaveBeenCalledWith('AgentB');
   });
 
   it('does not activate if policy returns empty list', async () => {
-    const team_manager = { team_id: 'test_orchestrator_team' } as any;
-    const notifier = new SystemEventDrivenAgentTaskNotifier(task_plan, team_manager);
+    const teamManager = { teamId: 'test_orchestrator_team' } as any;
+    const notifier = new SystemEventDrivenAgentTaskNotifier(taskPlan, teamManager);
 
-    mock_policy.determine_activations.mockReturnValue([]);
+    mockPolicy.determineActivations.mockReturnValue([]);
 
-    const created_tasks = task_plan.add_tasks(makeTasks());
-    task_plan.update_task_status(created_tasks[0].task_id, TaskStatus.COMPLETED, 'AgentA');
+    const createdTasks = taskPlan.addTasks(makeTasks());
+    taskPlan.updateTaskStatus(createdTasks[0].task_id, TaskStatus.COMPLETED, 'AgentA');
 
     const event: TaskStatusUpdatedEvent = {
-      team_id: task_plan.team_id,
+      team_id: taskPlan.teamId,
       task_id: 'any_id',
       new_status: TaskStatus.COMPLETED,
       agent_name: 'AgentA'
     } as any;
 
-    await notifier._handle_tasks_changed(event);
+    await notifier.handleTasksChanged(event);
 
-    expect(mock_policy.determine_activations).toHaveBeenCalledTimes(1);
-    expect(mock_activator.activate_agent).not.toHaveBeenCalled();
-    expect(task_plan.task_statuses[created_tasks[1].task_id]).toBe(TaskStatus.NOT_STARTED);
+    expect(mockPolicy.determineActivations).toHaveBeenCalledTimes(1);
+    expect(mockActivator.activateAgent).not.toHaveBeenCalled();
+    expect(taskPlan.taskStatuses[createdTasks[1].task_id]).toBe(TaskStatus.NOT_STARTED);
   });
 });

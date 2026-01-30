@@ -1,22 +1,22 @@
 export class ToolConfig {
-  public params: Record<string, any>;
+  public params: Record<string, unknown>;
 
-  constructor(params: Record<string, any> = {}) {
+  constructor(params: Record<string, unknown> = {}) {
     if (!ToolConfig.isPlainObject(params)) {
       throw new TypeError('params must be a dictionary');
     }
     this.params = params;
   }
 
-  private static isPlainObject(value: any): value is Record<string, any> {
+  private static isPlainObject(value: unknown): value is Record<string, unknown> {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
   }
 
-  public toDict(): Record<string, any> {
+  public toDict(): Record<string, unknown> {
     return { ...this.params };
   }
 
-  public static fromDict(configData: Record<string, any>): ToolConfig {
+  public static fromDict(configData: Record<string, unknown>): ToolConfig {
     if (!ToolConfig.isPlainObject(configData)) {
       throw new TypeError('config_data must be a dictionary');
     }
@@ -30,22 +30,22 @@ export class ToolConfig {
     return new ToolConfig({ ...this.params, ...other.params });
   }
 
-  public getConstructorKwargs(): Record<string, any> {
+  public getConstructorArgs(): Record<string, unknown> {
     return { ...this.params };
   }
 
-  public get(key: string, defaultValue: any = null): any {
+  public get<T = unknown>(key: string, defaultValue: T | null = null): T | null {
     if (Object.prototype.hasOwnProperty.call(this.params, key)) {
-      return this.params[key];
+      return this.params[key] as T;
     }
     return defaultValue;
   }
 
-  public set(key: string, value: any): void {
+  public set(key: string, value: unknown): void {
     this.params[key] = value;
   }
 
-  public update(params: Record<string, any>): void {
+  public update(params: Record<string, unknown>): void {
     if (!ToolConfig.isPlainObject(params)) {
       throw new TypeError('params must be a dictionary');
     }
@@ -72,7 +72,7 @@ export class ToolConfig {
     return `ToolConfig(params=${ToolConfig.formatValue(this.params)})`;
   }
 
-  private static formatValue(value: any): string {
+  private static formatValue(value: unknown): string {
     if (value === null || value === undefined) {
       return 'None';
     }

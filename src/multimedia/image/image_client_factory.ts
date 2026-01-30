@@ -9,16 +9,17 @@ import { MultimediaConfig } from '../utils/multimedia_config.js';
 import { AutobyteusImageModelProvider } from './autobyteus_image_provider.js';
 
 export class ImageClientFactory extends Singleton {
+  protected static instance?: ImageClientFactory;
+
   private static modelsByIdentifier: Map<string, ImageModel> = new Map();
   private static initialized = false;
 
   constructor() {
     super();
-    const existing = (ImageClientFactory as any).instance as ImageClientFactory | undefined;
-    if (existing) {
-      return existing;
+    if (ImageClientFactory.instance) {
+      return ImageClientFactory.instance;
     }
-    (ImageClientFactory as any).instance = this;
+    ImageClientFactory.instance = this;
   }
 
   static ensureInitialized(): void {

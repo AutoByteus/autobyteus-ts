@@ -4,7 +4,7 @@ import { MultimediaConfig } from '../utils/multimedia_config.js';
 import { ParameterSchema } from '../../utils/parameter_schema.js';
 import type { BaseImageClient } from './base_image_client.js';
 
-type ParameterSchemaInput = Record<string, any> | ParameterSchema | null | undefined;
+type ParameterSchemaInput = Record<string, unknown> | ParameterSchema | null | undefined;
 
 type ImageClientConstructor = new (model: ImageModel, config: MultimediaConfig) => BaseImageClient;
 
@@ -47,7 +47,7 @@ export class ImageModel {
       this.parameterSchema = new ParameterSchema();
     }
 
-    const defaultParams: Record<string, any> = {};
+    const defaultParams: Record<string, unknown> = {};
     for (const param of this.parameterSchema.parameters) {
       if (param.defaultValue !== undefined && param.defaultValue !== null) {
         defaultParams[param.name] = param.defaultValue;

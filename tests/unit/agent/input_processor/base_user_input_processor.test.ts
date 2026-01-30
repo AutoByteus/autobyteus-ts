@@ -15,7 +15,7 @@ class MyTestProcessor extends BaseAgentUserInputMessageProcessor {
 }
 
 class MyRenamedTestProcessor extends BaseAgentUserInputMessageProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'CustomProcessorName';
   }
 
@@ -31,12 +31,12 @@ class MyRenamedTestProcessor extends BaseAgentUserInputMessageProcessor {
 describe('BaseAgentUserInputMessageProcessor', () => {
   it('returns default name based on class name', () => {
     const processor = new MyTestProcessor();
-    expect(processor.get_name()).toBe('MyTestProcessor');
+    expect(processor.getName()).toBe('MyTestProcessor');
   });
 
   it('returns overridden name', () => {
     const processor = new MyRenamedTestProcessor();
-    expect(processor.get_name()).toBe('CustomProcessorName');
+    expect(processor.getName()).toBe('CustomProcessorName');
   });
 
   it('throws when instantiated directly', () => {

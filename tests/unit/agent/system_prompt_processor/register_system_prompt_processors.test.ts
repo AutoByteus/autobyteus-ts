@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { registerSystemPromptProcessors } from '../../../../src/agent/system_prompt_processor/register_system_prompt_processors.js';
 import { defaultSystemPromptProcessorRegistry } from '../../../../src/agent/system_prompt_processor/processor_registry.js';
 
-const snapshotDefinitions = () => defaultSystemPromptProcessorRegistry.get_all_definitions();
+const snapshotDefinitions = () => defaultSystemPromptProcessorRegistry.getAllDefinitions();
 
 describe('registerSystemPromptProcessors', () => {
   let originalDefinitions: Record<string, any> = {};
@@ -15,14 +15,14 @@ describe('registerSystemPromptProcessors', () => {
   afterEach(() => {
     defaultSystemPromptProcessorRegistry.clear();
     for (const definition of Object.values(originalDefinitions)) {
-      defaultSystemPromptProcessorRegistry.register_processor(definition);
+      defaultSystemPromptProcessorRegistry.registerProcessor(definition);
     }
   });
 
   it('registers default system prompt processors', () => {
     registerSystemPromptProcessors();
 
-    const names = defaultSystemPromptProcessorRegistry.list_processor_names();
+    const names = defaultSystemPromptProcessorRegistry.listProcessorNames();
     expect(names).toContain('ToolManifestInjector');
     expect(names).toContain('AvailableSkillsProcessor');
   });

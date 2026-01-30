@@ -54,14 +54,14 @@ runIntegration('PtySession Integration', () => {
 
   it('starts and reports alive', async () => {
     await withTempDir(async (tempDir) => {
-      const session = new PtySessionClass('test');
+        const session = new PtySessionClass('test');
       try {
         await session.start(tempDir);
-        expect(session.is_alive).toBe(true);
+        expect(session.isAlive).toBe(true);
       } finally {
         await session.close();
       }
-      expect(session.is_alive).toBe(false);
+      expect(session.isAlive).toBe(false);
     });
   });
 

@@ -74,21 +74,21 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
       ? Math.min(500, Math.max(30, Math.floor(refreshMsRaw)))
       : 200;
 
-    const initialTree = store.get_tree_data();
+    const initialTree = store.getTreeData();
     const root = initialTree[team.name];
     if (root) {
-      store.set_focused_node(root);
+      store.setFocusedNode(root);
       setFocusedNode({ name: root.name, type: root.type, role: root.role, depth: 0, node: root });
     }
     setStoreVersion(store.version);
 
     (async () => {
       try {
-        for await (const event of stream.all_events()) {
+        for await (const event of stream.allEvents()) {
           if (!active) {
             break;
           }
-          store.process_event(event);
+          store.processEvent(event);
         }
       } finally {
         if (active) {
@@ -101,7 +101,7 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
       if (!active) {
         return;
       }
-      if (store.consume_dirty()) {
+      if (store.consumeDirty()) {
         setStoreVersion(store.version);
       }
     }, refreshMs);
@@ -112,13 +112,13 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
         clearInterval(renderTimer);
       }
       void stream.close();
-      if (team.is_running) {
+      if (team.isRunning) {
         void team.stop();
       }
     };
   }, [team, store]);
 
-  const nodes = useMemo(() => flattenTree(store.get_tree_data()), [store, storeVersion]);
+  const nodes = useMemo(() => flattenTree(store.getTreeData()), [store, storeVersion]);
 
   useEffect(() => {
     if (!nodes.length) {
@@ -129,7 +129,7 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
       setSelectedIndex(safeIndex);
     }
     const node = nodes[safeIndex];
-    store.set_focused_node(node.node);
+    store.setFocusedNode(node.node);
     setFocusedNode(node);
   }, [nodes, selectedIndex, store]);
 
@@ -150,26 +150,26 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
   const focusedName = focused?.name ?? team.name;
 
   const history =
-    focusedType === 'agent' ? store.get_history_for_node(focusedName, focusedType) : [];
+    focusedType === 'agent' ? store.getHistoryForNode(focusedName, focusedType) : [];
   const lastUserMessage =
-    focusedType === 'agent' ? store.get_last_user_message(focusedName) : null;
+    focusedType === 'agent' ? store.getLastUserMessage(focusedName) : null;
   const pendingApproval =
-    focusedType === 'agent' ? store.get_pending_approval_for_agent(focusedName) : null;
-  const taskPlan = focusedType !== 'agent' ? store.get_task_plan_tasks(focusedName) : null;
-  const taskStatuses = focusedType !== 'agent' ? store.get_task_plan_statuses(focusedName) : null;
+    focusedType === 'agent' ? store.getPendingApprovalForAgent(focusedName) : null;
+  const taskPlan = focusedType !== 'agent' ? store.getTaskPlanTasks(focusedName) : null;
+  const taskStatuses = focusedType !== 'agent' ? store.getTaskPlanStatuses(focusedName) : null;
 
   const handleSubmitMessage = (agentName: string, text: string): void => {
-    store.append_user_message(agentName, text);
-    void team.post_message(new AgentInputUserMessage(text), agentName);
+    store.appendUserMessage(agentName, text);
+    void team.postMessage(new AgentInputUserMessage(text), agentName);
   };
 
   const handleSubmitApproval = (agentName: string, invocationId: string, isApproved: boolean, reason?: string): void => {
-    void team.post_tool_execution_approval(agentName, invocationId, isApproved, reason);
+    void team.postToolExecutionApproval(agentName, invocationId, isApproved, reason);
     const decisionText = isApproved
       ? `APPROVED${reason ? `: ${reason}` : ''}`
       : `DENIED${reason ? `: ${reason}` : ''}`;
-    store.append_tool_decision(agentName, decisionText);
-    store.clear_pending_approval(agentName);
+    store.appendToolDecision(agentName, decisionText);
+    store.clearPendingApproval(agentName);
     store.version += 1;
     setStoreVersion(store.version);
   };
@@ -189,18 +189,18 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
       <Text>AutoByteus Team Console</Text>
       <Box flexDirection="row" marginTop={1} height={bodyHeight}>
         <AgentListSidebar
-          treeData={store.get_tree_data()}
+          treeData={store.getTreeData()}
           selectedIndex={selectedIndex}
-          agentStatuses={store._agent_statuses}
-          teamStatuses={store._team_statuses}
-          speakingAgents={store._speaking_agents}
+          agentStatuses={store.agentStatuses}
+          teamStatuses={store.teamStatuses}
+          speakingAgents={store.speakingAgents}
           height={bodyHeight}
           width={sidebarWidth}
         />
         <FocusPane
           focusedNode={focused}
-          agentStatuses={store._agent_statuses}
-          teamStatuses={store._team_statuses}
+          agentStatuses={store.agentStatuses}
+          teamStatuses={store.teamStatuses}
           history={history}
           lastUserMessage={lastUserMessage}
           pendingApproval={pendingApproval}
@@ -218,7 +218,7 @@ export const AgentTeamApp: React.FC<{ team: AgentTeam }> = ({ team }) => {
 };
 
 export async function run(team: AgentTeam): Promise<void> {
-  if (!team.is_running) {
+  if (!team.isRunning) {
     team.start();
   }
   // Switch to alternate screen + clear + hide cursor for a real full-screen TUI.

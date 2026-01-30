@@ -10,7 +10,7 @@ export type ParamTypeHint =
   | ParameterType
   | {
       type: ParameterType;
-      arrayItemSchema?: ParameterType | ParameterSchema | Record<string, any>;
+      arrayItemSchema?: ParameterType | ParameterSchema | Record<string, unknown>;
     };
 
 export interface ToolDecoratorOptions {
@@ -20,25 +20,25 @@ export interface ToolDecoratorOptions {
   configSchema?: ParameterSchema | null;
   category?: string;
   paramTypeHints?: Record<string, ParamTypeHint>;
-  paramDefaults?: Record<string, any>;
+  paramDefaults?: Record<string, unknown>;
   paramNames?: string[];
 }
 
-export class FunctionalTool extends BaseTool {
-  private readonly _originalFunc: (...args: any[]) => any;
+export class FunctionalTool extends BaseTool<unknown, Record<string, unknown>, unknown> {
+  private readonly _originalFunc: (...args: unknown[]) => unknown;
   private readonly _isAsync: boolean;
   private readonly _expectsContext: boolean;
   private readonly _expectsToolState: boolean;
   private readonly _funcParamNames: string[];
   private readonly _callParamOrder: string[];
-  private readonly _instantiationConfig: Record<string, any>;
+  private readonly _instantiationConfig: Record<string, unknown>;
   private readonly _name: string;
   private readonly _description: string;
   private readonly _argumentSchema: ParameterSchema | null;
   private readonly _configSchema: ParameterSchema | null;
 
   constructor(
-    originalFunc: (...args: any[]) => any,
+    originalFunc: (...args: unknown[]) => unknown,
     name: string,
     description: string,
     argumentSchema: ParameterSchema | null,
@@ -48,7 +48,7 @@ export class FunctionalTool extends BaseTool {
     expectsToolState: boolean,
     funcParamNames: string[],
     callParamOrder: string[],
-    instantiationConfig?: Record<string, any>
+    instantiationConfig?: Record<string, unknown>
   ) {
     super(instantiationConfig ? new ToolConfig(instantiationConfig) : undefined);
     this._originalFunc = originalFunc;
@@ -75,15 +75,15 @@ export class FunctionalTool extends BaseTool {
   public getArgumentSchema(): ParameterSchema | null { return this._argumentSchema; }
   public getConfigSchema(): ParameterSchema | null { return this._configSchema; }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<any> {
-    const args: any[] = [];
+  protected async _execute(context: unknown, argsByName: Record<string, unknown> = {}): Promise<unknown> {
+    const args: unknown[] = [];
     for (const paramName of this._callParamOrder) {
       if (paramName === 'context') {
         args.push(context);
       } else if (paramName === 'tool_state' || paramName === 'toolState') {
         args.push(this.toolState);
-      } else if (Object.prototype.hasOwnProperty.call(kwargs, paramName)) {
-        args.push(kwargs[paramName]);
+      } else if (Object.prototype.hasOwnProperty.call(argsByName, paramName)) {
+        args.push(argsByName[paramName]);
       } else {
         args.push(undefined);
       }
@@ -133,7 +133,9 @@ function buildParamDescription(paramName: string, toolName: string): string {
   return desc;
 }
 
-function normalizeArrayItemSchema(schema?: ParameterType | ParameterSchema | Record<string, any>): ParameterSchema | Record<string, any> | ParameterType {
+function normalizeArrayItemSchema(
+  schema?: ParameterType | ParameterSchema | Record<string, unknown>
+): ParameterSchema | Record<string, unknown> | ParameterType {
   if (!schema) {
     return {};
   }
@@ -159,7 +161,7 @@ export function _parseSignature(
   toolName: string,
   options: {
     paramTypeHints?: Record<string, ParamTypeHint>;
-    paramDefaults?: Record<string, any>;
+    paramDefaults?: Record<string, unknown>;
     paramNames?: string[];
   } = {}
 ): [string[], boolean, boolean, ParameterSchema] {
@@ -174,7 +176,7 @@ export function _parseSignature(
 
     const hint = options.paramTypeHints?.[paramName];
     let paramType = ParameterType.STRING;
-    let arrayItemSchema: any = undefined;
+    let arrayItemSchema: ParameterSchema | Record<string, unknown> | ParameterType | undefined = undefined;
 
     if (hint) {
       if (typeof hint === 'object' && 'type' in hint) {
@@ -216,7 +218,7 @@ export function _parseSignature(
 }
 
 export function tool(
-  func?: ((...args: any[]) => any) | ToolDecoratorOptions,
+  func?: ((...args: unknown[]) => unknown) | ToolDecoratorOptions,
   options: ToolDecoratorOptions = {}
 ): any {
   const resolvedOptions =

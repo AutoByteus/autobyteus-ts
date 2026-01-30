@@ -8,8 +8,8 @@ import { formatToCleanString } from '../../utils/llm_output_formatter.js';
 import type { AgentContext } from '../context/agent_context.js';
 
 type ToolResultProcessorLike = {
-  get_name: () => string;
-  get_order: () => number;
+  getName: () => string;
+  getOrder: () => number;
   process: (event: ToolResultEvent, context: AgentContext) => Promise<ToolResultEvent>;
 };
 
@@ -19,8 +19,8 @@ const isToolResultProcessor = (value: unknown): value is ToolResultProcessorLike
   }
   const candidate = value as ToolResultProcessorLike;
   return (
-    typeof candidate.get_name === 'function' &&
-    typeof candidate.get_order === 'function' &&
+    typeof candidate.getName === 'function' &&
+    typeof candidate.getOrder === 'function' &&
     typeof candidate.process === 'function'
   );
 };
@@ -35,20 +35,20 @@ export class ToolResultEventHandler extends AgentEventHandler {
     processedEvents: ToolResultEvent[],
     context: AgentContext
   ): Promise<void> {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     const aggregatedContentParts: string[] = [];
     const mediaContextFiles: ContextFile[] = [];
 
     for (const processedEvent of processedEvents) {
-      const toolInvocationId = processedEvent.tool_invocation_id ?? 'N/A';
+      const toolInvocationId = processedEvent.toolInvocationId ?? 'N/A';
 
       let resultIsMedia = false;
       if (processedEvent.result instanceof ContextFile) {
         mediaContextFiles.push(processedEvent.result);
         aggregatedContentParts.push(
-          `Tool: ${processedEvent.tool_name} (ID: ${toolInvocationId})\n` +
+          `Tool: ${processedEvent.toolName} (ID: ${toolInvocationId})\n` +
             `Status: Success\n` +
-            `Result: The file '${processedEvent.result.file_name}' has been loaded into the context for you to view.`
+            `Result: The file '${processedEvent.result.fileName}' has been loaded into the context for you to view.`
         );
         resultIsMedia = true;
       } else if (
@@ -58,11 +58,11 @@ export class ToolResultEventHandler extends AgentEventHandler {
         const contextFiles = processedEvent.result as ContextFile[];
         mediaContextFiles.push(...contextFiles);
         const fileNames = contextFiles
-          .map((cf) => cf.file_name)
+          .map((cf) => cf.fileName)
           .filter((name): name is string => Boolean(name));
         const fileList = `[${fileNames.map((name) => `'${name}'`).join(', ')}]`;
         aggregatedContentParts.push(
-          `Tool: ${processedEvent.tool_name} (ID: ${toolInvocationId})\n` +
+          `Tool: ${processedEvent.toolName} (ID: ${toolInvocationId})\n` +
             `Status: Success\n` +
             `Result: The following files have been loaded into the context for you to view: ${fileList}`
         );
@@ -75,14 +75,14 @@ export class ToolResultEventHandler extends AgentEventHandler {
 
       if (processedEvent.error) {
         aggregatedContentParts.push(
-          `Tool: ${processedEvent.tool_name} (ID: ${toolInvocationId})\n` +
+          `Tool: ${processedEvent.toolName} (ID: ${toolInvocationId})\n` +
             `Status: Error\n` +
             `Details: ${processedEvent.error}`
         );
       } else {
         const resultStr = formatToCleanString(processedEvent.result);
         aggregatedContentParts.push(
-          `Tool: ${processedEvent.tool_name} (ID: ${toolInvocationId})\n` +
+          `Tool: ${processedEvent.toolName} (ID: ${toolInvocationId})\n` +
             `Status: Success\n` +
             `Result:\n${resultStr}`
         );
@@ -103,7 +103,7 @@ export class ToolResultEventHandler extends AgentEventHandler {
       mediaContextFiles.length > 0 ? mediaContextFiles : null
     );
     const nextEvent = new UserMessageReceivedEvent(agentInputUserMessage);
-    await context.input_event_queues.enqueue_user_message(nextEvent);
+    await context.inputEventQueues.enqueueUserMessage(nextEvent);
 
     console.info(
       `Agent '${agentId}' enqueued UserMessageReceivedEvent with aggregated results from ${processedEvents.length} tool(s) ` +
@@ -118,55 +118,55 @@ export class ToolResultEventHandler extends AgentEventHandler {
       return;
     }
 
-    const agentId = context.agent_id;
-    const notifier = context.status_manager?.notifier;
+    const agentId = context.agentId;
+    const notifier = context.statusManager?.notifier;
 
     let processedEvent: ToolResultEvent = event;
-    const processorInstances = context.config.tool_execution_result_processors as unknown[];
+    const processorInstances = context.config.toolExecutionResultProcessors as unknown[];
     if (processorInstances && processorInstances.length > 0) {
       const sortedProcessors = processorInstances
         .filter(isToolResultProcessor)
-        .sort((left, right) => left.get_order() - right.get_order());
+        .sort((left, right) => left.getOrder() - right.getOrder());
 
       for (const processor of sortedProcessors) {
         try {
           processedEvent = await processor.process(processedEvent, context);
         } catch (error) {
           console.error(
-            `Agent '${agentId}': Error applying tool result processor '${processor.get_name()}': ${error}`
+            `Agent '${agentId}': Error applying tool result processor '${processor.getName()}': ${error}`
           );
         }
       }
     }
 
-    const toolInvocationId = processedEvent.tool_invocation_id ?? 'N/A';
+    const toolInvocationId = processedEvent.toolInvocationId ?? 'N/A';
     if (notifier) {
       let logMessage = '';
       if (processedEvent.error) {
-        logMessage = `[TOOL_RESULT_ERROR_PROCESSED] Agent_ID: ${agentId}, Tool: ${processedEvent.tool_name}, Invocation_ID: ${toolInvocationId}, Error: ${processedEvent.error}`;
+        logMessage = `[TOOL_RESULT_ERROR_PROCESSED] Agent_ID: ${agentId}, Tool: ${processedEvent.toolName}, Invocation_ID: ${toolInvocationId}, Error: ${processedEvent.error}`;
       } else {
-        logMessage = `[TOOL_RESULT_SUCCESS_PROCESSED] Agent_ID: ${agentId}, Tool: ${processedEvent.tool_name}, Invocation_ID: ${toolInvocationId}, Result: ${formatToCleanString(processedEvent.result)}`;
+        logMessage = `[TOOL_RESULT_SUCCESS_PROCESSED] Agent_ID: ${agentId}, Tool: ${processedEvent.toolName}, Invocation_ID: ${toolInvocationId}, Result: ${formatToCleanString(processedEvent.result)}`;
       }
 
       try {
-        notifier.notify_agent_data_tool_log({
+        notifier.notifyAgentDataToolLog({
           log_entry: logMessage,
           tool_invocation_id: toolInvocationId,
-          tool_name: processedEvent.tool_name
+          tool_name: processedEvent.toolName
         });
         console.debug(
-          `Agent '${agentId}': Notified individual tool result for '${processedEvent.tool_name}'.`
+          `Agent '${agentId}': Notified individual tool result for '${processedEvent.toolName}'.`
         );
       } catch (error) {
         console.error(`Agent '${agentId}': Error notifying tool result log: ${error}`);
       }
     }
 
-    const activeTurn = context.state.active_multi_tool_call_turn as ToolInvocationTurn | null;
+    const activeTurn = context.state.activeMultiToolCallTurn as ToolInvocationTurn | null;
 
     if (!activeTurn) {
       console.info(
-        `Agent '${agentId}' handling single ToolResultEvent from tool: '${processedEvent.tool_name}'.`
+        `Agent '${agentId}' handling single ToolResultEvent from tool: '${processedEvent.toolName}'.`
       );
       await this.dispatchResultsToInputPipeline([processedEvent], context);
       return;
@@ -179,7 +179,7 @@ export class ToolResultEventHandler extends AgentEventHandler {
       `Agent '${agentId}' handling ToolResultEvent for multi-tool call turn. Collected ${numResults}/${numExpected} results.`
     );
 
-    if (!activeTurn.is_complete()) {
+    if (!activeTurn.isComplete()) {
       return;
     }
 
@@ -188,7 +188,7 @@ export class ToolResultEventHandler extends AgentEventHandler {
     );
 
     const resultsById = new Map(
-      activeTurn.results.map((result) => [result.tool_invocation_id, result])
+      activeTurn.results.map((result) => [(result as ToolResultEvent).toolInvocationId, result])
     );
     const sortedResults: ToolResultEvent[] = [];
     for (const invocation of activeTurn.invocations) {
@@ -211,7 +211,7 @@ export class ToolResultEventHandler extends AgentEventHandler {
     }
 
     await this.dispatchResultsToInputPipeline(sortedResults, context);
-    context.state.active_multi_tool_call_turn = null;
+    context.state.activeMultiToolCallTurn = null;
     console.info(`Agent '${agentId}': Multi-tool call turn state has been cleared.`);
   }
 }

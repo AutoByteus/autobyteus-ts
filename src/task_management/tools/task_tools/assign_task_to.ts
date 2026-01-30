@@ -4,6 +4,7 @@ import { ToolCategory } from '../../../tools/tool_category.js';
 import { zodToParameterSchema } from '../../../tools/zod_schema_converter.js';
 import { TaskDefinitionSchema, type TaskDefinition } from '../../schemas/task_definition.js';
 import { InterAgentMessageRequestEvent } from '../../../agent_team/events/agent_team_events.js';
+import type { TaskToolContext } from './types.js';
 
 export class AssignTaskTo extends BaseTool {
   static CATEGORY = ToolCategory.TASK_MANAGEMENT;
@@ -23,16 +24,15 @@ export class AssignTaskTo extends BaseTool {
     return zodToParameterSchema(TaskDefinitionSchema);
   }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const taskName = kwargs.task_name ?? 'unnamed task';
-    const assigneeName = kwargs.assignee_name;
+  protected async _execute(context: TaskToolContext, kwargs: Record<string, unknown> = {}): Promise<string> {
+    const taskName = (kwargs as { task_name?: string }).task_name ?? 'unnamed task';
 
-    const teamContext = context?.custom_data?.team_context;
+    const teamContext = context?.customData?.teamContext;
     if (!teamContext) {
       return 'Error: Team context is not available. Cannot access the task plan or send messages.';
     }
 
-    const taskPlan = teamContext.state?.task_plan;
+    const taskPlan = teamContext.state?.taskPlan ?? null;
     if (!taskPlan) {
       return 'Error: Task plan has not been initialized for this team.';
     }
@@ -53,12 +53,13 @@ export class AssignTaskTo extends BaseTool {
       return `Error: Invalid task definition provided${suffix}`;
     }
 
-    const newTask = taskPlan.add_task(taskDef);
+    const newTask = taskPlan.addTask(taskDef);
     if (!newTask) {
       return `Error: Failed to publish task '${taskName}' to the plan for an unknown reason.`;
     }
+    const assigneeName = newTask.assignee_name;
 
-    const teamManager = teamContext.team_manager;
+    const teamManager = teamContext.teamManager;
     if (!teamManager) {
       return (
         `Successfully published task '${newTask.task_name}', but could not send a direct notification ` +
@@ -67,14 +68,14 @@ export class AssignTaskTo extends BaseTool {
     }
 
     try {
-      const senderAgentId = context?.agent_id ?? context?.agentId ?? 'unknown';
+      const senderAgentId = context?.agentId ?? 'unknown';
       let notificationContent =
         `You have been assigned a new task directly from agent '${context?.config?.name ?? 'Unknown'}'.\n\n` +
         `**Task Name**: '${newTask.task_name}'\n` +
         `**Description**: ${newTask.description}\n`;
 
       if (newTask.dependencies && newTask.dependencies.length > 0) {
-        const idToNameMap = new Map(taskPlan.tasks.map((task: any) => [task.task_id, task.task_name]));
+        const idToNameMap = new Map(taskPlan.tasks.map((task) => [task.task_id, task.task_name]));
         const depNames = newTask.dependencies.map((depId: string) => idToNameMap.get(depId) ?? String(depId));
         notificationContent += `**Dependencies**: ${depNames.join(', ')}\n`;
       }
@@ -89,7 +90,7 @@ export class AssignTaskTo extends BaseTool {
         'task_assignment'
       );
 
-      await teamManager.dispatch_inter_agent_message_request(event);
+      await teamManager.dispatchInterAgentMessageRequest(event);
     } catch (error) {
       const details = error instanceof Error ? error.message : String(error);
       return (

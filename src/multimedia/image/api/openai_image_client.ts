@@ -8,6 +8,8 @@ import crypto from 'node:crypto';
 import { BaseImageClient } from '../base_image_client.js';
 import { ImageGenerationResponse } from '../../utils/response_types.js';
 import { downloadFileFromUrl } from '../../../utils/download_utils.js';
+import type { ImageModel } from '../image_model.js';
+import type { MultimediaConfig } from '../../utils/multimedia_config.js';
 
 function mimeTypeFromFormat(outputFormat: string | null | undefined): string {
   const fmt = (outputFormat ?? 'png').toLowerCase();
@@ -30,7 +32,7 @@ async function makeTempFile(extension = 'png'): Promise<string> {
 export class OpenAIImageClient extends BaseImageClient {
   private client: OpenAI;
 
-  constructor(model: any, config: any) {
+  constructor(model: ImageModel, config: MultimediaConfig) {
     super(model, config);
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -43,7 +45,7 @@ export class OpenAIImageClient extends BaseImageClient {
   async generateImage(
     prompt: string,
     inputImageUrls?: string[] | null,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<ImageGenerationResponse> {
     if (inputImageUrls && inputImageUrls.length > 0) {
       console.warn(
@@ -52,31 +54,34 @@ export class OpenAIImageClient extends BaseImageClient {
     }
 
     try {
-      const finalConfig = { ...this.config.toDict?.() } as Record<string, any>;
+      const finalConfig = { ...(this.config.toDict?.() ?? {}) } as Record<string, unknown>;
       if (generationConfig) {
         Object.assign(finalConfig, generationConfig);
       }
       finalConfig.n = 1;
 
-      const request: Record<string, any> = {
+      const size = typeof finalConfig.size === 'string' ? finalConfig.size : '1024x1024';
+      const quality = typeof finalConfig.quality === 'string' ? finalConfig.quality : 'standard';
+
+      const request: Record<string, unknown> = {
         model: this.model.value,
         prompt,
         n: 1,
-        size: finalConfig.size ?? '1024x1024',
-        quality: finalConfig.quality ?? 'standard'
+        size,
+        quality
       };
 
-      if (finalConfig.output_format) {
+      if (typeof finalConfig.output_format === 'string') {
         request.output_format = finalConfig.output_format;
       }
-      if (finalConfig.output_compression) {
+      if (typeof finalConfig.output_compression === 'string') {
         request.output_compression = finalConfig.output_compression;
       }
 
       const response = await this.client.images.generate(
-        request as OpenAI.Images.ImageGenerateParams
+        request as unknown as OpenAI.Images.ImageGenerateParams
       ) as OpenAI.Images.ImagesResponse;
-      const outputFormat = finalConfig.output_format ?? 'png';
+      const outputFormat = typeof finalConfig.output_format === 'string' ? finalConfig.output_format : 'png';
       const mimeType = mimeTypeFromFormat(outputFormat);
 
       const imageUrls: string[] = [];
@@ -103,7 +108,7 @@ export class OpenAIImageClient extends BaseImageClient {
     prompt: string,
     inputImageUrls: string[],
     maskUrl?: string | null,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<ImageGenerationResponse> {
     if (!inputImageUrls || inputImageUrls.length === 0) {
       throw new Error('At least one input image URL must be provided for editing.');
@@ -118,7 +123,7 @@ export class OpenAIImageClient extends BaseImageClient {
     let tempMaskPath: string | null = null;
 
     try {
-      const finalConfig = { ...this.config.toDict?.() } as Record<string, any>;
+      const finalConfig = { ...(this.config.toDict?.() ?? {}) } as Record<string, unknown>;
       if (generationConfig) {
         Object.assign(finalConfig, generationConfig);
       }
@@ -141,28 +146,31 @@ export class OpenAIImageClient extends BaseImageClient {
         }
       }
 
-      const request: Record<string, any> = {
+      const size = typeof finalConfig.size === 'string' ? finalConfig.size : '1024x1024';
+      const n = typeof finalConfig.n === 'number' ? finalConfig.n : 1;
+
+      const request: Record<string, unknown> = {
         image: fs.createReadStream(sourcePath),
         prompt,
         model: this.model.value,
-        n: finalConfig.n ?? 1,
-        size: finalConfig.size ?? '1024x1024'
+        n,
+        size
       };
 
       if (maskPath) {
         request.mask = fs.createReadStream(maskPath);
       }
-      if (finalConfig.output_format) {
+      if (typeof finalConfig.output_format === 'string') {
         request.output_format = finalConfig.output_format;
       }
-      if (finalConfig.output_compression) {
+      if (typeof finalConfig.output_compression === 'string') {
         request.output_compression = finalConfig.output_compression;
       }
 
       const response = await this.client.images.edit(
-        request as OpenAI.Images.ImageEditParams
+        request as unknown as OpenAI.Images.ImageEditParams
       ) as OpenAI.Images.ImagesResponse;
-      const outputFormat = finalConfig.output_format ?? 'png';
+      const outputFormat = typeof finalConfig.output_format === 'string' ? finalConfig.output_format : 'png';
       const mimeType = mimeTypeFromFormat(outputFormat);
 
       const imageUrls: string[] = [];

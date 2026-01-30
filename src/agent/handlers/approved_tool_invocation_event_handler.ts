@@ -5,8 +5,8 @@ import { formatToCleanString } from '../../utils/llm_output_formatter.js';
 import type { AgentContext } from '../context/agent_context.js';
 
 type ToolInvocationPreprocessorLike = {
-  get_name: () => string;
-  get_order: () => number;
+  getName: () => string;
+  getOrder: () => number;
   process: (toolInvocation: ToolInvocation, context: AgentContext) => Promise<ToolInvocation>;
 };
 
@@ -16,8 +16,8 @@ function isToolInvocationPreprocessor(value: unknown): value is ToolInvocationPr
   }
   const candidate = value as ToolInvocationPreprocessorLike;
   return (
-    typeof candidate.get_name === 'function' &&
-    typeof candidate.get_order === 'function' &&
+    typeof candidate.getName === 'function' &&
+    typeof candidate.getOrder === 'function' &&
     typeof candidate.process === 'function'
   );
 }
@@ -37,13 +37,13 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
       return;
     }
 
-    let toolInvocation: ToolInvocation = event.tool_invocation;
+    let toolInvocation: ToolInvocation = event.toolInvocation;
     let toolName = toolInvocation.name;
     let arguments_ = toolInvocation.arguments;
     let invocationId = toolInvocation.id;
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
 
-    const notifier = context.status_manager?.notifier;
+    const notifier = context.statusManager?.notifier;
     if (!notifier) {
       console.error(
         `Agent '${agentId}': Notifier not available in ApprovedToolInvocationEventHandler. Tool interaction logs will not be emitted.`
@@ -55,11 +55,11 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
         `with args: ${JSON.stringify(arguments_)}`
     );
 
-    const processors = context.config.tool_invocation_preprocessors as unknown[];
+    const processors = context.config.toolInvocationPreprocessors as unknown[];
     if (processors && processors.length > 0) {
       const sortedProcessors = processors
         .filter(isToolInvocationPreprocessor)
-        .sort((left, right) => left.get_order() - right.get_order());
+        .sort((left, right) => left.getOrder() - right.getOrder());
 
       for (const processor of sortedProcessors) {
         try {
@@ -68,10 +68,10 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
           arguments_ = toolInvocation.arguments;
           invocationId = toolInvocation.id;
         } catch (error) {
-          const errorMessage = `Error in tool invocation preprocessor '${processor.get_name()}' for tool '${toolName}': ${error}`;
+          const errorMessage = `Error in tool invocation preprocessor '${processor.getName()}' for tool '${toolName}': ${error}`;
           console.error(`Agent '${agentId}': ${errorMessage}`);
           const resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage);
-          await context.input_event_queues.enqueue_tool_result(resultEvent);
+          await context.inputEventQueues.enqueueToolResult(resultEvent);
           return;
         }
       }
@@ -80,9 +80,9 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
     const argsStr = formatToCleanString(arguments_);
     const logMsgCall = `[APPROVED_TOOL_CALL] Agent_ID: ${agentId}, Tool: ${toolName}, Invocation_ID: ${invocationId}, Arguments: ${argsStr}`;
 
-    if (notifier?.notify_agent_data_tool_log) {
+    if (notifier?.notifyAgentDataToolLog) {
       try {
-        notifier.notify_agent_data_tool_log({
+        notifier.notifyAgentDataToolLog({
           log_entry: logMsgCall,
           tool_invocation_id: invocationId,
           tool_name: toolName
@@ -94,14 +94,14 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
       }
     }
 
-    const toolInstance: any = context.get_tool(toolName);
+    const toolInstance: any = context.getTool(toolName);
     let resultEvent: ToolResultEvent;
 
     if (!toolInstance) {
       const errorMessage = `Tool '${toolName}' not found or configured for agent '${agentId}'.`;
       console.error(errorMessage);
       resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage);
-      context.add_message_to_history({
+      context.addMessageToHistory({
         role: 'tool',
         tool_call_id: invocationId,
         name: toolName,
@@ -109,14 +109,14 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
       });
 
       const logMsgError = `[APPROVED_TOOL_ERROR] ${errorMessage}`;
-      if (notifier?.notify_agent_data_tool_log) {
+      if (notifier?.notifyAgentDataToolLog) {
         try {
-          notifier.notify_agent_data_tool_log({
+          notifier.notifyAgentDataToolLog({
             log_entry: logMsgError,
             tool_invocation_id: invocationId,
             tool_name: toolName
           });
-          notifier.notify_agent_error_output_generation?.(
+          notifier.notifyAgentErrorOutputGeneration?.(
             `ApprovedToolExecution.ToolNotFound.${toolName}`,
             errorMessage
           );
@@ -145,7 +145,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
           arguments_
         );
 
-        context.add_message_to_history({
+        context.addMessageToHistory({
           role: 'tool',
           tool_call_id: invocationId,
           name: toolName,
@@ -153,9 +153,9 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
         });
 
         const logMsgResult = `[APPROVED_TOOL_RESULT] ${resultJsonForLog}`;
-        if (notifier?.notify_agent_data_tool_log) {
+        if (notifier?.notifyAgentDataToolLog) {
           try {
-            notifier.notify_agent_data_tool_log({
+            notifier.notifyAgentDataToolLog({
               log_entry: logMsgResult,
               tool_invocation_id: invocationId,
               tool_name: toolName
@@ -172,7 +172,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
         console.error(`Agent '${agentId}' ${errorMessage}`);
         resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage);
 
-        context.add_message_to_history({
+        context.addMessageToHistory({
           role: 'tool',
           tool_call_id: invocationId,
           name: toolName,
@@ -180,14 +180,14 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
         });
 
         const logMsgException = `[APPROVED_TOOL_EXCEPTION] ${errorMessage}\nDetails:\n${errorDetails}`;
-        if (notifier?.notify_agent_data_tool_log) {
+        if (notifier?.notifyAgentDataToolLog) {
           try {
-            notifier.notify_agent_data_tool_log({
+            notifier.notifyAgentDataToolLog({
               log_entry: logMsgException,
               tool_invocation_id: invocationId,
               tool_name: toolName
             });
-            notifier.notify_agent_error_output_generation?.(
+            notifier.notifyAgentErrorOutputGeneration?.(
               `ApprovedToolExecution.Exception.${toolName}`,
               errorMessage,
               errorDetails
@@ -201,7 +201,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
       }
     }
 
-    await context.input_event_queues.enqueue_tool_result(resultEvent);
+    await context.inputEventQueues.enqueueToolResult(resultEvent);
     console.debug(
       `Agent '${agentId}' enqueued ToolResultEvent for approved tool '${toolName}' (ID: ${invocationId}).`
     );

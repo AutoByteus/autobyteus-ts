@@ -64,12 +64,12 @@ export class OllamaModelProvider {
             name: modelName,
             value: modelName,
             provider,
-            llm_class: OllamaLLM,
-            canonical_name: modelName,
+            llmClass: OllamaLLM,
+            canonicalName: modelName,
             runtime: LLMRuntime.OLLAMA,
-            host_url: hostUrl,
-            default_config: new LLMConfig({
-              pricing_config: new TokenPricingConfig({ input_token_pricing: 0.0, output_token_pricing: 0.0 })
+            hostUrl: hostUrl,
+            defaultConfig: new LLMConfig({
+              pricingConfig: new TokenPricingConfig({ inputTokenPricing: 0.0, outputTokenPricing: 0.0 })
             })
           });
           allModels.push(llmModel);

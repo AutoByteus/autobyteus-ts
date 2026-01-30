@@ -28,7 +28,7 @@ const makeAgentConfig = (name: string): AgentConfig => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -37,19 +37,19 @@ const makeAgentConfig = (name: string): AgentConfig => {
 
 const rebuildContextWithConfig = (context: AgentTeamContext, newConfig: AgentTeamConfig) => {
   context.config = newConfig;
-  (context as any).node_config_map = null;
+  (context as any).nodeConfigMap = null;
 };
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: makeAgentConfig('Coordinator') });
+  const node = new TeamNodeConfig({ nodeDefinition: makeAgentConfig('Coordinator') });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
-  state.team_manager = { team_id: 'team-1' } as any;
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
+  state.teamManager = { teamId: 'team-1' } as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
@@ -58,65 +58,65 @@ describe('AgentConfigurationPreparationStep', () => {
     const step = new AgentConfigurationPreparationStep();
     const context = makeContext();
 
-    const coordinator_def = makeAgentConfig('Coordinator');
-    coordinator_def.tools = [new CreateTasks(), new SendMessageTo()];
+    const coordinatorDef = makeAgentConfig('Coordinator');
+    coordinatorDef.tools = [new CreateTasks(), new SendMessageTo()];
 
-    const member_def = makeAgentConfig('Member');
-    member_def.tools = [];
+    const memberDef = makeAgentConfig('Member');
+    memberDef.tools = [];
 
-    const coordinator_node = new TeamNodeConfig({ node_definition: coordinator_def });
-    const member_node = new TeamNodeConfig({ node_definition: member_def });
+    const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorDef });
+    const memberNode = new TeamNodeConfig({ nodeDefinition: memberDef });
 
-    const sub_team_coordinator = new TeamNodeConfig({ node_definition: makeAgentConfig('SubCoord') });
-    const sub_team_node = new TeamNodeConfig({
-      node_definition: new AgentTeamConfig({
+    const subTeamCoordinator = new TeamNodeConfig({ nodeDefinition: makeAgentConfig('SubCoord') });
+    const subTeamNode = new TeamNodeConfig({
+      nodeDefinition: new AgentTeamConfig({
         name: 'SubTeam',
         description: 'sub team',
-        nodes: [sub_team_coordinator],
-        coordinator_node: sub_team_coordinator
+        nodes: [subTeamCoordinator],
+        coordinatorNode: subTeamCoordinator
       })
     });
 
-    const new_team_config = new AgentTeamConfig({
+    const newTeamConfig = new AgentTeamConfig({
       name: 'TestTeamWithExplicitTools',
       description: 'A test team',
-      nodes: [coordinator_node, member_node, sub_team_node],
-      coordinator_node: coordinator_node
+      nodes: [coordinatorNode, memberNode, subTeamNode],
+      coordinatorNode: coordinatorNode
     });
-    rebuildContextWithConfig(context, new_team_config);
+    rebuildContextWithConfig(context, newTeamConfig);
 
-    context.state.prepared_agent_prompts = {
-      [coordinator_node.name]: 'This is the special coordinator prompt.',
-      [member_node.name]: 'Member prompt'
+    context.state.preparedAgentPrompts = {
+      [coordinatorNode.name]: 'This is the special coordinator prompt.',
+      [memberNode.name]: 'Member prompt'
     };
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
 
-    const final_configs = context.state.final_agent_configs;
-    expect(Object.keys(final_configs).length).toBe(2);
+    const finalConfigs = context.state.finalAgentConfigs;
+    expect(Object.keys(finalConfigs).length).toBe(2);
 
-    const coord_config = final_configs[coordinator_node.name];
-    expect(coord_config).toBeInstanceOf(AgentConfig);
-    const coord_tool_names = coord_config.tools.map((tool: any) => tool.constructor.getName());
-    expect(coord_tool_names).toContain(CreateTasks.getName());
-    expect(coord_tool_names).toContain(SendMessageTo.getName());
-    expect(coord_tool_names.length).toBe(2);
-    expect(coord_config.system_prompt).toBe(context.state.prepared_agent_prompts[coordinator_node.name]);
-    expect(coord_config.initial_custom_data?.team_context).toBe(context);
+    const coordConfig = finalConfigs[coordinatorNode.name];
+    expect(coordConfig).toBeInstanceOf(AgentConfig);
+    const coordToolNames = coordConfig.tools.map((tool: any) => tool.constructor.getName());
+    expect(coordToolNames).toContain(CreateTasks.getName());
+    expect(coordToolNames).toContain(SendMessageTo.getName());
+    expect(coordToolNames.length).toBe(2);
+    expect(coordConfig.systemPrompt).toBe(context.state.preparedAgentPrompts[coordinatorNode.name]);
+    expect(coordConfig.initialCustomData?.teamContext).toBe(context);
 
-    const member_config = final_configs[member_node.name];
-    expect(member_config).toBeInstanceOf(AgentConfig);
-    expect(member_config.tools.length).toBe(0);
-    expect(member_config.system_prompt).toBe(context.state.prepared_agent_prompts[member_node.name]);
-    expect(member_config.initial_custom_data?.team_context).toBe(context);
+    const memberConfig = finalConfigs[memberNode.name];
+    expect(memberConfig).toBeInstanceOf(AgentConfig);
+    expect(memberConfig.tools.length).toBe(0);
+    expect(memberConfig.systemPrompt).toBe(context.state.preparedAgentPrompts[memberNode.name]);
+    expect(memberConfig.initialCustomData?.teamContext).toBe(context);
   });
 
   it('fails if team manager missing', async () => {
     const step = new AgentConfigurationPreparationStep();
     const context = makeContext();
-    context.state.team_manager = null;
+    context.state.teamManager = null;
 
     const success = await step.execute(context);
 

@@ -35,14 +35,14 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
-  const inputQueues = { enqueue_internal_system_event: vi.fn(async () => undefined) } as any;
-  state.input_event_queues = inputQueues;
+  const inputQueues = { enqueueInternalSystemEvent: vi.fn(async () => undefined) } as any;
+  state.inputEventQueues = inputQueues;
   const context = new AgentContext('agent-1', config, state);
   return { context, inputQueues };
 };
@@ -87,8 +87,8 @@ describe('BootstrapEventHandler', () => {
         String(msg).includes('No bootstrap steps configured. Marking bootstrap complete.')
       )
     ).toBe(true);
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(BootstrapCompletedEvent);
     expect(enqueued.success).toBe(true);
   });
@@ -99,22 +99,22 @@ describe('BootstrapEventHandler', () => {
 
     await handler.handle(new BootstrapStartedEvent(), context);
 
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(BootstrapStepRequestedEvent);
-    expect(enqueued.step_index).toBe(0);
+    expect(enqueued.stepIndex).toBe(0);
   });
 
   it('executes a bootstrap step and enqueues completion', async () => {
     const handler = new BootstrapEventHandler([new SuccessStep()]);
     const { context, inputQueues } = makeContext();
     await handler.handle(new BootstrapStartedEvent(), context);
-    inputQueues.enqueue_internal_system_event.mockClear();
+    inputQueues.enqueueInternalSystemEvent.mockClear();
 
     await handler.handle(new BootstrapStepRequestedEvent(0), context);
 
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(BootstrapStepCompletedEvent);
     expect(enqueued.success).toBe(true);
   });
@@ -123,11 +123,11 @@ describe('BootstrapEventHandler', () => {
     const handler = new BootstrapEventHandler([new FailureStep()]);
     const { context, inputQueues } = makeContext();
     await handler.handle(new BootstrapStartedEvent(), context);
-    inputQueues.enqueue_internal_system_event.mockClear();
+    inputQueues.enqueueInternalSystemEvent.mockClear();
 
     await handler.handle(new BootstrapStepRequestedEvent(0), context);
 
-    const events = inputQueues.enqueue_internal_system_event.mock.calls.map(([evt]: [unknown]) => evt);
+    const events = inputQueues.enqueueInternalSystemEvent.mock.calls.map(([evt]: [unknown]) => evt);
     const errorEvent = events.find((evt: any) => evt instanceof AgentErrorEvent);
     const completionEvent = events.find((evt: any) => evt instanceof BootstrapStepCompletedEvent);
     expect(errorEvent).toBeInstanceOf(AgentErrorEvent);
@@ -139,14 +139,14 @@ describe('BootstrapEventHandler', () => {
     const handler = new BootstrapEventHandler([new SuccessStep(), new SuccessStep()]);
     const { context, inputQueues } = makeContext();
     await handler.handle(new BootstrapStartedEvent(), context);
-    inputQueues.enqueue_internal_system_event.mockClear();
+    inputQueues.enqueueInternalSystemEvent.mockClear();
 
     await handler.handle(new BootstrapStepCompletedEvent(0, 'SuccessStep', true), context);
 
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(BootstrapStepRequestedEvent);
-    expect(enqueued.step_index).toBe(1);
+    expect(enqueued.stepIndex).toBe(1);
   });
 
   it('completes bootstrap and emits ready event', async () => {
@@ -155,8 +155,8 @@ describe('BootstrapEventHandler', () => {
 
     await handler.handle(new BootstrapCompletedEvent(true), context);
 
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(AgentReadyEvent);
   });
 

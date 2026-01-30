@@ -9,15 +9,15 @@ import type { ToolInvocation } from '../../../../src/agent/tool_invocation.js';
 import type { AgentContext } from '../../../../src/agent/context/agent_context.js';
 
 class ProcA extends BaseToolInvocationPreprocessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcA';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 100;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return true;
   }
 
@@ -27,11 +27,11 @@ class ProcA extends BaseToolInvocationPreprocessor {
 }
 
 class ProcB extends BaseToolInvocationPreprocessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcB';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 200;
   }
 
@@ -41,7 +41,7 @@ class ProcB extends BaseToolInvocationPreprocessor {
 }
 
 class ProcWithInitError extends BaseToolInvocationPreprocessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcWithInitError';
   }
 
@@ -59,14 +59,14 @@ describe('ToolInvocationPreprocessorRegistry', () => {
   let originalDefinitions: Record<string, ToolInvocationPreprocessorDefinition> = {};
 
   beforeEach(() => {
-    originalDefinitions = defaultToolInvocationPreprocessorRegistry.get_all_definitions();
+    originalDefinitions = defaultToolInvocationPreprocessorRegistry.getAllDefinitions();
     defaultToolInvocationPreprocessorRegistry.clear();
   });
 
   afterEach(() => {
     defaultToolInvocationPreprocessorRegistry.clear();
     for (const definition of Object.values(originalDefinitions)) {
-      defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+      defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
     }
   });
 
@@ -78,9 +78,9 @@ describe('ToolInvocationPreprocessorRegistry', () => {
 
   it('registers preprocessor definitions', () => {
     const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
 
-    expect(defaultToolInvocationPreprocessorRegistry.get_preprocessor_definition('ProcA')).toBe(definition);
+    expect(defaultToolInvocationPreprocessorRegistry.getPreprocessorDefinition('ProcA')).toBe(definition);
     expect(defaultToolInvocationPreprocessorRegistry.length()).toBe(1);
   });
 
@@ -88,86 +88,78 @@ describe('ToolInvocationPreprocessorRegistry', () => {
     const definition1 = new ToolInvocationPreprocessorDefinition('ProcOverwrite', ProcA);
     const definition2 = new ToolInvocationPreprocessorDefinition('ProcOverwrite', ProcB);
 
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition1);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition2);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition1);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition2);
 
-    expect(defaultToolInvocationPreprocessorRegistry.get_preprocessor_definition('ProcOverwrite')).toBe(definition2);
+    expect(defaultToolInvocationPreprocessorRegistry.getPreprocessorDefinition('ProcOverwrite')).toBe(definition2);
     expect(defaultToolInvocationPreprocessorRegistry.length()).toBe(1);
   });
 
   it('rejects invalid definition types', () => {
-    expect(() => defaultToolInvocationPreprocessorRegistry.register_preprocessor({} as ToolInvocationPreprocessorDefinition)).toThrow(
+    expect(() => defaultToolInvocationPreprocessorRegistry.registerPreprocessor({} as ToolInvocationPreprocessorDefinition)).toThrow(
       /Expected ToolInvocationPreprocessorDefinition/
     );
   });
 
   it('returns processor instances when available', () => {
     const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
 
-    const instance = defaultToolInvocationPreprocessorRegistry.get_preprocessor('ProcA');
+    const instance = defaultToolInvocationPreprocessorRegistry.getPreprocessor('ProcA');
     expect(instance).toBeInstanceOf(ProcA);
   });
 
   it('returns undefined for missing processor', () => {
-    expect(defaultToolInvocationPreprocessorRegistry.get_preprocessor('NonExistentProc')).toBeUndefined();
+    expect(defaultToolInvocationPreprocessorRegistry.getPreprocessor('NonExistentProc')).toBeUndefined();
   });
 
   it('returns undefined when processor instantiation fails', () => {
     const definition = new ToolInvocationPreprocessorDefinition('ProcWithInitError', ProcWithInitError);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
 
-    const instance = defaultToolInvocationPreprocessorRegistry.get_preprocessor('ProcWithInitError');
+    const instance = defaultToolInvocationPreprocessorRegistry.getPreprocessor('ProcWithInitError');
     expect(instance).toBeUndefined();
   });
 
   it('lists processor names', () => {
     const definitionA = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
     const definitionB = new ToolInvocationPreprocessorDefinition('ProcB', ProcB);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definitionA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definitionB);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definitionA);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definitionB);
 
-    const names = defaultToolInvocationPreprocessorRegistry.list_preprocessor_names().sort();
+    const names = defaultToolInvocationPreprocessorRegistry.listPreprocessorNames().sort();
     expect(names).toEqual(['ProcA', 'ProcB']);
-  });
-
-  it('exposes get_processor alias', () => {
-    const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
-
-    const instance = defaultToolInvocationPreprocessorRegistry.get_processor('ProcA');
-    expect(instance).toBeInstanceOf(ProcA);
   });
 
   it('returns ordered processor options', () => {
     const definitionA = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
     const definitionB = new ToolInvocationPreprocessorDefinition('ProcB', ProcB);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definitionB);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definitionA);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definitionB);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definitionA);
 
-    const options = defaultToolInvocationPreprocessorRegistry.get_ordered_processor_options();
+    const options = defaultToolInvocationPreprocessorRegistry.getOrderedProcessorOptions();
     expect(options.map((opt) => opt.name)).toEqual(['ProcA', 'ProcB']);
-    expect(options[0].is_mandatory).toBe(true);
-    expect(options[1].is_mandatory).toBe(false);
+    expect(options[0].isMandatory).toBe(true);
+    expect(options[1].isMandatory).toBe(false);
   });
 
   it('returns all definitions', () => {
     const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
 
-    const defs = defaultToolInvocationPreprocessorRegistry.get_all_definitions();
+    const defs = defaultToolInvocationPreprocessorRegistry.getAllDefinitions();
     expect(Object.keys(defs)).toEqual(['ProcA']);
     expect(defs.ProcA).toBe(definition);
   });
 
   it('clears definitions', () => {
     const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
     expect(defaultToolInvocationPreprocessorRegistry.length()).toBe(1);
 
     defaultToolInvocationPreprocessorRegistry.clear();
     expect(defaultToolInvocationPreprocessorRegistry.length()).toBe(0);
-    expect(defaultToolInvocationPreprocessorRegistry.get_preprocessor_definition('ProcA')).toBeUndefined();
+    expect(defaultToolInvocationPreprocessorRegistry.getPreprocessorDefinition('ProcA')).toBeUndefined();
   });
 
   it('supports contains and length helpers', () => {
@@ -175,7 +167,7 @@ describe('ToolInvocationPreprocessorRegistry', () => {
     expect(defaultToolInvocationPreprocessorRegistry.contains('ProcA')).toBe(false);
 
     const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
-    defaultToolInvocationPreprocessorRegistry.register_preprocessor(definition);
+    defaultToolInvocationPreprocessorRegistry.registerPreprocessor(definition);
 
     expect(defaultToolInvocationPreprocessorRegistry.length()).toBe(1);
     expect(defaultToolInvocationPreprocessorRegistry.contains('ProcA')).toBe(true);

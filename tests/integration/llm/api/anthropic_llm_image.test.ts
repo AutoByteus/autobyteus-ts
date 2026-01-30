@@ -16,7 +16,7 @@ const buildModel = () =>
   new LLMModel({
     name: 'claude-4.5-sonnet',
     value: 'claude-sonnet-4-5-20250929',
-    canonical_name: 'claude-4.5-sonnet',
+    canonicalName: 'claude-4.5-sonnet',
     provider: LLMProvider.ANTHROPIC
   });
 

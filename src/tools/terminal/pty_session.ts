@@ -14,7 +14,7 @@ type PendingRead = {
 };
 
 export class PtySession {
-  private sessionId: string;
+  private sessionIdValue: string;
   private pty?: IPty;
   private closed = false;
   private alive = false;
@@ -22,15 +22,15 @@ export class PtySession {
   private pendingReads: PendingRead[] = [];
   private cwd?: string;
 
-  constructor(session_id: string) {
-    this.sessionId = session_id;
+  constructor(sessionId: string) {
+    this.sessionIdValue = sessionId;
   }
 
-  get session_id(): string {
-    return this.sessionId;
+  get sessionId(): string {
+    return this.sessionIdValue;
   }
 
-  get is_alive(): boolean {
+  get isAlive(): boolean {
     return this.alive && !this.closed;
   }
 

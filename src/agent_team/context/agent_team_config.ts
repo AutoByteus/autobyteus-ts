@@ -1,30 +1,30 @@
 import { TeamNodeConfig } from './team_node_config.js';
 import {
   TaskNotificationMode,
-  resolve_task_notification_mode
+  resolveTaskNotificationMode
 } from '../task_notification/task_notification_mode.js';
 
 export class AgentTeamConfig {
   readonly name: string;
   readonly description: string;
   readonly nodes: TeamNodeConfig[];
-  readonly coordinator_node: TeamNodeConfig;
+  readonly coordinatorNode: TeamNodeConfig;
   readonly role?: string | null;
-  readonly task_notification_mode: TaskNotificationMode;
+  readonly taskNotificationMode: TaskNotificationMode;
 
   constructor(options: {
     name: string;
     description: string;
     nodes: TeamNodeConfig[];
-    coordinator_node: TeamNodeConfig;
+    coordinatorNode: TeamNodeConfig;
     role?: string | null;
   }) {
     this.name = options.name;
     this.description = options.description;
     this.nodes = options.nodes;
-    this.coordinator_node = options.coordinator_node;
+    this.coordinatorNode = options.coordinatorNode;
     this.role = options.role ?? null;
-    this.task_notification_mode = resolve_task_notification_mode();
+    this.taskNotificationMode = resolveTaskNotificationMode();
 
     this.validate();
     Object.freeze(this);
@@ -39,12 +39,12 @@ export class AgentTeamConfig {
       throw new Error("The 'nodes' collection in AgentTeamConfig cannot be empty.");
     }
 
-    if (!this.nodes.includes(this.coordinator_node)) {
-      throw new Error("The 'coordinator_node' must be one of the nodes in the 'nodes' collection.");
+    if (!this.nodes.includes(this.coordinatorNode)) {
+      throw new Error("The 'coordinatorNode' must be one of the nodes in the 'nodes' collection.");
     }
 
-    if (!Object.values(TaskNotificationMode).includes(this.task_notification_mode)) {
-      throw new TypeError("The 'task_notification_mode' must be an instance of TaskNotificationMode enum.");
+    if (!Object.values(TaskNotificationMode).includes(this.taskNotificationMode)) {
+      throw new TypeError("The 'taskNotificationMode' must be an instance of TaskNotificationMode enum.");
     }
   }
 }

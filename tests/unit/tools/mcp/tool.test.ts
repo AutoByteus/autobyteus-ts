@@ -72,7 +72,7 @@ describe('GenericMcpTool', () => {
     mocks.callToolMock.mockResolvedValue(expectedResult);
 
     const remoteToolArgs = { param1: 'value1', param2: 100 };
-    const context = { agent_id: 'test_agent_001' };
+    const context = { agentId: 'test_agent_001' };
 
     const result = await (tool as any)._execute(context, remoteToolArgs);
 
@@ -93,7 +93,7 @@ describe('GenericMcpTool', () => {
 
     mocks.callToolMock.mockRejectedValue(new Error('Proxy failed'));
 
-    await expect((tool as any)._execute({ agent_id: 'agent' }, { param1: 'test' })).rejects.toThrowError(
+    await expect((tool as any)._execute({ agentId: 'agent' }, { param1: 'test' })).rejects.toThrowError(
       'Proxy failed'
     );
   });

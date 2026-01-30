@@ -1,10 +1,19 @@
 import { describe, it, expect } from 'vitest';
+import fs from 'node:fs';
 import path from 'node:path';
 import { getCertificateInfo, verifyCertificate, CertificateError } from '../../../src/clients/cert_utils.js';
 
+const resolveCertPath = (): string => {
+  const candidates = [
+    path.resolve(process.cwd(), '../autobyteus/clients/certificates/cert.pem'),
+    path.resolve(process.cwd(), '../autobyteus/autobyteus/clients/certificates/cert.pem')
+  ];
+  return candidates.find((candidate) => fs.existsSync(candidate)) ?? candidates[0];
+};
+
 describe('cert_utils', () => {
   it('loads certificate info from the bundled PEM', async () => {
-    const certPath = path.resolve(process.cwd(), '../autobyteus/clients/certificates/cert.pem');
+    const certPath = resolveCertPath();
     const info = await getCertificateInfo(certPath);
 
     expect(info.certData.length).toBeGreaterThan(0);
@@ -18,7 +27,7 @@ describe('cert_utils', () => {
   });
 
   it('verifies fingerprint when certificate is valid', async () => {
-    const certPath = path.resolve(process.cwd(), '../autobyteus/clients/certificates/cert.pem');
+    const certPath = resolveCertPath();
     const info = await getCertificateInfo(certPath);
 
     if (info.isValid) {

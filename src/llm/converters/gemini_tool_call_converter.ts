@@ -1,11 +1,22 @@
 import { ToolCallDelta } from '../utils/tool_call_delta.js';
 
-export function convertGeminiToolCalls(part: any): ToolCallDelta[] | null {
-  if (!part || !part.functionCall) {
+type GeminiFunctionCall = {
+  id?: string;
+  name?: string;
+  args?: unknown;
+};
+
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+export function convertGeminiToolCalls(part: unknown): ToolCallDelta[] | null {
+  if (!isObject(part)) return null;
+
+  const functionCall = (part as { functionCall?: GeminiFunctionCall }).functionCall;
+  if (!functionCall || !isObject(functionCall)) {
     return null;
   }
 
-  const functionCall = part.functionCall;
   const args = functionCall.args ?? {};
   let argumentsDelta = '{}';
   try {
@@ -17,8 +28,8 @@ export function convertGeminiToolCalls(part: any): ToolCallDelta[] | null {
   return [
     {
       index: 0,
-      call_id: functionCall.id ?? undefined,
-      name: functionCall.name ?? undefined,
+      call_id: typeof functionCall.id === 'string' ? functionCall.id : undefined,
+      name: typeof functionCall.name === 'string' ? functionCall.name : undefined,
       arguments_delta: argumentsDelta
     }
   ];

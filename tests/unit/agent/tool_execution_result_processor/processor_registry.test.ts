@@ -9,15 +9,15 @@ import type { ToolResultEvent } from '../../../../src/agent/events/agent_events.
 import type { AgentContext } from '../../../../src/agent/context/agent_context.js';
 
 class ProcA extends BaseToolExecutionResultProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcA';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 100;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return true;
   }
 
@@ -27,11 +27,11 @@ class ProcA extends BaseToolExecutionResultProcessor {
 }
 
 class ProcB extends BaseToolExecutionResultProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcB';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 200;
   }
 
@@ -41,7 +41,7 @@ class ProcB extends BaseToolExecutionResultProcessor {
 }
 
 class ProcWithInitError extends BaseToolExecutionResultProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcWithInitError';
   }
 
@@ -59,14 +59,14 @@ describe('ToolExecutionResultProcessorRegistry', () => {
   let originalDefinitions: Record<string, ToolExecutionResultProcessorDefinition> = {};
 
   beforeEach(() => {
-    originalDefinitions = defaultToolExecutionResultProcessorRegistry.get_all_definitions();
+    originalDefinitions = defaultToolExecutionResultProcessorRegistry.getAllDefinitions();
     defaultToolExecutionResultProcessorRegistry.clear();
   });
 
   afterEach(() => {
     defaultToolExecutionResultProcessorRegistry.clear();
     for (const definition of Object.values(originalDefinitions)) {
-      defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+      defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
     }
   });
 
@@ -78,9 +78,9 @@ describe('ToolExecutionResultProcessorRegistry', () => {
 
   it('registers processor definitions', () => {
     const definition = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
 
-    expect(defaultToolExecutionResultProcessorRegistry.get_processor_definition('ProcA')).toBe(definition);
+    expect(defaultToolExecutionResultProcessorRegistry.getProcessorDefinition('ProcA')).toBe(definition);
     expect(defaultToolExecutionResultProcessorRegistry.length()).toBe(1);
   });
 
@@ -88,78 +88,78 @@ describe('ToolExecutionResultProcessorRegistry', () => {
     const definition1 = new ToolExecutionResultProcessorDefinition('ProcOverwrite', ProcA);
     const definition2 = new ToolExecutionResultProcessorDefinition('ProcOverwrite', ProcB);
 
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition1);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition2);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition1);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition2);
 
-    expect(defaultToolExecutionResultProcessorRegistry.get_processor_definition('ProcOverwrite')).toBe(definition2);
+    expect(defaultToolExecutionResultProcessorRegistry.getProcessorDefinition('ProcOverwrite')).toBe(definition2);
     expect(defaultToolExecutionResultProcessorRegistry.length()).toBe(1);
   });
 
   it('rejects invalid definition types', () => {
-    expect(() => defaultToolExecutionResultProcessorRegistry.register_processor({} as ToolExecutionResultProcessorDefinition)).toThrow(
+    expect(() => defaultToolExecutionResultProcessorRegistry.registerProcessor({} as ToolExecutionResultProcessorDefinition)).toThrow(
       /Expected ToolExecutionResultProcessorDefinition/
     );
   });
 
   it('returns processor instances when available', () => {
     const definition = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
 
-    const instance = defaultToolExecutionResultProcessorRegistry.get_processor('ProcA');
+    const instance = defaultToolExecutionResultProcessorRegistry.getProcessor('ProcA');
     expect(instance).toBeInstanceOf(ProcA);
   });
 
   it('returns undefined for missing processor', () => {
-    expect(defaultToolExecutionResultProcessorRegistry.get_processor('NonExistentProc')).toBeUndefined();
+    expect(defaultToolExecutionResultProcessorRegistry.getProcessor('NonExistentProc')).toBeUndefined();
   });
 
   it('returns undefined when processor instantiation fails', () => {
     const definition = new ToolExecutionResultProcessorDefinition('ProcWithInitError', ProcWithInitError);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
 
-    const instance = defaultToolExecutionResultProcessorRegistry.get_processor('ProcWithInitError');
+    const instance = defaultToolExecutionResultProcessorRegistry.getProcessor('ProcWithInitError');
     expect(instance).toBeUndefined();
   });
 
   it('lists processor names', () => {
     const definitionA = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
     const definitionB = new ToolExecutionResultProcessorDefinition('ProcB', ProcB);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definitionA);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definitionB);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definitionA);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definitionB);
 
-    const names = defaultToolExecutionResultProcessorRegistry.list_processor_names().sort();
+    const names = defaultToolExecutionResultProcessorRegistry.listProcessorNames().sort();
     expect(names).toEqual(['ProcA', 'ProcB']);
   });
 
   it('returns ordered processor options', () => {
     const definitionA = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
     const definitionB = new ToolExecutionResultProcessorDefinition('ProcB', ProcB);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definitionB);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definitionA);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definitionB);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definitionA);
 
-    const options = defaultToolExecutionResultProcessorRegistry.get_ordered_processor_options();
+    const options = defaultToolExecutionResultProcessorRegistry.getOrderedProcessorOptions();
     expect(options.map((opt) => opt.name)).toEqual(['ProcA', 'ProcB']);
-    expect(options[0].is_mandatory).toBe(true);
-    expect(options[1].is_mandatory).toBe(false);
+    expect(options[0].isMandatory).toBe(true);
+    expect(options[1].isMandatory).toBe(false);
   });
 
   it('returns all definitions', () => {
     const definition = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
 
-    const defs = defaultToolExecutionResultProcessorRegistry.get_all_definitions();
+    const defs = defaultToolExecutionResultProcessorRegistry.getAllDefinitions();
     expect(Object.keys(defs)).toEqual(['ProcA']);
     expect(defs.ProcA).toBe(definition);
   });
 
   it('clears definitions', () => {
     const definition = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
     expect(defaultToolExecutionResultProcessorRegistry.length()).toBe(1);
 
     defaultToolExecutionResultProcessorRegistry.clear();
     expect(defaultToolExecutionResultProcessorRegistry.length()).toBe(0);
-    expect(defaultToolExecutionResultProcessorRegistry.get_processor_definition('ProcA')).toBeUndefined();
+    expect(defaultToolExecutionResultProcessorRegistry.getProcessorDefinition('ProcA')).toBeUndefined();
   });
 
   it('supports contains and length helpers', () => {
@@ -167,7 +167,7 @@ describe('ToolExecutionResultProcessorRegistry', () => {
     expect(defaultToolExecutionResultProcessorRegistry.contains('ProcA')).toBe(false);
 
     const definition = new ToolExecutionResultProcessorDefinition('ProcA', ProcA);
-    defaultToolExecutionResultProcessorRegistry.register_processor(definition);
+    defaultToolExecutionResultProcessorRegistry.registerProcessor(definition);
 
     expect(defaultToolExecutionResultProcessorRegistry.length()).toBe(1);
     expect(defaultToolExecutionResultProcessorRegistry.contains('ProcA')).toBe(true);

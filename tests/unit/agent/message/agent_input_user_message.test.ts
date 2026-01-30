@@ -7,7 +7,7 @@ import { ContextFileType } from '../../../../src/agent/message/context_file_type
 describe('AgentInputUserMessage', () => {
   it('defaults to USER sender type', () => {
     const message = new AgentInputUserMessage('hello');
-    expect(message.sender_type).toBe(SenderType.USER);
+    expect(message.senderType).toBe(SenderType.USER);
     expect(message.metadata).toEqual({});
   });
 
@@ -19,9 +19,9 @@ describe('AgentInputUserMessage', () => {
     const restored = AgentInputUserMessage.fromDict(data);
 
     expect(restored.content).toBe('hello');
-    expect(restored.sender_type).toBe(SenderType.USER);
-    expect(restored.context_files?.length).toBe(1);
-    expect(restored.context_files?.[0].uri).toBe('notes.txt');
+    expect(restored.senderType).toBe(SenderType.USER);
+    expect(restored.contextFiles?.length).toBe(1);
+    expect(restored.contextFiles?.[0].uri).toBe('notes.txt');
     expect(restored.metadata).toEqual({ key: 'value' });
   });
 
@@ -32,7 +32,7 @@ describe('AgentInputUserMessage', () => {
       context_files: null,
       metadata: {}
     });
-    expect(restored.sender_type).toBe(SenderType.USER);
+    expect(restored.senderType).toBe(SenderType.USER);
   });
 
   it('throws when content is not a string', () => {

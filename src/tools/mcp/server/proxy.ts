@@ -1,6 +1,6 @@
 import { McpServerInstanceManager } from '../server_instance_manager.js';
 
-type ToolArguments = Record<string, any>;
+type ToolArguments = Record<string, unknown>;
 
 export class McpServerProxy {
   private agentId: string;
@@ -9,7 +9,7 @@ export class McpServerProxy {
 
   constructor(agentId: string, serverId: string) {
     if (!agentId || !serverId) {
-      throw new Error('McpServerProxy requires both agent_id and server_id.');
+      throw new Error('McpServerProxy requires both agentId and serverId.');
     }
 
     this.agentId = agentId;
@@ -17,7 +17,7 @@ export class McpServerProxy {
     this.instanceManager = McpServerInstanceManager.getInstance();
   }
 
-  async callTool(toolName: string, argumentsPayload: ToolArguments): Promise<any> {
+  async callTool(toolName: string, argumentsPayload: ToolArguments): Promise<unknown> {
     const realServerInstance = this.instanceManager.getServerInstance(this.agentId, this.serverId);
     return await realServerInstance.callTool(toolName, argumentsPayload);
   }

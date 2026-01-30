@@ -1,7 +1,7 @@
 import { parseArgs } from 'node:util';
 import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { AgentTeamBuilder } from '../../../src/agent_team/agent_team_builder.js';
-import { run_agent_team_cli } from '../../../src/cli/index.js';
+import { runAgentTeamCli } from '../../../src/cli/index.js';
 import { SendMessageTo } from '../../../src/agent/message/send_message_to.js';
 import { loadEnv } from '../../shared/example_paths.js';
 import { createLlmOrThrow, printAvailableModels } from '../../shared/llm_helpers.js';
@@ -65,13 +65,13 @@ async function main(): Promise<void> {
     'MultiSpecialistResearchTeam',
     'A team demonstrating delegation to multiple specialists.'
   )
-    .set_coordinator(coordinatorConfig)
-    .add_agent_node(researcherWebConfig)
-    .add_agent_node(researcherDbConfig)
+    .setCoordinator(coordinatorConfig)
+    .addAgentNode(researcherWebConfig)
+    .addAgentNode(researcherDbConfig)
     .build();
 
   try {
-    await run_agent_team_cli(team);
+    await runAgentTeamCli(team);
   } finally {
     await llm.cleanup();
   }

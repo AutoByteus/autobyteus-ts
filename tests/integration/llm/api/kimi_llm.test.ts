@@ -12,7 +12,7 @@ const buildModel = () =>
   new LLMModel({
     name: 'kimi-latest',
     value: 'kimi-latest',
-    canonical_name: 'kimi-latest',
+    canonicalName: 'kimi-latest',
     provider: LLMProvider.KIMI
   });
 

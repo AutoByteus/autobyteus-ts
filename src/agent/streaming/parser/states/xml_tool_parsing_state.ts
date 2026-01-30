@@ -18,15 +18,15 @@ export class XmlToolParsingState extends DelimitedContentState {
     }
   }
 
-  protected _can_start_segment(): boolean {
+  protected _canStartSegment(): boolean {
     return this.toolName !== undefined;
   }
 
-  protected _get_start_metadata(): Record<string, any> {
+  protected _getStartMetadata(): Record<string, any> {
     return this.toolName ? { tool_name: this.toolName } : {};
   }
 
-  protected _on_segment_complete(): void {
+  protected _onSegmentComplete(): void {
     return;
   }
 }

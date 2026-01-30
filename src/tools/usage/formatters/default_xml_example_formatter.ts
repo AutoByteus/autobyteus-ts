@@ -135,7 +135,7 @@ export class DefaultXmlExampleFormatter implements UsageFormatter {
     return lines;
   }
 
-  private generatePlaceholderValue(param: ParameterDefinition): any {
+  private generatePlaceholderValue(param: ParameterDefinition): unknown {
     if (param.defaultValue !== undefined && param.defaultValue !== null) {
       return param.defaultValue;
     }

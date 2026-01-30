@@ -28,7 +28,7 @@ export abstract class BaseLLM {
     this.tokenUsageExtension = new TokenUsageTrackingExtension(this);
     this.registerExtension(this.tokenUsageExtension);
 
-    this.systemMessage = this.config.system_message || BaseLLM.DEFAULT_SYSTEM_MESSAGE;
+    this.systemMessage = this.config.systemMessage || BaseLLM.DEFAULT_SYSTEM_MESSAGE;
     this.addSystemMessage(this.systemMessage);
   }
 
@@ -45,7 +45,7 @@ export abstract class BaseLLM {
     this.extensionRegistry.unregister(extension);
   }
 
-  getExtension<T extends LLMExtension>(extensionClass: { new(...args: any[]): T }): T | null {
+  getExtension<T extends LLMExtension>(extensionClass: { new(...args: unknown[]): T }): T | null {
     return this.extensionRegistry.get(extensionClass);
   }
 
@@ -80,7 +80,7 @@ export abstract class BaseLLM {
     if (!newSystemPrompt) return; // Warning log
 
     this.systemMessage = newSystemPrompt;
-    this.config.system_message = newSystemPrompt;
+    this.config.systemMessage = newSystemPrompt;
 
     let systemMessageFound = false;
     for (let i = 0; i < this.messages.length; i++) {
@@ -105,26 +105,26 @@ export abstract class BaseLLM {
     this.extensionRegistry.getAll().forEach(ext => ext.onAssistantMessageAdded(message));
   }
 
-  protected async executeBeforeHooks(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<void> {
+  protected async executeBeforeHooks(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<void> {
     for (const ext of this.extensionRegistry.getAll()) {
       await ext.beforeInvoke(userMessage, kwargs);
     }
   }
 
-  protected async executeAfterHooks(userMessage: LLMUserMessage, response: CompleteResponse | null, kwargs: Record<string, any>): Promise<void> {
+  protected async executeAfterHooks(userMessage: LLMUserMessage, response: CompleteResponse | null, kwargs: Record<string, unknown>): Promise<void> {
     for (const ext of this.extensionRegistry.getAll()) {
       await ext.afterInvoke(userMessage, response, kwargs);
     }
   }
 
-  async sendUserMessage(userMessage: LLMUserMessage, kwargs: Record<string, any> = {}): Promise<CompleteResponse> {
+  async sendUserMessage(userMessage: LLMUserMessage, kwargs: Record<string, unknown> = {}): Promise<CompleteResponse> {
     await this.executeBeforeHooks(userMessage, kwargs);
     const response = await this._sendUserMessageToLLM(userMessage, kwargs);
     await this.executeAfterHooks(userMessage, response, kwargs);
     return response;
   }
 
-  async *streamUserMessage(userMessage: LLMUserMessage, kwargs: Record<string, any> = {}): AsyncGenerator<ChunkResponse, void, unknown> {
+  async *streamUserMessage(userMessage: LLMUserMessage, kwargs: Record<string, unknown> = {}): AsyncGenerator<ChunkResponse, void, unknown> {
     await this.executeBeforeHooks(userMessage, kwargs);
 
     let accumulatedContent = "";
@@ -149,9 +149,9 @@ export abstract class BaseLLM {
     await this.executeAfterHooks(userMessage, completeResponse, kwargs);
   }
 
-  protected abstract _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse>;
+  protected abstract _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse>;
 
-  protected abstract _streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown>;
+  protected abstract _streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown>;
 
   async cleanup(): Promise<void> {
     for (const ext of this.extensionRegistry.getAll()) {

@@ -23,7 +23,7 @@ export class JsonToolParsingState extends BaseState {
 
   run(): void {
     if (!this.segmentStarted) {
-      this.context.emit_segment_start(SegmentType.TOOL_CALL);
+      this.context.emitSegmentStart(SegmentType.TOOL_CALL);
       this.segmentStarted = true;
     }
 
@@ -47,8 +47,8 @@ export class JsonToolParsingState extends BaseState {
       this.initialized = true;
     }
 
-    while (this.context.has_more_chars()) {
-      const char = this.context.peek_char();
+    while (this.context.hasMoreChars()) {
+      const char = this.context.peekChar();
       if (char === undefined) {
         break;
       }
@@ -58,30 +58,30 @@ export class JsonToolParsingState extends BaseState {
 
       if (this.isJsonComplete()) {
         if (consumed.length) {
-          this.context.emit_segment_content(consumed.join(''));
+          this.context.emitSegmentContent(consumed.join(''));
         }
-        this.context.emit_segment_end();
-        this.context.transition_to(new TextState(this.context));
+        this.context.emitSegmentEnd();
+        this.context.transitionTo(new TextState(this.context));
         return;
       }
     }
 
     if (consumed.length) {
-      this.context.emit_segment_content(consumed.join(''));
+      this.context.emitSegmentContent(consumed.join(''));
     }
   }
 
   finalize(): void {
-    if (this.context.has_more_chars()) {
-      const remaining = this.context.consume_remaining();
+    if (this.context.hasMoreChars()) {
+      const remaining = this.context.consumeRemaining();
       if (remaining) {
-        this.context.emit_segment_content(remaining);
+        this.context.emitSegmentContent(remaining);
       }
     }
     if (this.segmentStarted) {
-      this.context.emit_segment_end();
+      this.context.emitSegmentEnd();
     }
-    this.context.transition_to(new TextState(this.context));
+    this.context.transitionTo(new TextState(this.context));
   }
 
   private updateBraceCount(char: string): void {

@@ -10,7 +10,7 @@ export class MinimaxLLM extends OpenAICompatibleLLM {
       new LLMModel({
         name: 'minimax-m2.1',
         value: 'MiniMax-M2.1',
-        canonical_name: 'minimax-m2.1',
+        canonicalName: 'minimax-m2.1',
         provider: LLMProvider.MINIMAX
       });
 

@@ -1,7 +1,7 @@
 import { SearchStrategy } from './base_strategy.js';
 
 export class SearchClient {
-  private strategy: SearchStrategy;
+  private readonly strategy: SearchStrategy;
 
   constructor(strategy: SearchStrategy) {
     if (!strategy) {

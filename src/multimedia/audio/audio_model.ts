@@ -4,7 +4,7 @@ import { MultimediaConfig } from '../utils/multimedia_config.js';
 import { ParameterSchema } from '../../utils/parameter_schema.js';
 import type { BaseAudioClient } from './base_audio_client.js';
 
-type ParameterSchemaInput = Record<string, any> | ParameterSchema | null | undefined;
+type ParameterSchemaInput = Record<string, unknown> | ParameterSchema | null | undefined;
 
 type AudioClientConstructor = new (model: AudioModel, config: MultimediaConfig) => BaseAudioClient;
 
@@ -44,7 +44,7 @@ export class AudioModel {
       this.parameterSchema = new ParameterSchema();
     }
 
-    const defaultParams: Record<string, any> = {};
+    const defaultParams: Record<string, unknown> = {};
     for (const param of this.parameterSchema.parameters) {
       if (param.defaultValue !== undefined && param.defaultValue !== null) {
         defaultParams[param.name] = param.defaultValue;

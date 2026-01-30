@@ -61,16 +61,17 @@ const OPENAI_TTS_VOICES = [
 ];
 
 export class AudioClientFactory extends Singleton {
+  protected static instance?: AudioClientFactory;
+
   private static modelsByIdentifier: Map<string, AudioModel> = new Map();
   private static initialized = false;
 
   constructor() {
     super();
-    const existing = (AudioClientFactory as any).instance as AudioClientFactory | undefined;
-    if (existing) {
-      return existing;
+    if (AudioClientFactory.instance) {
+      return AudioClientFactory.instance;
     }
-    (AudioClientFactory as any).instance = this;
+    AudioClientFactory.instance = this;
   }
 
   static ensureInitialized(): void {

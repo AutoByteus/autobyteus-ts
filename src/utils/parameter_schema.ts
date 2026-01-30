@@ -13,26 +13,64 @@ export interface ParameterDefinitionConfig {
   type: ParameterType;
   description: string;
   required?: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   enumValues?: string[];
   minValue?: number;
   maxValue?: number;
   pattern?: string;
-  arrayItemSchema?: ParameterType | ParameterSchema | any;
-  objectSchema?: ParameterSchema;
+  arrayItemSchema?: ParameterType | ParameterSchema | Record<string, unknown>;
+  objectSchema?: ParameterSchema | Record<string, unknown>;
 }
+
+type SchemaLike = ParameterSchema | Record<string, unknown> | null | undefined;
+
+const isSchemaConfig = (value: Record<string, unknown>): value is Record<string, unknown> & { parameters: unknown } =>
+  'parameters' in value;
+
+const normalizeObjectSchema = (value: SchemaLike, name: string, strict = true): ParameterSchema | undefined => {
+  if (value instanceof ParameterSchema) {
+    return value;
+  }
+
+  if (value && typeof value === 'object') {
+    if (isSchemaConfig(value)) {
+      return ParameterSchema.fromConfig(value);
+    }
+    if (strict) {
+      throw new Error(
+        `ParameterDefinition '${name}': objectSchema must be a ParameterSchema instance or schema config.`
+      );
+    }
+  }
+
+  return undefined;
+};
+
+const normalizeArrayItemSchema = (
+  value: ParameterType | ParameterSchema | Record<string, unknown> | null | undefined
+): ParameterType | ParameterSchema | Record<string, unknown> | undefined => {
+  if (value instanceof ParameterSchema) {
+    return value;
+  }
+
+  if (value && typeof value === 'object' && isSchemaConfig(value)) {
+    return ParameterSchema.fromConfig(value);
+  }
+
+  return value ?? undefined;
+};
 
 export class ParameterDefinition {
   public name: string;
   public type: ParameterType;
   public description: string;
   public required: boolean;
-  public defaultValue: any;
+  public defaultValue: unknown;
   public enumValues?: string[];
   public minValue?: number;
   public maxValue?: number;
   public pattern?: string;
-  public arrayItemSchema?: ParameterType | ParameterSchema | any;
+  public arrayItemSchema?: ParameterType | ParameterSchema | Record<string, unknown>;
   public objectSchema?: ParameterSchema;
 
   constructor(config: ParameterDefinitionConfig) {
@@ -49,7 +87,7 @@ export class ParameterDefinition {
     this.maxValue = config.maxValue;
     this.pattern = config.pattern;
     this.arrayItemSchema = config.arrayItemSchema;
-    this.objectSchema = config.objectSchema;
+    this.objectSchema = normalizeObjectSchema(config.objectSchema, this.name, true);
 
     if (this.type === ParameterType.ENUM && !this.enumValues) {
       throw new Error(`ParameterDefinition '${this.name}' of type ENUM must specify enumValues`);
@@ -64,10 +102,6 @@ export class ParameterDefinition {
       }
     }
 
-    if (this.objectSchema !== undefined && this.objectSchema !== null && !(this.objectSchema instanceof ParameterSchema)) {
-      throw new Error(`ParameterDefinition '${this.name}': objectSchema must be a ParameterSchema instance.`);
-    }
-
     if (this.type !== ParameterType.ARRAY && this.arrayItemSchema !== undefined && this.arrayItemSchema !== null) {
       throw new Error(`ParameterDefinition '${this.name}': arrayItemSchema should only be provided if type is ARRAY.`);
     }
@@ -77,16 +111,16 @@ export class ParameterDefinition {
     }
   }
 
-  public toJsonSchemaProperty(): Record<string, any> {
-    const prop: Record<string, any> = {
+  public toJsonSchemaProperty(): Record<string, unknown> {
+    const prop: Record<string, unknown> = {
       description: this.description
     };
 
     if (this.type === ParameterType.OBJECT && this.objectSchema) {
       const schema = this.objectSchema.toJsonSchema();
       // Merge properties from schema
-      if (schema.properties) prop.properties = schema.properties;
-      if (schema.required) prop.required = schema.required;
+      if ((schema as { properties?: unknown }).properties) prop.properties = (schema as { properties?: unknown }).properties;
+      if ((schema as { required?: unknown }).required) prop.required = (schema as { required?: unknown }).required;
       prop.type = "object";
       prop.description = this.description; // Ensure description override
       return prop;
@@ -114,7 +148,7 @@ export class ParameterDefinition {
          prop.items = this.arrayItemSchema.toJsonSchema();
        } else if (typeof this.arrayItemSchema === 'object') {
          prop.items = this.arrayItemSchema;
-       } else if (Object.values(ParameterType).includes(this.arrayItemSchema)) {
+       } else if (this.arrayItemSchema && Object.values(ParameterType).includes(this.arrayItemSchema as ParameterType)) {
          prop.items = { type: this.arrayItemSchema === ParameterType.FLOAT ? 'number' : this.arrayItemSchema };
        } else {
          prop.items = true;
@@ -146,7 +180,7 @@ export class ParameterDefinition {
       }
       
       if (this.objectSchema) {
-          config.objectSchema = this.objectSchema.toConfig() as any;
+          config.objectSchema = this.objectSchema.toConfig();
       }
       
       return config;
@@ -171,7 +205,7 @@ export class ParameterSchema {
     return this.parameters.find(p => p.name === name);
   }
 
-  public validateConfig(configData: Record<string, any>): [boolean, string[]] {
+  public validateConfig(configData: Record<string, unknown>): [boolean, string[]] {
     const errors: string[] = [];
     for (const param of this.parameters) {
       if (param.required && !(param.name in configData)) {
@@ -181,12 +215,12 @@ export class ParameterSchema {
     return [errors.length === 0, errors];
   }
 
-  public toJsonSchema(): Record<string, any> {
+  public toJsonSchema(): Record<string, unknown> {
     if (this.parameters.length === 0) {
       return { type: "object", properties: {}, required: [] };
     }
     
-    const properties: Record<string, any> = {};
+    const properties: Record<string, unknown> = {};
     const required: string[] = [];
 
     for (const param of this.parameters) {
@@ -204,17 +238,21 @@ export class ParameterSchema {
     return this.toJsonSchema();
   }
 
-  public toConfig(): Record<string, any> {
+  public toConfig(): Record<string, unknown> {
       return {
           parameters: this.parameters.map(p => p.toConfig())
       };
   }
 
-  static fromConfig(config: Record<string, any>): ParameterSchema {
+  static fromConfig(config: Record<string, unknown>): ParameterSchema {
       const schema = new ParameterSchema();
-      const params = config.parameters || [];
+      const rawParams = (config as { parameters?: unknown }).parameters;
+      const params = Array.isArray(rawParams) ? rawParams : [];
       for (const pConfig of params) {
-          const normalizedConfig = { ...pConfig };
+          if (!pConfig || typeof pConfig !== 'object') {
+              continue;
+          }
+          const normalizedConfig = { ...(pConfig as Record<string, unknown>) };
 
           if (
               normalizedConfig.type === ParameterType.ENUM &&
@@ -225,23 +263,41 @@ export class ParameterSchema {
           }
 
           // Handle nested recursion
-          let arrayItemSchema = normalizedConfig.arrayItemSchema;
-          if (arrayItemSchema && arrayItemSchema.parameters) {
-              arrayItemSchema = ParameterSchema.fromConfig(arrayItemSchema);
-          }
-          
-          let objectSchema = normalizedConfig.objectSchema;
-          if (objectSchema && objectSchema.parameters) {
-              objectSchema = ParameterSchema.fromConfig(objectSchema);
-          } else if (objectSchema instanceof ParameterSchema) {
-              // already instance
+          const name = typeof normalizedConfig.name === 'string' ? normalizedConfig.name : '';
+          const description = typeof normalizedConfig.description === 'string' ? normalizedConfig.description : '';
+          const typeValue = normalizedConfig.type as ParameterType | undefined;
+
+          const arrayItemSchema = normalizeArrayItemSchema(
+              normalizedConfig.arrayItemSchema as ParameterType | ParameterSchema | Record<string, unknown> | undefined
+          );
+
+          const objectSchema = normalizeObjectSchema(
+              normalizedConfig.objectSchema as ParameterSchema | Record<string, unknown> | undefined,
+              name || 'unknown',
+              false
+          );
+
+          if (!name || !description || !typeValue) {
+              continue;
           }
 
-          schema.addParameter(new ParameterDefinition({
-              ...normalizedConfig,
+          const paramConfig: ParameterDefinitionConfig = {
+              name,
+              type: typeValue,
+              description,
+              required: normalizedConfig.required as boolean | undefined,
+              defaultValue: normalizedConfig.defaultValue,
+              enumValues: Array.isArray(normalizedConfig.enumValues)
+                ? (normalizedConfig.enumValues as string[])
+                : undefined,
+              minValue: typeof normalizedConfig.minValue === 'number' ? normalizedConfig.minValue : undefined,
+              maxValue: typeof normalizedConfig.maxValue === 'number' ? normalizedConfig.maxValue : undefined,
+              pattern: typeof normalizedConfig.pattern === 'string' ? normalizedConfig.pattern : undefined,
               arrayItemSchema,
               objectSchema
-          }));
+          };
+
+          schema.addParameter(new ParameterDefinition(paramConfig));
       }
       return schema;
   }

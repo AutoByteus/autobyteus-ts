@@ -7,8 +7,8 @@ export class PromptDetector {
   private patternValue: string;
   private compiled: RegExp;
 
-  constructor(prompt_pattern?: string | null) {
-    this.patternValue = prompt_pattern ?? PromptDetector.DEFAULT_PATTERN;
+  constructor(promptPattern?: string | null) {
+    this.patternValue = promptPattern ?? PromptDetector.DEFAULT_PATTERN;
     this.compiled = new RegExp(this.patternValue, 'm');
   }
 
@@ -27,11 +27,11 @@ export class PromptDetector {
       return false;
     }
 
-    const last_line = lines[lines.length - 1];
-    return this.compiled.test(last_line);
+    const lastLine = lines[lines.length - 1];
+    return this.compiled.test(lastLine);
   }
 
-  set_pattern(pattern: string): void {
+  setPattern(pattern: string): void {
     this.patternValue = pattern;
     this.compiled = new RegExp(this.patternValue, 'm');
   }

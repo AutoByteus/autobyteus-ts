@@ -24,15 +24,15 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
     }
 
     if (!this.segmentStarted) {
-      this.context.emit_segment_start((this.constructor as typeof XmlRunBashToolParsingState).SEGMENT_TYPE, this._get_start_metadata());
+      this.context.emitSegmentStart((this.constructor as typeof XmlRunBashToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
       this.segmentStarted = true;
     }
 
-    if (!this.context.has_more_chars()) {
+    if (!this.context.hasMoreChars()) {
       return;
     }
 
-    const chunk = this.context.consume_remaining();
+    const chunk = this.context.consumeRemaining();
 
     if (!this.foundContentStart) {
       this.contentBuffering += chunk;
@@ -45,9 +45,9 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
         this.processContentChunk(realContent);
       } else {
         if (this.contentBuffering.includes('</tool>')) {
-          this._on_segment_complete();
-          this.context.emit_segment_end();
-          this.context.transition_to(new TextState(this.context));
+          this._onSegmentComplete();
+          this.context.emitSegmentEnd();
+          this.context.transitionTo(new TextState(this.context));
         }
       }
       return;
@@ -64,7 +64,7 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
     if (idx !== -1) {
       const actualContent = combined.slice(0, idx);
       if (actualContent) {
-        this.context.emit_segment_content(actualContent);
+        this.context.emitSegmentContent(actualContent);
       }
 
       this.tail = '';
@@ -79,7 +79,7 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
     if (combined.length > holdbackLen) {
       const safe = combined.slice(0, -holdbackLen);
       if (safe) {
-        this.context.emit_segment_content(safe);
+        this.context.emitSegmentContent(safe);
       }
       this.tail = combined.slice(-holdbackLen);
     } else {
@@ -88,19 +88,19 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
   }
 
   private handleSwallowing(): void {
-    this.contentBuffering += this.context.consume_remaining();
+    this.contentBuffering += this.context.consumeRemaining();
 
     const closingTag = '</tool>';
     const idx = this.contentBuffering.indexOf(closingTag);
 
     if (idx !== -1) {
       const remainder = this.contentBuffering.slice(idx + closingTag.length);
-      this._on_segment_complete();
-      this.context.emit_segment_end();
+      this._onSegmentComplete();
+      this.context.emitSegmentEnd();
       if (remainder) {
-        this.context.rewind_by(remainder.length);
+        this.context.rewindBy(remainder.length);
       }
-      this.context.transition_to(new TextState(this.context));
+      this.context.transitionTo(new TextState(this.context));
       return;
     }
 
@@ -110,7 +110,7 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
     }
   }
 
-  protected _on_segment_complete(): void {
+  protected _onSegmentComplete(): void {
     return;
   }
 }

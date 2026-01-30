@@ -26,7 +26,7 @@ const makeAgentConfig = (name: string): AgentConfig => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -34,15 +34,15 @@ const makeAgentConfig = (name: string): AgentConfig => {
 };
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: makeAgentConfig('Coordinator') });
+  const node = new TeamNodeConfig({ nodeDefinition: makeAgentConfig('Coordinator') });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
-  state.team_manager = { team_id: 'team-1' } as any;
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
+  state.teamManager = { teamId: 'team-1' } as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
@@ -56,18 +56,18 @@ describe('CoordinatorInitializationStep', () => {
   });
 
   it('initializes coordinator via team manager', async () => {
-    const mock_manager: any = context.team_manager;
-    mock_manager.ensure_coordinator_is_ready = vi.fn(async () => ({ agent_id: 'coordinator-1' }));
-    const coordinator_name = context.config.coordinator_node.name;
+    const mockManager: any = context.teamManager;
+    mockManager.ensureCoordinatorIsReady = vi.fn(async () => ({ agentId: 'coordinator-1' }));
+    const coordinatorName = context.config.coordinatorNode.name;
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
-    expect(mock_manager.ensure_coordinator_is_ready).toHaveBeenCalledWith(coordinator_name);
+    expect(mockManager.ensureCoordinatorIsReady).toHaveBeenCalledWith(coordinatorName);
   });
 
   it('fails if team manager missing', async () => {
-    context.state.team_manager = null;
+    context.state.teamManager = null;
 
     const success = await step.execute(context);
 
@@ -75,8 +75,8 @@ describe('CoordinatorInitializationStep', () => {
   });
 
   it('fails if coordinator creation fails', async () => {
-    const mock_manager: any = context.team_manager;
-    mock_manager.ensure_coordinator_is_ready = vi.fn(async () => {
+    const mockManager: any = context.teamManager;
+    mockManager.ensureCoordinatorIsReady = vi.fn(async () => {
       throw new Error('Config not found');
     });
 

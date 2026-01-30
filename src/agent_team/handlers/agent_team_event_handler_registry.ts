@@ -22,7 +22,7 @@ export class AgentTeamEventHandlerRegistry {
     );
   }
 
-  get_handler(eventClass: AgentTeamEventClass): BaseAgentTeamEventHandler | undefined {
+  getHandler(eventClass: AgentTeamEventClass): BaseAgentTeamEventHandler | undefined {
     return this.handlers.get(eventClass);
   }
 }

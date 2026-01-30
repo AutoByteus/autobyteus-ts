@@ -2,16 +2,16 @@ import { BaseManagedMcpServer } from './base_managed_mcp_server.js';
 import type { StreamableHttpMcpServerConfig } from '../types.js';
 
 type ClientLike = {
-  connect?: (transport: any) => Promise<void>;
+  connect?: (transport: unknown) => Promise<void>;
   initialize?: () => Promise<void>;
   close?: () => Promise<void> | void;
-  listTools: () => Promise<any>;
-  callTool: (...args: any[]) => Promise<any>;
+  listTools: () => Promise<unknown>;
+  callTool: (...args: unknown[]) => Promise<unknown>;
 };
 
 type SdkModule = {
-  Client: new (...args: any[]) => ClientLike;
-  Transport: new (...args: any[]) => any;
+  Client: new (...args: unknown[]) => ClientLike;
+  Transport: new (...args: unknown[]) => unknown;
 };
 
 async function loadSdk(): Promise<SdkModule> {
@@ -41,7 +41,7 @@ export class HttpManagedMcpServer extends BaseManagedMcpServer {
   }
 
   protected async createClientSession(): Promise<ClientLike> {
-    const config = this.config_object as StreamableHttpMcpServerConfig;
+    const config = this.configObject as StreamableHttpMcpServerConfig;
     const sdk = await (HttpManagedMcpServer.sdkLoader ?? loadSdk)();
 
     const transportOptions = {
@@ -49,15 +49,15 @@ export class HttpManagedMcpServer extends BaseManagedMcpServer {
       headers: config.headers ?? {}
     };
 
-    let transport: any;
+    let transport: unknown;
     try {
       transport = new sdk.Transport(config.url, transportOptions);
     } catch {
       transport = new sdk.Transport(transportOptions);
     }
 
-    if (typeof transport.close === 'function') {
-      this.registerCleanup(() => transport.close());
+    if (typeof (transport as { close?: () => void }).close === 'function') {
+      this.registerCleanup(() => (transport as { close: () => void }).close());
     }
 
     const client = this.createClientInstance(sdk.Client);

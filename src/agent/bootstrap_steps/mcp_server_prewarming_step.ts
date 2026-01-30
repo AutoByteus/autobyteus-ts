@@ -16,14 +16,14 @@ export class McpServerPrewarmingStep extends BaseBootstrapStep {
   }
 
   async execute(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     console.info(`Agent '${agentId}': Executing McpServerPrewarmingStep.`);
 
     const mcpServerIds = new Set<string>();
     for (const tool of context.config.tools) {
       if (tool?.definition?.category === ToolCategory.MCP) {
         const serverId = tool.definition?.metadata?.mcp_server_id;
-        if (serverId) {
+        if (typeof serverId === 'string' && serverId) {
           mcpServerIds.add(serverId);
         }
       }

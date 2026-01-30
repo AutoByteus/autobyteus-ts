@@ -38,7 +38,7 @@ export function registerToolClass(toolClass: ToolClass): boolean {
     return false;
   }
 
-  const category = (toolClass as any).CATEGORY ?? ToolCategory.GENERAL;
+  const category = (toolClass as { CATEGORY?: string }).CATEGORY ?? ToolCategory.GENERAL;
 
   try {
     const definition = new ToolDefinition(

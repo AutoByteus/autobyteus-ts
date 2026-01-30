@@ -19,11 +19,11 @@ class ConcreteLifecycleProcessor extends BaseLifecycleEventProcessor {
 }
 
 class CustomOrderProcessor extends BaseLifecycleEventProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'custom_processor';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 100;
   }
 
@@ -37,24 +37,24 @@ class CustomOrderProcessor extends BaseLifecycleEventProcessor {
 }
 
 describe('BaseLifecycleEventProcessor', () => {
-  it('default get_name returns class name', () => {
+  it('default getName returns class name', () => {
     const processor = new ConcreteLifecycleProcessor();
-    expect(processor.get_name()).toBe('ConcreteLifecycleProcessor');
+    expect(processor.getName()).toBe('ConcreteLifecycleProcessor');
   });
 
-  it('default get_order returns 500', () => {
+  it('default getOrder returns 500', () => {
     const processor = new ConcreteLifecycleProcessor();
-    expect(processor.get_order()).toBe(500);
+    expect(processor.getOrder()).toBe(500);
   });
 
-  it('custom get_name can be overridden', () => {
+  it('custom getName can be overridden', () => {
     const processor = new CustomOrderProcessor();
-    expect(processor.get_name()).toBe('custom_processor');
+    expect(processor.getName()).toBe('custom_processor');
   });
 
-  it('custom get_order can be overridden', () => {
+  it('custom getOrder can be overridden', () => {
     const processor = new CustomOrderProcessor();
-    expect(processor.get_order()).toBe(100);
+    expect(processor.getOrder()).toBe(100);
   });
 
   it('event property returns LifecycleEvent', () => {

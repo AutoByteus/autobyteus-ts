@@ -46,7 +46,7 @@ export class Message {
    * Returns a simple dictionary representation of the Message object.
    * This is for internal use and does not format for any specific API.
    */
-  public toDict(): Record<string, any> {
+  public toDict(): Record<string, unknown> {
     return {
       role: this.role,
       content: this.content,

@@ -8,7 +8,7 @@ import { BaseLifecycleEventProcessor } from '../../../../src/agent/lifecycle/bas
 import { LifecycleEvent } from '../../../../src/agent/lifecycle/events.js';
 
 class TestProcessorA extends BaseLifecycleEventProcessor {
-  static get_order(): number {
+  static getOrder(): number {
     return 200;
   }
 
@@ -22,11 +22,11 @@ class TestProcessorA extends BaseLifecycleEventProcessor {
 }
 
 class TestProcessorB extends BaseLifecycleEventProcessor {
-  static get_order(): number {
+  static getOrder(): number {
     return 100;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return true;
   }
 
@@ -47,39 +47,39 @@ describe('LifecycleEventProcessorRegistry', () => {
   it('registers and retrieves definitions', () => {
     const registry = new LifecycleEventProcessorRegistry();
     const definition = new LifecycleEventProcessorDefinition('proc_a', TestProcessorA);
-    registry.register_processor(definition);
-    expect(registry.get_processor_definition('proc_a')).toBe(definition);
+    registry.registerProcessor(definition);
+    expect(registry.getProcessorDefinition('proc_a')).toBe(definition);
   });
 
   it('creates processor instances', () => {
     const registry = new LifecycleEventProcessorRegistry();
     const definition = new LifecycleEventProcessorDefinition('proc_a', TestProcessorA);
-    registry.register_processor(definition);
-    const instance = registry.get_processor('proc_a');
+    registry.registerProcessor(definition);
+    const instance = registry.getProcessor('proc_a');
     expect(instance).toBeInstanceOf(TestProcessorA);
   });
 
   it('lists processor names', () => {
     const registry = new LifecycleEventProcessorRegistry();
-    registry.register_processor(new LifecycleEventProcessorDefinition('proc_a', TestProcessorA));
-    registry.register_processor(new LifecycleEventProcessorDefinition('proc_b', TestProcessorB));
-    const names = registry.list_processor_names();
+    registry.registerProcessor(new LifecycleEventProcessorDefinition('proc_a', TestProcessorA));
+    registry.registerProcessor(new LifecycleEventProcessorDefinition('proc_b', TestProcessorB));
+    const names = registry.listProcessorNames();
     expect(new Set(names)).toEqual(new Set(['proc_a', 'proc_b']));
   });
 
   it('returns ordered processor options', () => {
     const registry = new LifecycleEventProcessorRegistry();
-    registry.register_processor(new LifecycleEventProcessorDefinition('proc_a', TestProcessorA));
-    registry.register_processor(new LifecycleEventProcessorDefinition('proc_b', TestProcessorB));
+    registry.registerProcessor(new LifecycleEventProcessorDefinition('proc_a', TestProcessorA));
+    registry.registerProcessor(new LifecycleEventProcessorDefinition('proc_b', TestProcessorB));
 
-    const options = registry.get_ordered_processor_options();
+    const options = registry.getOrderedProcessorOptions();
     expect(options[0].name).toBe('proc_b');
-    expect(options[0].is_mandatory).toBe(true);
+    expect(options[0].isMandatory).toBe(true);
     expect(options[1].name).toBe('proc_a');
   });
 
   it('returns undefined for unknown names', () => {
     const registry = new LifecycleEventProcessorRegistry();
-    expect(registry.get_processor_definition('missing')).toBeUndefined();
+    expect(registry.getProcessorDefinition('missing')).toBeUndefined();
   });
 });

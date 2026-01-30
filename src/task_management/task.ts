@@ -29,7 +29,7 @@ const TaskObjectSchema = z.object({
 
 export const TaskSchema = z.preprocess((input) => {
   if (input && typeof input === 'object' && !Array.isArray(input)) {
-    const data = { ...(input as Record<string, any>) };
+    const data = { ...(input as Record<string, unknown>) };
     if ('local_id' in data) {
       data.task_name = data.local_id;
       delete data.local_id;

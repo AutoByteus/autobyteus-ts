@@ -47,42 +47,42 @@ type AgentContextLike = { agentId: string; workspace?: WorkspaceLike | null };
 
 export async function readFile(
   context: AgentContextLike,
-  path: string,
-  start_line?: number | null,
-  end_line?: number | null,
-  include_line_numbers: boolean = true
+  filePath: string,
+  startLine?: number | null,
+  endLine?: number | null,
+  includeLineNumbers: boolean = true
 ): Promise<string> {
-  if (start_line !== undefined && start_line !== null && start_line < 1) {
-    throw new Error(`start_line must be >= 1 when provided; got ${start_line}.`);
+  if (startLine !== undefined && startLine !== null && startLine < 1) {
+    throw new Error(`start_line must be >= 1 when provided; got ${startLine}.`);
   }
-  if (end_line !== undefined && end_line !== null && end_line < 1) {
-    throw new Error(`end_line must be >= 1 when provided; got ${end_line}.`);
+  if (endLine !== undefined && endLine !== null && endLine < 1) {
+    throw new Error(`end_line must be >= 1 when provided; got ${endLine}.`);
   }
   if (
-    start_line !== undefined &&
-    start_line !== null &&
-    end_line !== undefined &&
-    end_line !== null &&
-    end_line < start_line
+    startLine !== undefined &&
+    startLine !== null &&
+    endLine !== undefined &&
+    endLine !== null &&
+    endLine < startLine
   ) {
-    throw new Error(`end_line (${end_line}) must be >= start_line (${start_line}).`);
+    throw new Error(`end_line (${endLine}) must be >= start_line (${startLine}).`);
   }
 
-  let finalPath = path;
-  if (!pathModule.isAbsolute(path)) {
+  let finalPath = filePath;
+  if (!pathModule.isAbsolute(filePath)) {
     const workspace = context.workspace ?? null;
     if (!workspace) {
       throw new Error(
-        `Relative path '${path}' provided, but no workspace is configured for agent '${context.agentId}'. A workspace is required to resolve relative paths.`
+        `Relative path '${filePath}' provided, but no workspace is configured for agent '${context.agentId}'. A workspace is required to resolve relative paths.`
       );
     }
     const basePath = workspace.getBasePath();
     if (!basePath || typeof basePath !== 'string') {
       throw new Error(
-        `Agent '${context.agentId}' has a configured workspace, but it provided an invalid base path ('${basePath}'). Cannot resolve relative path '${path}'.`
+        `Agent '${context.agentId}' has a configured workspace, but it provided an invalid base path ('${basePath}'). Cannot resolve relative path '${filePath}'.`
       );
     }
-    finalPath = pathModule.join(basePath, path);
+    finalPath = pathModule.join(basePath, filePath);
   }
 
   finalPath = pathModule.normalize(finalPath);
@@ -104,14 +104,14 @@ export async function readFile(
         continue;
       }
       lineNo += 1;
-      if (start_line !== undefined && start_line !== null && lineNo < start_line) {
+      if (startLine !== undefined && startLine !== null && lineNo < startLine) {
         continue;
       }
-      if (end_line !== undefined && end_line !== null && lineNo > end_line) {
+      if (endLine !== undefined && endLine !== null && lineNo > endLine) {
         break;
       }
 
-      if (include_line_numbers) {
+      if (includeLineNumbers) {
         const hasNewline = line.endsWith('\n');
         const lineText = hasNewline ? line.slice(0, -1) : line;
         selected.push(`${lineNo}: ${lineText}${hasNewline ? '\n' : ''}`);
@@ -121,8 +121,9 @@ export async function readFile(
     }
 
     return selected.join('');
-  } catch (error: any) {
-    throw new Error(`Could not read file at ${finalPath}: ${error?.message ?? String(error)}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Could not read file at ${finalPath}: ${message}`);
   }
 }
 
@@ -135,7 +136,8 @@ export function registerReadFileTool(): BaseTool {
       name: TOOL_NAME,
       description: DESCRIPTION,
       argumentSchema,
-      category: ToolCategory.FILE_SYSTEM
+      category: ToolCategory.FILE_SYSTEM,
+      paramNames: ['context', 'path', 'start_line', 'end_line', 'include_line_numbers']
     })(readFile) as BaseTool;
     return cachedTool;
   }

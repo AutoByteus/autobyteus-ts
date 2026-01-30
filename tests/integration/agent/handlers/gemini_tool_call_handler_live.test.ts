@@ -18,7 +18,7 @@ const buildGeminiModel = () =>
   new LLMModel({
     name: 'gemini-3-flash-preview',
     value: 'gemini-3-flash-preview',
-    canonical_name: 'gemini-3-flash',
+    canonicalName: 'gemini-3-flash',
     provider: LLMProvider.GEMINI
   });
 
@@ -39,7 +39,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Gemini live)', () => {
     const llm = new GeminiLLM(buildGeminiModel());
     const events: any[] = [];
     const handler = new ApiToolCallStreamingResponseHandler({
-      on_segment_event: (event) => events.push(event)
+      onSegmentEvent: (event) => events.push(event)
     });
 
     const userMessage = new LLMUserMessage({
@@ -68,7 +68,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (Gemini live)', () => {
     );
     expect(toolStarts.length).toBeGreaterThan(0);
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations.length).toBeGreaterThanOrEqual(1);
 
     const invocation = invocations.find((entry) => entry.name === 'write_file');

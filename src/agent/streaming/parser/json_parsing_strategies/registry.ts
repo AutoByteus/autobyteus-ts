@@ -7,11 +7,11 @@ import type { JsonToolParsingStrategy } from './base.js';
 
 export class JsonToolParsingProfile {
   parser: JsonToolParsingStrategy;
-  signature_patterns: string[];
+  signaturePatterns: string[];
 
   constructor(parser: JsonToolParsingStrategy, signaturePatterns: string[]) {
     this.parser = parser;
-    this.signature_patterns = signaturePatterns;
+    this.signaturePatterns = signaturePatterns;
   }
 }
 
@@ -50,7 +50,7 @@ export const OPENAI_LIKE_PROVIDERS = new Set<LLMProvider>([
   LLMProvider.GROK
 ]);
 
-export const get_json_tool_parsing_profile = (provider?: LLMProvider | null): JsonToolParsingProfile => {
+export const getJsonToolParsingProfile = (provider?: LLMProvider | null): JsonToolParsingProfile => {
   const override = resolveToolCallFormat();
   if (override === 'json') {
     return DEFAULT_PROFILE;

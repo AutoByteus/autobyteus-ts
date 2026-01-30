@@ -10,16 +10,23 @@ import { TokenUsage } from '../utils/token_usage.js';
 import { mediaSourceToBase64, createDataUri, getMimeType, isValidMediaPath } from '../utils/media_payload_formatter.js';
 import { ToolCallDelta } from '../utils/tool_call_delta.js';
 
-type ResponseInputItem = Record<string, any>;
-type ResponseOutputItem = Record<string, any>;
-type ResponseUsage = Record<string, any>;
+type ResponseInputItem = Record<string, unknown>;
+type ResponseOutputItem = Record<string, unknown>;
+type ResponseUsage = Record<string, unknown>;
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+const asNumber = (value: unknown): number => (typeof value === 'number' ? value : 0);
 
 async function formatResponsesHistory(messages: Message[]): Promise<ResponseInputItem[]> {
   const formattedMessages: ResponseInputItem[] = [];
 
   for (const msg of messages) {
     if (msg.image_urls.length || msg.audio_urls.length || msg.video_urls.length) {
-      const contentParts: Record<string, any>[] = [];
+      const contentParts: Record<string, unknown>[] = [];
 
       if (msg.content) {
         contentParts.push({ type: 'input_text', text: msg.content });
@@ -84,7 +91,7 @@ export class OpenAIResponsesLLM extends BaseLLM {
     llmConfig?: LLMConfig,
     apiKeyDefault?: string
   ) {
-    const effectiveConfig = model.default_config ? model.default_config.clone() : new LLMConfig();
+    const effectiveConfig = model.defaultConfig ? model.defaultConfig.clone() : new LLMConfig();
     if (llmConfig) {
       effectiveConfig.mergeWith(llmConfig);
     }
@@ -101,15 +108,15 @@ export class OpenAIResponsesLLM extends BaseLLM {
     super(model, effectiveConfig);
 
     this.client = new OpenAIClient({ apiKey, baseURL: baseUrl });
-    this.maxTokens = effectiveConfig.max_tokens ?? null;
+    this.maxTokens = effectiveConfig.maxTokens ?? null;
   }
 
   private createTokenUsage(usageData?: ResponseUsage | null): TokenUsage | null {
     if (!usageData) return null;
     return {
-      prompt_tokens: usageData.input_tokens ?? 0,
-      completion_tokens: usageData.output_tokens ?? 0,
-      total_tokens: usageData.total_tokens ?? 0
+      prompt_tokens: asNumber(usageData.input_tokens),
+      completion_tokens: asNumber(usageData.output_tokens),
+      total_tokens: asNumber(usageData.total_tokens)
     };
   }
 
@@ -118,17 +125,17 @@ export class OpenAIResponsesLLM extends BaseLLM {
     const reasoningChunks: string[] = [];
 
     for (const item of outputItems ?? []) {
-      const itemType = item?.type;
+      const itemType = (item as ResponseOutputItem | undefined)?.type;
       if (itemType === 'message') {
-        for (const part of item?.content ?? []) {
-          if (part?.type === 'output_text') {
-            contentChunks.push(part?.text ?? '');
+        for (const part of asArray((item as ResponseOutputItem | undefined)?.content)) {
+          if (isRecord(part) && part.type === 'output_text') {
+            contentChunks.push(typeof part.text === 'string' ? part.text : '');
           }
         }
       } else if (itemType === 'reasoning') {
-        for (const summary of item?.summary ?? []) {
-          if (summary?.type === 'summary_text') {
-            reasoningChunks.push(summary?.text ?? '');
+        for (const summary of asArray((item as ResponseOutputItem | undefined)?.summary)) {
+          if (isRecord(summary) && summary.type === 'summary_text') {
+            reasoningChunks.push(typeof summary.text === 'string' ? summary.text : '');
           }
         }
       }
@@ -139,12 +146,12 @@ export class OpenAIResponsesLLM extends BaseLLM {
     return { content, reasoning };
   }
 
-  private buildReasoningParam(): Record<string, any> | null {
-    if (!this.config.extra_params) return null;
-    const reasoningEffort = this.config.extra_params.reasoning_effort;
-    const reasoningSummary = this.config.extra_params.reasoning_summary;
+  private buildReasoningParam(): Record<string, unknown> | null {
+    if (!this.config.extraParams) return null;
+    const reasoningEffort = this.config.extraParams.reasoning_effort;
+    const reasoningSummary = this.config.extraParams.reasoning_summary;
 
-    const reasoning: Record<string, any> = {};
+    const reasoning: Record<string, unknown> = {};
     if (reasoningEffort) {
       reasoning.effort = reasoningEffort;
     }
@@ -155,22 +162,22 @@ export class OpenAIResponsesLLM extends BaseLLM {
     return Object.keys(reasoning).length ? reasoning : null;
   }
 
-  private filterExtraParams(): Record<string, any> {
-    if (!this.config.extra_params) return {};
-    const filtered = { ...this.config.extra_params };
+  private filterExtraParams(): Record<string, unknown> {
+    if (!this.config.extraParams) return {};
+    const filtered = { ...this.config.extraParams };
     delete filtered.reasoning_effort;
     delete filtered.reasoning_summary;
     return filtered;
   }
 
-  private normalizeTools(tools: Record<string, any>[]): Record<string, any>[] {
+  private normalizeTools(tools: Record<string, unknown>[]): Record<string, unknown>[] {
     return tools.map((tool) => {
-      if (tool?.type === 'function' && typeof tool.function === 'object') {
-        const fn = tool.function;
+      if (tool?.type === 'function' && isRecord(tool.function)) {
+        const fn = tool.function as Record<string, unknown>;
         return {
           type: 'function',
-          name: fn.name,
-          description: fn.description,
+          name: typeof fn.name === 'string' ? fn.name : undefined,
+          description: typeof fn.description === 'string' ? fn.description : undefined,
           parameters: fn.parameters
         };
       }
@@ -180,12 +187,12 @@ export class OpenAIResponsesLLM extends BaseLLM {
 
   protected async _sendUserMessageToLLM(
     userMessage: LLMUserMessage,
-    kwargs: Record<string, any>
+    kwargs: Record<string, unknown>
   ): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
     const formattedMessages = await formatResponsesHistory(this.messages);
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
       model: this.model.value,
       input: formattedMessages
     };
@@ -204,8 +211,8 @@ export class OpenAIResponsesLLM extends BaseLLM {
       Object.assign(params, extraParams);
     }
 
-    if (kwargs.tools) {
-      params.tools = this.normalizeTools(kwargs.tools);
+    if (Array.isArray(kwargs.tools)) {
+      params.tools = this.normalizeTools(kwargs.tools as Record<string, unknown>[]);
     }
     if (kwargs.tool_choice !== undefined) {
       params.tool_choice = kwargs.tool_choice;
@@ -228,12 +235,12 @@ export class OpenAIResponsesLLM extends BaseLLM {
 
   protected async *_streamUserMessageToLLM(
     userMessage: LLMUserMessage,
-    kwargs: Record<string, any>
+    kwargs: Record<string, unknown>
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
 
     const formattedMessages = await formatResponsesHistory(this.messages);
-    const params: Record<string, any> = {
+    const params: Record<string, unknown> = {
       model: this.model.value,
       input: formattedMessages,
       stream: true
@@ -253,8 +260,8 @@ export class OpenAIResponsesLLM extends BaseLLM {
       Object.assign(params, extraParams);
     }
 
-    if (kwargs.tools) {
-      params.tools = this.normalizeTools(kwargs.tools);
+    if (Array.isArray(kwargs.tools)) {
+      params.tools = this.normalizeTools(kwargs.tools as Record<string, unknown>[]);
     }
     if (kwargs.tool_choice !== undefined) {
       params.tool_choice = kwargs.tool_choice;

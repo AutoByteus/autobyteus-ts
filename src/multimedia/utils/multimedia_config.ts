@@ -1,7 +1,7 @@
 export class MultimediaConfig {
-  params: Record<string, any>;
+  params: Record<string, unknown>;
 
-  constructor(params: Record<string, any> = {}) {
+  constructor(params: Record<string, unknown> = {}) {
     this.params = params ?? {};
   }
 
@@ -11,11 +11,11 @@ export class MultimediaConfig {
     }
   }
 
-  static fromDict(data: Record<string, any> | null | undefined): MultimediaConfig {
+  static fromDict(data: Record<string, unknown> | null | undefined): MultimediaConfig {
     return new MultimediaConfig(data ?? {});
   }
 
-  toDict(): Record<string, any> {
+  toDict(): Record<string, unknown> {
     return this.params;
   }
 }

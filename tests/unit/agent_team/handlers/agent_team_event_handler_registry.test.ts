@@ -16,8 +16,8 @@ describe('AgentTeamEventHandlerRegistry', () => {
 
     registry.register(AgentTeamReadyEvent, handler);
 
-    expect(registry.get_handler(AgentTeamReadyEvent)).toBe(handler);
-    expect(registry.get_handler(BaseAgentTeamEvent as any)).toBeUndefined();
+    expect(registry.getHandler(AgentTeamReadyEvent)).toBe(handler);
+    expect(registry.getHandler(BaseAgentTeamEvent as any)).toBeUndefined();
   });
 
   it('throws for invalid event type', () => {

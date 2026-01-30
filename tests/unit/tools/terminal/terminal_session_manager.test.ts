@@ -3,16 +3,16 @@ import { TerminalSessionManager } from '../../../../src/tools/terminal/terminal_
 import { TerminalResult } from '../../../../src/tools/terminal/types.js';
 
 class MockPtySession {
-  session_id: string;
+  sessionId: string;
   private alive = false;
   private outputQueue: Buffer[] = [];
   private written: Buffer[] = [];
 
-  constructor(session_id: string) {
-    this.session_id = session_id;
+  constructor(sessionId: string) {
+    this.sessionId = sessionId;
   }
 
-  get is_alive(): boolean {
+  get isAlive(): boolean {
     return this.alive;
   }
 
@@ -53,45 +53,45 @@ class MockPtySession {
 }
 
 describe('TerminalSessionManager', () => {
-  it('ensure_started creates session', async () => {
+  it('ensureStarted creates session', async () => {
     const manager = new TerminalSessionManager(MockPtySession);
 
-    expect(manager.is_started).toBe(false);
-    await manager.ensure_started('/tmp');
-    expect(manager.is_started).toBe(true);
+    expect(manager.isStarted).toBe(false);
+    await manager.ensureStarted('/tmp');
+    expect(manager.isStarted).toBe(true);
 
     await manager.close();
   });
 
-  it('ensure_started is idempotent', async () => {
+  it('ensureStarted is idempotent', async () => {
     const manager = new TerminalSessionManager(MockPtySession);
 
-    await manager.ensure_started('/tmp');
-    const session1 = manager.current_session;
+    await manager.ensureStarted('/tmp');
+    const session1 = manager.currentSession;
 
-    await manager.ensure_started('/tmp');
-    const session2 = manager.current_session;
+    await manager.ensureStarted('/tmp');
+    const session2 = manager.currentSession;
 
     expect(session1).toBe(session2);
 
     await manager.close();
   });
 
-  it('execute_command before start throws', async () => {
+  it('executeCommand before start throws', async () => {
     const manager = new TerminalSessionManager(MockPtySession);
 
-    await expect(manager.execute_command('echo hello')).rejects.toThrow('not started');
+    await expect(manager.executeCommand('echo hello')).rejects.toThrow('not started');
   });
 
-  it('execute_command returns TerminalResult', async () => {
+  it('executeCommand returns TerminalResult', async () => {
     const manager = new TerminalSessionManager(MockPtySession);
 
-    await manager.ensure_started('/tmp');
-    const result = await manager.execute_command('echo hello');
+    await manager.ensureStarted('/tmp');
+    const result = await manager.executeCommand('echo hello');
 
     expect(result).toBeInstanceOf(TerminalResult);
     expect(result.stdout).toContain('hello');
-    expect(result.timed_out).toBe(false);
+    expect(result.timedOut).toBe(false);
 
     await manager.close();
   });
@@ -99,11 +99,11 @@ describe('TerminalSessionManager', () => {
   it('close cleans up session', async () => {
     const manager = new TerminalSessionManager(MockPtySession);
 
-    await manager.ensure_started('/tmp');
-    expect(manager.is_started).toBe(true);
+    await manager.ensureStarted('/tmp');
+    expect(manager.isStarted).toBe(true);
 
     await manager.close();
-    expect(manager.is_started).toBe(false);
-    expect(manager.current_session).toBeNull();
+    expect(manager.isStarted).toBe(false);
+    expect(manager.currentSession).toBeNull();
   });
 });

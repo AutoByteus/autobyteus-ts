@@ -61,7 +61,7 @@ export class AgentEventStore {
     return envelope;
   }
 
-  all_events(): EventEnvelope[] {
+  allEvents(): EventEnvelope[] {
     return [...this.events];
   }
 }

@@ -5,6 +5,38 @@ import { AgentRuntimeState } from '../../../../src/agent/context/agent_runtime_s
 import { AgentContext } from '../../../../src/agent/context/agent_context.js';
 import { AgentRuntime } from '../../../../src/agent/runtime/agent_runtime.js';
 import { AgentStatus } from '../../../../src/agent/status/status_enum.js';
+import {
+  AgentErrorEvent,
+  AgentIdleEvent,
+  AgentReadyEvent,
+  AgentStoppedEvent,
+  ApprovedToolInvocationEvent,
+  BootstrapCompletedEvent,
+  BootstrapStartedEvent,
+  BootstrapStepCompletedEvent,
+  BootstrapStepRequestedEvent,
+  GenericEvent,
+  InterAgentMessageReceivedEvent,
+  LLMCompleteResponseReceivedEvent,
+  LLMUserMessageReadyEvent,
+  PendingToolInvocationEvent,
+  ShutdownRequestedEvent,
+  ToolExecutionApprovalEvent,
+  ToolResultEvent,
+  UserMessageReceivedEvent
+} from '../../../../src/agent/events/agent_events.js';
+import { EventHandlerRegistry } from '../../../../src/agent/handlers/event_handler_registry.js';
+import { UserInputMessageEventHandler } from '../../../../src/agent/handlers/user_input_message_event_handler.js';
+import { InterAgentMessageReceivedEventHandler } from '../../../../src/agent/handlers/inter_agent_message_event_handler.js';
+import { LLMCompleteResponseReceivedEventHandler } from '../../../../src/agent/handlers/llm_complete_response_received_event_handler.js';
+import { ToolInvocationRequestEventHandler } from '../../../../src/agent/handlers/tool_invocation_request_event_handler.js';
+import { ToolResultEventHandler } from '../../../../src/agent/handlers/tool_result_event_handler.js';
+import { GenericEventHandler } from '../../../../src/agent/handlers/generic_event_handler.js';
+import { ToolExecutionApprovalEventHandler } from '../../../../src/agent/handlers/tool_execution_approval_event_handler.js';
+import { LLMUserMessageReadyEventHandler } from '../../../../src/agent/handlers/llm_user_message_ready_event_handler.js';
+import { ApprovedToolInvocationEventHandler } from '../../../../src/agent/handlers/approved_tool_invocation_event_handler.js';
+import { BootstrapEventHandler } from '../../../../src/agent/handlers/bootstrap_event_handler.js';
+import { LifecycleEventLogger } from '../../../../src/agent/handlers/lifecycle_event_logger.js';
 import { BaseLLM } from '../../../../src/llm/base.js';
 import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
@@ -36,7 +68,7 @@ const waitForStatus = async (
 ): Promise<boolean> => {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
-    if (predicate(context.current_status)) {
+    if (predicate(context.currentStatus)) {
       return true;
     }
     await delay(intervalMs);
@@ -52,11 +84,38 @@ const createDummyConfig = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   return new AgentConfig('RuntimeTestAgent', 'Tester', 'Runtime integration test agent', llm);
+};
+
+const createDefaultEventHandlerRegistry = (): EventHandlerRegistry => {
+  const registry = new EventHandlerRegistry();
+  registry.register(UserMessageReceivedEvent, new UserInputMessageEventHandler());
+  registry.register(InterAgentMessageReceivedEvent, new InterAgentMessageReceivedEventHandler());
+  registry.register(LLMCompleteResponseReceivedEvent, new LLMCompleteResponseReceivedEventHandler());
+  registry.register(PendingToolInvocationEvent, new ToolInvocationRequestEventHandler());
+  registry.register(ToolResultEvent, new ToolResultEventHandler());
+  registry.register(GenericEvent, new GenericEventHandler());
+  registry.register(ToolExecutionApprovalEvent, new ToolExecutionApprovalEventHandler());
+  registry.register(LLMUserMessageReadyEvent, new LLMUserMessageReadyEventHandler());
+  registry.register(ApprovedToolInvocationEvent, new ApprovedToolInvocationEventHandler());
+
+  const bootstrapHandler = new BootstrapEventHandler();
+  registry.register(BootstrapStartedEvent, bootstrapHandler);
+  registry.register(BootstrapStepRequestedEvent, bootstrapHandler);
+  registry.register(BootstrapStepCompletedEvent, bootstrapHandler);
+  registry.register(BootstrapCompletedEvent, bootstrapHandler);
+
+  const lifecycleLogger = new LifecycleEventLogger();
+  registry.register(AgentReadyEvent, lifecycleLogger);
+  registry.register(AgentStoppedEvent, lifecycleLogger);
+  registry.register(AgentIdleEvent, lifecycleLogger);
+  registry.register(ShutdownRequestedEvent, lifecycleLogger);
+  registry.register(AgentErrorEvent, lifecycleLogger);
+  return registry;
 };
 
 describe('Agent runtime integration', () => {
@@ -75,17 +134,16 @@ describe('Agent runtime integration', () => {
     const agentId = `runtime_${Date.now()}`;
 
     const state = new AgentRuntimeState(agentId, null, null, null);
-    state.llm_instance = config.llm_instance;
-    state.tool_instances = {};
+    state.llmInstance = config.llmInstance;
+    state.toolInstances = {};
 
     const context = new AgentContext(agentId, config, state);
-    const factory = new AgentFactory();
-    const registry = (factory as any)._get_default_event_handler_registry();
+    const registry = createDefaultEventHandlerRegistry();
 
     const runtime = new AgentRuntime(context, registry);
 
     try {
-      expect(runtime.is_running).toBe(false);
+      expect(runtime.isRunning).toBe(false);
       runtime.start();
 
       const ready = await waitForStatus(
@@ -93,7 +151,7 @@ describe('Agent runtime integration', () => {
         (status) => status === AgentStatus.IDLE || status === AgentStatus.ERROR
       );
       expect(ready).toBe(true);
-      expect(context.current_status).toBe(AgentStatus.IDLE);
+      expect(context.currentStatus).toBe(AgentStatus.IDLE);
 
       await runtime.stop(5);
       const stopped = await waitForStatus(
@@ -102,23 +160,23 @@ describe('Agent runtime integration', () => {
         5000
       );
       expect(stopped).toBe(true);
-      expect(context.current_status).toBe(AgentStatus.SHUTDOWN_COMPLETE);
-      expect(runtime.is_running).toBe(false);
+      expect(context.currentStatus).toBe(AgentStatus.SHUTDOWN_COMPLETE);
+      expect(runtime.isRunning).toBe(false);
     } finally {
-      if (runtime.is_running) {
+      if (runtime.isRunning) {
         await runtime.stop(2);
       }
-      await config.llm_instance.cleanup();
+      await config.llmInstance.cleanup();
     }
   }, 20000);
 
   it('Agent facade delegates start/stop to runtime', async () => {
     const config = createDummyConfig();
     const factory = new AgentFactory();
-    const agent = factory.create_agent(config);
+    const agent = factory.createAgent(config);
 
     try {
-      expect(agent.is_running).toBe(false);
+      expect(agent.isRunning).toBe(false);
       agent.start();
 
       const ready = await waitForStatus(
@@ -126,8 +184,8 @@ describe('Agent runtime integration', () => {
         (status) => status === AgentStatus.IDLE || status === AgentStatus.ERROR
       );
       expect(ready).toBe(true);
-      expect(agent.context.current_status).toBe(AgentStatus.IDLE);
-      expect(agent.is_running).toBe(true);
+      expect(agent.context.currentStatus).toBe(AgentStatus.IDLE);
+      expect(agent.isRunning).toBe(true);
 
       await agent.stop(5);
       const stopped = await waitForStatus(
@@ -136,13 +194,13 @@ describe('Agent runtime integration', () => {
         5000
       );
       expect(stopped).toBe(true);
-      expect(agent.context.current_status).toBe(AgentStatus.SHUTDOWN_COMPLETE);
-      expect(agent.is_running).toBe(false);
+      expect(agent.context.currentStatus).toBe(AgentStatus.SHUTDOWN_COMPLETE);
+      expect(agent.isRunning).toBe(false);
     } finally {
-      if (agent.is_running) {
+      if (agent.isRunning) {
         await agent.stop(2);
       }
-      await config.llm_instance.cleanup();
+      await config.llmInstance.cleanup();
     }
   }, 20000);
 });

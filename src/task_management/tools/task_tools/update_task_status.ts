@@ -6,6 +6,7 @@ import { TaskStatus } from '../../base_task_plan.js';
 import { FileDeliverableSchema } from '../../schemas/deliverable_schema.js';
 import { createFileDeliverable } from '../../deliverable.js';
 import { zodToParameterSchema } from '../../../tools/zod_schema_converter.js';
+import type { TaskToolContext } from './types.js';
 
 export class UpdateTaskStatus extends BaseTool {
   static CATEGORY = ToolCategory.TASK_MANAGEMENT;
@@ -47,18 +48,18 @@ export class UpdateTaskStatus extends BaseTool {
     return schema;
   }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const taskName = kwargs.task_name;
-    const status = kwargs.status;
-    const deliverables = kwargs.deliverables as Array<Record<string, any>> | undefined;
+  protected async _execute(context: TaskToolContext, kwargs: Record<string, unknown> = {}): Promise<string> {
+    const taskName = (kwargs as { task_name?: string }).task_name;
+    const status = (kwargs as { status?: string }).status;
+    const deliverables = (kwargs as { deliverables?: Array<Record<string, unknown>> }).deliverables;
 
     const agentName = context?.config?.name ?? 'Unknown';
-    const teamContext = context?.custom_data?.team_context;
+    const teamContext = context?.customData?.teamContext;
     if (!teamContext) {
       return 'Error: Team context is not available. Cannot access the task plan.';
     }
 
-    const taskPlan = teamContext.state?.task_plan;
+    const taskPlan = teamContext.state?.taskPlan ?? null;
     if (!taskPlan) {
       return 'Error: Task plan has not been initialized for this team.';
     }
@@ -67,7 +68,7 @@ export class UpdateTaskStatus extends BaseTool {
       return 'Error: No tasks are currently loaded on the task plan.';
     }
 
-    const targetTask = taskPlan.tasks.find((task: any) => task.task_name === taskName);
+    const targetTask = taskPlan.tasks.find((task) => task.task_name === taskName);
     if (!targetTask) {
       return `Error: Failed to update status for task '${taskName}'. The task name does not exist on the current plan.`;
     }
@@ -102,7 +103,7 @@ export class UpdateTaskStatus extends BaseTool {
       }
     }
 
-    if (!taskPlan.update_task_status(targetTask.task_id, statusEnum, agentName)) {
+    if (!taskPlan.updateTaskStatus(targetTask.task_id, statusEnum, agentName)) {
       return `Error: Failed to update status for task '${taskName}'. An unexpected error occurred on the task plan.`;
     }
 

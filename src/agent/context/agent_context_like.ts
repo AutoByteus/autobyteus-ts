@@ -1,13 +1,13 @@
 import type { LLMProvider } from '../../llm/providers.js';
 
 export type AgentContextLike = {
-  agent_id: string;
-  auto_execute_tools?: boolean;
+  agentId: string;
+  autoExecuteTools?: boolean;
   config?: {
     name?: string;
     skills?: string[];
   };
-  llm_instance?: {
+  llmInstance?: {
     model?: {
       provider?: LLMProvider;
     };

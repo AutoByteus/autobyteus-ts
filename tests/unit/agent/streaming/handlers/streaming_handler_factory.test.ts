@@ -9,19 +9,19 @@ import { ToolSchemaProvider } from '../../../../../src/tools/usage/providers/too
 const ENV_VAR = 'AUTOBYTEUS_STREAM_PARSER';
 
 const factoryOptions = (overrides?: Partial<{
-  tool_names: string[];
+  toolNames: string[];
   provider?: LLMProvider | null;
-  segment_id_prefix?: string | null;
-  on_segment_event?: any;
-  on_tool_invocation?: any;
-  agent_id?: string | null;
+  segmentIdPrefix?: string | null;
+  onSegmentEvent?: any;
+  onToolInvocation?: any;
+  agentId?: string | null;
 }>) => ({
-  tool_names: ['test_tool'],
+  toolNames: ['test_tool'],
   provider: LLMProvider.OPENAI,
-  segment_id_prefix: 'test:',
-  on_segment_event: null,
-  on_tool_invocation: null,
-  agent_id: 'agent_test',
+  segmentIdPrefix: 'test:',
+  onSegmentEvent: null,
+  onToolInvocation: null,
+  agentId: 'agent_test',
   ...overrides
 });
 
@@ -50,13 +50,13 @@ describe('StreamingHandlerResult', () => {
 
 describe('No tools mode', () => {
   it('uses pass-through when no tools', () => {
-    const result = StreamingResponseHandlerFactory.create(factoryOptions({ tool_names: [] }));
+    const result = StreamingResponseHandlerFactory.create(factoryOptions({ toolNames: [] }));
     expect(result.handler).toBeInstanceOf(PassThroughStreamingResponseHandler);
-    expect(result.tool_schemas).toBeNull();
+    expect(result.toolSchemas).toBeNull();
   });
 
   it('uses pass-through for empty tool list', () => {
-    const result = StreamingResponseHandlerFactory.create(factoryOptions({ tool_names: [] }));
+    const result = StreamingResponseHandlerFactory.create(factoryOptions({ toolNames: [] }));
     expect(result.handler).toBeInstanceOf(PassThroughStreamingResponseHandler);
   });
 });
@@ -74,15 +74,15 @@ describe('API tool call mode', () => {
     const spy = vi.spyOn(ToolSchemaProvider.prototype, 'buildSchema').mockReturnValue(mockSchemas);
 
     const result = StreamingResponseHandlerFactory.create(factoryOptions());
-    expect(result.tool_schemas).toEqual(mockSchemas);
+    expect(result.toolSchemas).toEqual(mockSchemas);
     expect(spy).toHaveBeenCalledOnce();
   });
 
   it('API mode without tools uses pass-through', () => {
     process.env[ENV_VAR] = 'api_tool_call';
-    const result = StreamingResponseHandlerFactory.create(factoryOptions({ tool_names: [] }));
+    const result = StreamingResponseHandlerFactory.create(factoryOptions({ toolNames: [] }));
     expect(result.handler).toBeInstanceOf(PassThroughStreamingResponseHandler);
-    expect(result.tool_schemas).toBeNull();
+    expect(result.toolSchemas).toBeNull();
   });
 });
 
@@ -91,47 +91,47 @@ describe('Text parsing modes', () => {
     process.env[ENV_VAR] = 'xml';
     const result = StreamingResponseHandlerFactory.create(factoryOptions());
     expect(result.handler).toBeInstanceOf(ParsingStreamingResponseHandler);
-    expect((result.handler as ParsingStreamingResponseHandler).parser_name).toBe('xml');
-    expect(result.tool_schemas).toBeNull();
+    expect((result.handler as ParsingStreamingResponseHandler).parserName).toBe('xml');
+    expect(result.toolSchemas).toBeNull();
   });
 
   it('json mode uses parsing handler', () => {
     process.env[ENV_VAR] = 'json';
     const result = StreamingResponseHandlerFactory.create(factoryOptions());
     expect(result.handler).toBeInstanceOf(ParsingStreamingResponseHandler);
-    expect((result.handler as ParsingStreamingResponseHandler).parser_name).toBe('json');
-    expect(result.tool_schemas).toBeNull();
+    expect((result.handler as ParsingStreamingResponseHandler).parserName).toBe('json');
+    expect(result.toolSchemas).toBeNull();
   });
 
   it('sentinel mode uses parsing handler', () => {
     process.env[ENV_VAR] = 'sentinel';
     const result = StreamingResponseHandlerFactory.create(factoryOptions());
     expect(result.handler).toBeInstanceOf(ParsingStreamingResponseHandler);
-    expect((result.handler as ParsingStreamingResponseHandler).parser_name).toBe('sentinel');
-    expect(result.tool_schemas).toBeNull();
+    expect((result.handler as ParsingStreamingResponseHandler).parserName).toBe('sentinel');
+    expect(result.toolSchemas).toBeNull();
   });
 });
 
 describe('Provider defaults', () => {
   it('Anthropic defaults to xml', () => {
-    const parserName = StreamingResponseHandlerFactory.resolve_parser_name({
-      format_override: null,
+    const parserName = StreamingResponseHandlerFactory.resolveParserName({
+      formatOverride: null,
       provider: LLMProvider.ANTHROPIC
     });
     expect(parserName).toBe('xml');
   });
 
   it('OpenAI defaults to json', () => {
-    const parserName = StreamingResponseHandlerFactory.resolve_parser_name({
-      format_override: null,
+    const parserName = StreamingResponseHandlerFactory.resolveParserName({
+      formatOverride: null,
       provider: LLMProvider.OPENAI
     });
     expect(parserName).toBe('json');
   });
 
   it('Gemini defaults to json', () => {
-    const parserName = StreamingResponseHandlerFactory.resolve_parser_name({
-      format_override: null,
+    const parserName = StreamingResponseHandlerFactory.resolveParserName({
+      formatOverride: null,
       provider: LLMProvider.GEMINI
     });
     expect(parserName).toBe('json');
@@ -143,7 +143,7 @@ describe('Format override', () => {
     process.env[ENV_VAR] = 'xml';
     const result = StreamingResponseHandlerFactory.create(factoryOptions({ provider: LLMProvider.OPENAI }));
     expect(result.handler).toBeInstanceOf(ParsingStreamingResponseHandler);
-    expect((result.handler as ParsingStreamingResponseHandler).parser_name).toBe('xml');
+    expect((result.handler as ParsingStreamingResponseHandler).parserName).toBe('xml');
   });
 
   it('api_tool_call override for Anthropic', () => {

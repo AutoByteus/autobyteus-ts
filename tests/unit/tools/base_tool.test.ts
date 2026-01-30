@@ -3,10 +3,10 @@ import { BaseTool } from '../../../src/tools/base_tool.js';
 import { ParameterSchema, ParameterDefinition, ParameterType } from '../../../src/utils/parameter_schema.js';
 
 class RecordingTool extends BaseTool {
-  public lastArgs: Record<string, any> | null = null;
-  protected _execute(_context: any, kwargs: Record<string, any>): Promise<any> {
-    this.lastArgs = kwargs;
-    return Promise.resolve(kwargs);
+  public lastArgs: Record<string, unknown> | null = null;
+  protected _execute(_context: unknown, args: Record<string, unknown>): Promise<Record<string, unknown>> {
+    this.lastArgs = args;
+    return Promise.resolve(args);
   }
   static getDescription() { return 'Recording tool'; }
   static getArgumentSchema() { return RecordingTool.schema; }

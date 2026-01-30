@@ -16,18 +16,18 @@ describe('Agent team events', () => {
       'task_assignment'
     );
 
-    expect(event.sender_agent_id).toBe('sender_agent_id');
-    expect(event.recipient_name).toBe('RecipientAgent');
+    expect(event.senderAgentId).toBe('sender_agent_id');
+    expect(event.recipientName).toBe('RecipientAgent');
     expect(event.content).toBe('hello');
-    expect(event.message_type).toBe('task_assignment');
+    expect(event.messageType).toBe('task_assignment');
     expect(event).toBeInstanceOf(OperationalAgentTeamEvent);
     expect(event).toBeInstanceOf(BaseAgentTeamEvent);
   });
 
   it('constructs AgentTeamErrorEvent with optional details', () => {
     const event = new AgentTeamErrorEvent('boom', 'stack');
-    expect(event.error_message).toBe('boom');
-    expect(event.exception_details).toBe('stack');
+    expect(event.errorMessage).toBe('boom');
+    expect(event.exceptionDetails).toBe('stack');
     expect(event).toBeInstanceOf(LifecycleAgentTeamEvent);
     expect(event).toBeInstanceOf(BaseAgentTeamEvent);
   });

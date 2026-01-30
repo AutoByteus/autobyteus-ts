@@ -7,15 +7,11 @@ import { AgentFactory } from '../../../src/agent/factory/agent_factory.js';
 import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { AgentStatus } from '../../../src/agent/status/status_enum.js';
 import { AgentInputUserMessage } from '../../../src/agent/message/agent_input_user_message.js';
-import { OpenAILLM } from '../../../src/llm/api/openai_llm.js';
-import { LLMModel } from '../../../src/llm/models.js';
-import { LLMProvider } from '../../../src/llm/providers.js';
-import type { ChunkResponse } from '../../../src/llm/utils/response_types.js';
-import type { LLMUserMessage } from '../../../src/llm/user_message.js';
 import { registerWriteFileTool } from '../../../src/tools/file/write_file.js';
 import { BaseAgentWorkspace } from '../../../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../../../src/agent/workspace/workspace_config.js';
 import { SkillRegistry } from '../../../src/skills/registry.js';
+import { createLmstudioLLM, hasLmstudioConfig } from '../helpers/lmstudio_llm_helper.js';
 
 class SimpleWorkspace extends BaseAgentWorkspace {
   private rootPath: string;
@@ -25,23 +21,8 @@ class SimpleWorkspace extends BaseAgentWorkspace {
     this.rootPath = rootPath;
   }
 
-  get_base_path(): string {
-    return this.rootPath;
-  }
-
-  // Tool compatibility: some tools expect camelCase.
   getBasePath(): string {
     return this.rootPath;
-  }
-}
-
-class RequiredToolOpenAILLM extends OpenAILLM {
-  async *streamUserMessage(
-    userMessage: LLMUserMessage,
-    kwargs: Record<string, any> = {}
-  ): AsyncGenerator<ChunkResponse, void, unknown> {
-    const nextKwargs = { ...kwargs, tool_choice: 'required' };
-    yield* super.streamUserMessage(userMessage, nextKwargs);
   }
 }
 
@@ -80,10 +61,9 @@ const resetFactory = () => {
   (AgentFactory as any).instance = undefined;
 };
 
-const apiKey = process.env.OPENAI_API_KEY;
-const runIntegration = apiKey ? describe : describe.skip;
+const runIntegration = hasLmstudioConfig() ? describe : describe.skip;
 
-runIntegration('Agent dual-flow integration (OpenAI, api_tool_call)', () => {
+runIntegration('Agent dual-flow integration (LM Studio, api_tool_call)', () => {
   let tempDirA: string;
   let tempDirB: string;
   let originalParserEnv: string | undefined;
@@ -114,15 +94,13 @@ runIntegration('Agent dual-flow integration (OpenAI, api_tool_call)', () => {
     const toolArgsA = { path: 'alpha.txt', content: 'Alpha agent output.' };
     const toolArgsB = { path: 'beta.txt', content: 'Beta agent output.' };
 
-    const model = new LLMModel({
-      name: 'gpt-5.2',
-      value: 'gpt-5.2',
-      canonical_name: 'gpt-5.2',
-      provider: LLMProvider.OPENAI
-    });
-
-    const llmA = new RequiredToolOpenAILLM(model);
-    const llmB = new RequiredToolOpenAILLM(model);
+    const llmA = await createLmstudioLLM({ requireToolChoice: true });
+    if (!llmA) return;
+    const llmB = await createLmstudioLLM({ requireToolChoice: true });
+    if (!llmB) {
+      await llmA.cleanup();
+      return;
+    }
 
     const configA = new AgentConfig(
       'DualAgentA',
@@ -157,28 +135,28 @@ runIntegration('Agent dual-flow integration (OpenAI, api_tool_call)', () => {
     );
 
     const factory = new AgentFactory();
-    const agentA = factory.create_agent(configA);
-    const agentB = factory.create_agent(configB);
+    const agentA = factory.createAgent(configA);
+    const agentB = factory.createAgent(configB);
 
     try {
       agentA.start();
       agentB.start();
 
       const [readyA, readyB] = await Promise.all([
-        waitForStatus(agentA.agent_id, () => agentA.context.current_status),
-        waitForStatus(agentB.agent_id, () => agentB.context.current_status)
+        waitForStatus(agentA.agentId, () => agentA.context.currentStatus),
+        waitForStatus(agentB.agentId, () => agentB.context.currentStatus)
       ]);
       expect(readyA).toBe(true);
       expect(readyB).toBe(true);
 
       await Promise.all([
-        agentA.post_user_message(
+        agentA.postUserMessage(
           new AgentInputUserMessage(
             `Use the write_file tool to write "${toolArgsA.content}" to "${toolArgsA.path}". ` +
               `Do not respond with plain text.`
           )
         ),
-        agentB.post_user_message(
+        agentB.postUserMessage(
           new AgentInputUserMessage(
             `Use the write_file tool to write "${toolArgsB.content}" to "${toolArgsB.path}". ` +
               `Do not respond with plain text.`
@@ -204,10 +182,10 @@ runIntegration('Agent dual-flow integration (OpenAI, api_tool_call)', () => {
       expect(contentA.trim()).toBe(toolArgsA.content);
       expect(contentB.trim()).toBe(toolArgsB.content);
     } finally {
-      if (agentA.is_running) {
+      if (agentA.isRunning) {
         await agentA.stop(5);
       }
-      if (agentB.is_running) {
+      if (agentB.isRunning) {
         await agentB.stop(5);
       }
       await llmA.cleanup();

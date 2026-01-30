@@ -13,8 +13,8 @@ export abstract class BaseAudioClient {
 
   abstract generateSpeech(
     prompt: string,
-    generationConfig?: Record<string, any>,
-    ...args: any[]
+    generationConfig?: Record<string, unknown>,
+    ...args: unknown[]
   ): Promise<SpeechGenerationResponse>;
 
   async cleanup(): Promise<void> {

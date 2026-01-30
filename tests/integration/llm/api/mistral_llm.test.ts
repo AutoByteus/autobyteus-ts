@@ -15,7 +15,7 @@ const buildModel = () =>
   new LLMModel({
     name: 'devstral-2',
     value: 'devstral-2512',
-    canonical_name: 'devstral-2',
+    canonicalName: 'devstral-2',
     provider: LLMProvider.MISTRAL
   });
 
@@ -23,7 +23,7 @@ const buildVisionModel = () =>
   new LLMModel({
     name: 'mistral-large',
     value: 'mistral-large-latest',
-    canonical_name: 'mistral-large',
+    canonicalName: 'mistral-large',
     provider: LLMProvider.MISTRAL
   });
 

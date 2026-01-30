@@ -22,7 +22,7 @@ export class EventEmitter {
     return baseId;
   }
 
-  emit_segment_start(segmentType: SegmentType, metadata: Record<string, any> = {}): string {
+  emitSegmentStart(segmentType: SegmentType, metadata: Record<string, any> = {}): string {
     const segmentId = this.generateSegmentId();
     this.currentSegmentId = segmentId;
     this.currentSegmentType = segmentType;
@@ -34,7 +34,7 @@ export class EventEmitter {
     return segmentId;
   }
 
-  emit_segment_content(delta: any): void {
+  emitSegmentContent(delta: any): void {
     if (!this.currentSegmentId) {
       throw new Error('Cannot emit content without an active segment.');
     }
@@ -47,7 +47,7 @@ export class EventEmitter {
     this.eventQueue.push(event);
   }
 
-  emit_segment_end(): string | undefined {
+  emitSegmentEnd(): string | undefined {
     if (!this.currentSegmentId) {
       return undefined;
     }
@@ -69,37 +69,37 @@ export class EventEmitter {
     return segmentId;
   }
 
-  get_current_segment_id(): string | undefined {
+  getCurrentSegmentId(): string | undefined {
     return this.currentSegmentId;
   }
 
-  get_current_segment_type(): SegmentType | undefined {
+  getCurrentSegmentType(): SegmentType | undefined {
     return this.currentSegmentType;
   }
 
-  get_current_segment_content(): string {
+  getCurrentSegmentContent(): string {
     return this.currentSegmentContent;
   }
 
-  get_current_segment_metadata(): Record<string, any> {
+  getCurrentSegmentMetadata(): Record<string, any> {
     return { ...this.currentSegmentMetadata };
   }
 
-  update_current_segment_metadata(metadata: Record<string, any>): void {
+  updateCurrentSegmentMetadata(metadata: Record<string, any>): void {
     this.currentSegmentMetadata = { ...this.currentSegmentMetadata, ...metadata };
   }
 
-  get_and_clear_events(): SegmentEvent[] {
+  getAndClearEvents(): SegmentEvent[] {
     const events = [...this.eventQueue];
     this.eventQueue = [];
     return events;
   }
 
-  get_events(): SegmentEvent[] {
+  getEvents(): SegmentEvent[] {
     return [...this.eventQueue];
   }
 
-  append_text_segment(text: string): void {
+  appendTextSegment(text: string): void {
     if (!text) {
       return;
     }
@@ -107,13 +107,13 @@ export class EventEmitter {
     if (this.currentSegmentType !== SegmentType.TEXT) {
       if (this.currentSegmentId) {
         console.warn(
-          `append_text_segment called while non-text segment is active (${this.currentSegmentType}); ending it before starting a text segment.`
+          `appendTextSegment called while non-text segment is active (${this.currentSegmentType}); ending it before starting a text segment.`
         );
-        this.emit_segment_end();
+        this.emitSegmentEnd();
       }
-      this.emit_segment_start(SegmentType.TEXT);
+      this.emitSegmentStart(SegmentType.TEXT);
     }
 
-    this.emit_segment_content(text);
+    this.emitSegmentContent(text);
   }
 }

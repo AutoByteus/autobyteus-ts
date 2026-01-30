@@ -11,34 +11,39 @@ export class BaseSystemPromptProcessor {
     }
   }
 
-  static get_name(): string {
+  static getName(): string {
     return this.name;
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 500;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return false;
   }
 
-  get_name(): string {
+  getName(): string {
     const ctor = this.constructor as typeof BaseSystemPromptProcessor;
-    return ctor.get_name();
+    return ctor.getName();
   }
 
-  get_order(): number {
+  getOrder(): number {
     const ctor = this.constructor as typeof BaseSystemPromptProcessor;
-    return ctor.get_order();
+    return ctor.getOrder();
   }
 
-  is_mandatory(): boolean {
+  isMandatory(): boolean {
     const ctor = this.constructor as typeof BaseSystemPromptProcessor;
-    return ctor.is_mandatory();
+    return ctor.isMandatory();
   }
 
-  process(_system_prompt: string, _tool_instances: Record<string, BaseTool>, _agent_id: string, _context: AgentContextLike): string {
+  process(
+    _systemPrompt: string,
+    _toolInstances: Record<string, BaseTool>,
+    _agentId: string,
+    _context: AgentContextLike
+  ): string {
     throw new Error("Subclasses must implement the 'process' method.");
   }
 

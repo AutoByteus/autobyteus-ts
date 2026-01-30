@@ -1,17 +1,17 @@
 import { describe, it, expect } from 'vitest';
 import {
   ArtifactPersistedData,
-  create_artifact_persisted_data,
+  createArtifactPersistedData,
   ArtifactUpdatedData,
-  create_artifact_updated_data,
+  createArtifactUpdatedData,
   AssistantChunkData,
-  create_assistant_chunk_data,
+  createAssistantChunkData,
   ToDoListUpdateData,
-  create_todo_list_update_data,
+  createTodoListUpdateData,
   AgentStatusUpdateData,
-  create_agent_status_update_data,
+  createAgentStatusUpdateData,
   ErrorEventData,
-  create_error_event_data
+  createErrorEventData
 } from '../../../../../src/agent/streaming/events/stream_event_payloads.js';
 import { AgentStatus } from '../../../../../src/agent/status/status_enum.js';
 
@@ -50,7 +50,7 @@ describe('ArtifactPersistedData', () => {
       agent_id: 'agent_001',
       type: 'file'
     };
-    const payload = create_artifact_persisted_data(data);
+    const payload = createArtifactPersistedData(data);
     expect(payload).toBeInstanceOf(ArtifactPersistedData);
     expect(payload.path).toBe('/tmp/file.txt');
   });
@@ -84,7 +84,7 @@ describe('ArtifactUpdatedData', () => {
       agent_id: 'agent_001',
       type: 'file'
     };
-    const payload = create_artifact_updated_data(data);
+    const payload = createArtifactUpdatedData(data);
     expect(payload).toBeInstanceOf(ArtifactUpdatedData);
     expect(payload.path).toBe('/tmp/file.txt');
   });
@@ -92,14 +92,14 @@ describe('ArtifactUpdatedData', () => {
 
 describe('Stream payload factories', () => {
   it('creates AssistantChunkData from dict', () => {
-    const payload = create_assistant_chunk_data({ content: 'Hello', is_complete: false });
+    const payload = createAssistantChunkData({ content: 'Hello', is_complete: false });
     expect(payload).toBeInstanceOf(AssistantChunkData);
     expect(payload.content).toBe('Hello');
     expect(payload.is_complete).toBe(false);
   });
 
   it('creates ToDoListUpdateData with nested list', () => {
-    const payload = create_todo_list_update_data({
+    const payload = createTodoListUpdateData({
       todos: [
         { description: 'Task 1', todo_id: '1', status: 'pending' },
         { description: 'Task 2', todo_id: '2', status: 'done' }
@@ -111,17 +111,17 @@ describe('Stream payload factories', () => {
   });
 
   it('throws when todos is not a list', () => {
-    expect(() => create_todo_list_update_data({ todos: 'not a list' })).toThrow(/Expected 'todos' to be a list/);
+    expect(() => createTodoListUpdateData({ todos: 'not a list' })).toThrow(/Expected 'todos' to be a list/);
   });
 
   it('creates AgentStatusUpdateData', () => {
-    const payload = create_agent_status_update_data({ new_status: AgentStatus.IDLE });
+    const payload = createAgentStatusUpdateData({ new_status: AgentStatus.IDLE });
     expect(payload).toBeInstanceOf(AgentStatusUpdateData);
     expect(payload.new_status).toBe(AgentStatus.IDLE);
   });
 
   it('creates ErrorEventData', () => {
-    const payload = create_error_event_data({ source: 'test', message: 'error msg' });
+    const payload = createErrorEventData({ source: 'test', message: 'error msg' });
     expect(payload).toBeInstanceOf(ErrorEventData);
     expect(payload.source).toBe('test');
     expect(payload.message).toBe('error msg');

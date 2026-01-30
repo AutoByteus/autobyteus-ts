@@ -5,14 +5,14 @@
  * Since we want explicit control, a base class handling the instance is simpler.
  */
 export class Singleton {
-  private static instance: any;
+  protected static instance?: Singleton;
 
   constructor() {}
 
   public static getInstance<T extends typeof Singleton>(this: T): InstanceType<T> {
-    if (!(this as any).instance) {
-      (this as any).instance = new (this as any)();
+    if (!this.instance) {
+      this.instance = new this();
     }
-    return (this as any).instance;
+    return this.instance as InstanceType<T>;
   }
 }

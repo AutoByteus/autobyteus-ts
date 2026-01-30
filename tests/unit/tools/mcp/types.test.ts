@@ -19,8 +19,8 @@ describe('McpTransportType', () => {
 describe('McpServerInstanceKey', () => {
   it('stores agent and server identifiers', () => {
     const key = new McpServerInstanceKey('agent-1', 'server-1');
-    expect(key.agent_id).toBe('agent-1');
-    expect(key.server_id).toBe('server-1');
+    expect(key.agentId).toBe('agent-1');
+    expect(key.serverId).toBe('server-1');
     expect(key.toKey()).toBe('agent-1:server-1');
   });
 });

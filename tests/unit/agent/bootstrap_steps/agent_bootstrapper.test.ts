@@ -30,10 +30,10 @@ describe('AgentBootstrapper', () => {
 
   it('initializes with default steps', () => {
     const bootstrapper = new AgentBootstrapper();
-    expect(bootstrapper.bootstrap_steps).toHaveLength(3);
-    expect(bootstrapper.bootstrap_steps[0]).toBeInstanceOf(WorkspaceContextInitializationStep);
-    expect(bootstrapper.bootstrap_steps[1]).toBeInstanceOf(McpServerPrewarmingStep);
-    expect(bootstrapper.bootstrap_steps[2]).toBeInstanceOf(SystemPromptProcessingStep);
+    expect(bootstrapper.bootstrapSteps).toHaveLength(3);
+    expect(bootstrapper.bootstrapSteps[0]).toBeInstanceOf(WorkspaceContextInitializationStep);
+    expect(bootstrapper.bootstrapSteps[1]).toBeInstanceOf(McpServerPrewarmingStep);
+    expect(bootstrapper.bootstrapSteps[2]).toBeInstanceOf(SystemPromptProcessingStep);
     expect(
       debugSpy.mock.calls.some(([msg]: [unknown]) =>
         String(msg).includes('AgentBootstrapper initialized with default steps.')
@@ -44,7 +44,7 @@ describe('AgentBootstrapper', () => {
   it('initializes with custom steps', () => {
     const customSteps = [new MockStep1(), new MockStep2()];
     const bootstrapper = new AgentBootstrapper(customSteps);
-    expect(bootstrapper.bootstrap_steps).toBe(customSteps);
-    expect(bootstrapper.bootstrap_steps).toHaveLength(2);
+    expect(bootstrapper.bootstrapSteps).toBe(customSteps);
+    expect(bootstrapper.bootstrapSteps).toHaveLength(2);
   });
 });

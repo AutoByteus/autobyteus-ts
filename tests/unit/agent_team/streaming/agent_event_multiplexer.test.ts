@@ -23,7 +23,7 @@ import { TeamEventBridge } from '../../../../src/agent_team/streaming/team_event
 const makeMultiplexer = () => {
   const notifier = {} as any;
   const loop = { loop: true };
-  const worker = { get_worker_loop: vi.fn(() => loop) } as any;
+  const worker = { getWorkerLoop: vi.fn(() => loop) } as any;
   const multiplexer = new AgentEventMultiplexer('team-mux-test', notifier, worker);
   return { multiplexer, notifier, worker, loop };
 };
@@ -31,41 +31,41 @@ const makeMultiplexer = () => {
 describe('AgentEventMultiplexer', () => {
   it('creates and stores agent event bridge', () => {
     const { multiplexer, notifier, loop } = makeMultiplexer();
-    const mock_agent = {} as any;
-    const agent_name = 'Agent1';
+    const mockAgent = {} as any;
+    const agentName = 'Agent1';
 
-    multiplexer.start_bridging_agent_events(mock_agent, agent_name);
+    multiplexer.startBridgingAgentEvents(mockAgent, agentName);
 
-    expect(AgentEventBridge).toHaveBeenCalledWith(mock_agent, agent_name, notifier, loop);
-    const bridges = (multiplexer as any).agent_bridges as Map<string, any>;
-    expect(bridges.has(agent_name)).toBe(true);
+    expect(AgentEventBridge).toHaveBeenCalledWith(mockAgent, agentName, notifier, loop);
+    const bridges = (multiplexer as any).agentBridges as Map<string, any>;
+    expect(bridges.has(agentName)).toBe(true);
   });
 
   it('creates and stores team event bridge', () => {
     const { multiplexer, notifier, loop } = makeMultiplexer();
-    const mock_team = {} as any;
-    const node_name = 'SubTeam1';
+    const mockTeam = {} as any;
+    const nodeName = 'SubTeam1';
 
-    multiplexer.start_bridging_team_events(mock_team, node_name);
+    multiplexer.startBridgingTeamEvents(mockTeam, nodeName);
 
-    expect(TeamEventBridge).toHaveBeenCalledWith(mock_team, node_name, notifier, loop);
-    const bridges = (multiplexer as any).team_bridges as Map<string, any>;
-    expect(bridges.has(node_name)).toBe(true);
+    expect(TeamEventBridge).toHaveBeenCalledWith(mockTeam, nodeName, notifier, loop);
+    const bridges = (multiplexer as any).teamBridges as Map<string, any>;
+    expect(bridges.has(nodeName)).toBe(true);
   });
 
   it('shutdown cancels all bridges', async () => {
     const { multiplexer } = makeMultiplexer();
-    const agent_bridge = { cancel: vi.fn(async () => undefined) };
-    const team_bridge = { cancel: vi.fn(async () => undefined) };
+    const agentBridge = { cancel: vi.fn(async () => undefined) };
+    const teamBridge = { cancel: vi.fn(async () => undefined) };
 
-    (multiplexer as any).agent_bridges = new Map([['Agent1', agent_bridge]]);
-    (multiplexer as any).team_bridges = new Map([['SubTeam1', team_bridge]]);
+    (multiplexer as any).agentBridges = new Map([['Agent1', agentBridge]]);
+    (multiplexer as any).teamBridges = new Map([['SubTeam1', teamBridge]]);
 
     await multiplexer.shutdown();
 
-    expect(agent_bridge.cancel).toHaveBeenCalledTimes(1);
-    expect(team_bridge.cancel).toHaveBeenCalledTimes(1);
-    expect((multiplexer as any).agent_bridges.size).toBe(0);
-    expect((multiplexer as any).team_bridges.size).toBe(0);
+    expect(agentBridge.cancel).toHaveBeenCalledTimes(1);
+    expect(teamBridge.cancel).toHaveBeenCalledTimes(1);
+    expect((multiplexer as any).agentBridges.size).toBe(0);
+    expect((multiplexer as any).teamBridges.size).toBe(0);
   });
 });

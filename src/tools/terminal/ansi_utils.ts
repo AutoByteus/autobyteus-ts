@@ -1,6 +1,6 @@
 const ANSI_ESCAPE_PATTERN = /\x1b\[[0-9;?]*[a-zA-Z]|\x1b\][^\x07]*\x07|\x1b[=>]/g;
 
-export function strip_ansi_codes(text: string): string {
+export function stripAnsiCodes(text: string): string {
   if (!text) {
     return text;
   }

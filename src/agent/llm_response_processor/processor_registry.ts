@@ -1,21 +1,27 @@
 import { Singleton } from '../../utils/singleton.js';
 import { ProcessorOption } from '../processor_option.js';
 import { LLMResponseProcessorDefinition } from './processor_definition.js';
+import { BaseLLMResponseProcessor } from './base_processor.js';
+
+type ProcessorClass = (new () => BaseLLMResponseProcessor) & {
+  getOrder?: () => number;
+  isMandatory?: () => boolean;
+};
 
 export class LLMResponseProcessorRegistry extends Singleton {
+  protected static instance?: LLMResponseProcessorRegistry;
+
   private definitions: Map<string, LLMResponseProcessorDefinition> = new Map();
 
   constructor() {
     super();
-    const existing = (LLMResponseProcessorRegistry as any)
-      .instance as LLMResponseProcessorRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (LLMResponseProcessorRegistry.instance) {
+      return LLMResponseProcessorRegistry.instance;
     }
-    (LLMResponseProcessorRegistry as any).instance = this;
+    LLMResponseProcessorRegistry.instance = this;
   }
 
-  register_processor(definition: LLMResponseProcessorDefinition): void {
+  registerProcessor(definition: LLMResponseProcessorDefinition): void {
     if (!(definition instanceof LLMResponseProcessorDefinition)) {
       throw new TypeError(
         `Expected LLMResponseProcessorDefinition instance, got ${typeof definition}.`
@@ -29,11 +35,11 @@ export class LLMResponseProcessorRegistry extends Singleton {
 
     this.definitions.set(name, definition);
     console.info(
-      `LLM response processor definition '${name}' (class: '${definition.processor_class.name}') registered successfully.`
+      `LLM response processor definition '${name}' (class: '${definition.processorClass.name}') registered successfully.`
     );
   }
 
-  get_processor_definition(name: string): LLMResponseProcessorDefinition | undefined {
+  getProcessorDefinition(name: string): LLMResponseProcessorDefinition | undefined {
     if (typeof name !== 'string') {
       console.warn(`Attempted to retrieve LLM response processor definition with non-string name: ${typeof name}.`);
       return undefined;
@@ -46,52 +52,45 @@ export class LLMResponseProcessorRegistry extends Singleton {
     return definition;
   }
 
-  get_processor(name: string): any | undefined {
-    const definition = this.get_processor_definition(name);
+  getProcessor(name: string): BaseLLMResponseProcessor | undefined {
+    const definition = this.getProcessorDefinition(name);
     if (!definition) {
       return undefined;
     }
 
     try {
-      return new definition.processor_class();
+      return new definition.processorClass();
     } catch (error) {
       console.error(
-        `Failed to instantiate LLM response processor '${name}' from class '${definition.processor_class.name}': ${error}`
+        `Failed to instantiate LLM response processor '${name}' from class '${definition.processorClass.name}': ${error}`
       );
       return undefined;
     }
   }
 
-  list_processor_names(): string[] {
+  listProcessorNames(): string[] {
     return Array.from(this.definitions.keys());
   }
 
-  get_ordered_processor_options(): ProcessorOption[] {
+  getOrderedProcessorOptions(): ProcessorOption[] {
     const definitions = Array.from(this.definitions.values());
     const sortedDefinitions = definitions.sort((a, b) => {
-      const orderA =
-        typeof (a.processor_class as any).get_order === 'function'
-          ? (a.processor_class as any).get_order()
-          : 500;
-      const orderB =
-        typeof (b.processor_class as any).get_order === 'function'
-          ? (b.processor_class as any).get_order()
-          : 500;
+      const processorA = a.processorClass as ProcessorClass;
+      const processorB = b.processorClass as ProcessorClass;
+      const orderA = typeof processorA.getOrder === 'function' ? processorA.getOrder() : 500;
+      const orderB = typeof processorB.getOrder === 'function' ? processorB.getOrder() : 500;
       return orderA - orderB;
     });
 
-    return sortedDefinitions.map(
-      (definition) =>
-        new ProcessorOption(
-          definition.name,
-          typeof (definition.processor_class as any).is_mandatory === 'function'
-            ? (definition.processor_class as any).is_mandatory()
-            : false
-        )
-    );
+    return sortedDefinitions.map((definition) => {
+      const processorClass = definition.processorClass as ProcessorClass;
+      const isMandatory =
+        typeof processorClass.isMandatory === 'function' ? processorClass.isMandatory() : false;
+      return new ProcessorOption(definition.name, isMandatory);
+    });
   }
 
-  get_all_definitions(): Record<string, LLMResponseProcessorDefinition> {
+  getAllDefinitions(): Record<string, LLMResponseProcessorDefinition> {
     return Object.fromEntries(this.definitions.entries());
   }
 

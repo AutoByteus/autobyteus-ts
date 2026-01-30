@@ -23,7 +23,7 @@ const makeLLM = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   return new DummyLLM(model, new LLMConfig());
@@ -48,16 +48,16 @@ describe('AgentConfig', () => {
     process.env.AUTOBYTEUS_STREAM_PARSER = 'xml';
     const config = new AgentConfig('name', 'role', 'desc', makeLLM());
 
-    expect(config.system_prompt_processors.some((p) => p instanceof ToolManifestInjectorProcessor)).toBe(true);
-    expect(config.system_prompt_processors.some((p) => p instanceof AvailableSkillsProcessor)).toBe(true);
+    expect(config.systemPromptProcessors.some((p) => p instanceof ToolManifestInjectorProcessor)).toBe(true);
+    expect(config.systemPromptProcessors.some((p) => p instanceof AvailableSkillsProcessor)).toBe(true);
   });
 
   it('filters tool manifest injector in api_tool_call format', () => {
     process.env.AUTOBYTEUS_STREAM_PARSER = 'api_tool_call';
     const config = new AgentConfig('name', 'role', 'desc', makeLLM());
 
-    expect(config.system_prompt_processors.some((p) => p instanceof ToolManifestInjectorProcessor)).toBe(false);
-    expect(config.system_prompt_processors.some((p) => p instanceof AvailableSkillsProcessor)).toBe(true);
+    expect(config.systemPromptProcessors.some((p) => p instanceof ToolManifestInjectorProcessor)).toBe(false);
+    expect(config.systemPromptProcessors.some((p) => p instanceof AvailableSkillsProcessor)).toBe(true);
   });
 
   it('copy creates a new config with cloned lists and data', () => {
@@ -68,12 +68,12 @@ describe('AgentConfig', () => {
     const clone = config.copy();
 
     expect(clone).not.toBe(config);
-    expect(clone.llm_instance).toBe(llm);
+    expect(clone.llmInstance).toBe(llm);
     expect(clone.tools).not.toBe(config.tools);
     expect(clone.tools).toEqual(config.tools);
 
-    (clone.initial_custom_data as any).nested.value = 2;
-    expect((config.initial_custom_data as any).nested.value).toBe(1);
+    (clone.initialCustomData as any).nested.value = 2;
+    expect((config.initialCustomData as any).nested.value).toBe(1);
 
     clone.skills.push('skill-b');
     expect(config.skills).toEqual(['skill-a']);

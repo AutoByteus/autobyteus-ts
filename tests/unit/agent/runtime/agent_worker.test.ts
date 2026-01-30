@@ -31,7 +31,7 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -39,8 +39,8 @@ const makeContext = () => {
   const state = new AgentRuntimeState('agent-1');
   const context = new AgentContext('agent-1', config, state);
 
-  context.state.status_manager_ref = { emit_status_update: vi.fn(async () => undefined) } as any;
-  context.state.status_deriver = new AgentStatusDeriver(AgentStatus.BOOTSTRAPPING);
+  context.state.statusManagerRef = { emit_status_update: vi.fn(async () => undefined) } as any;
+  context.state.statusDeriver = new AgentStatusDeriver(AgentStatus.BOOTSTRAPPING);
   return context;
 };
 
@@ -54,129 +54,129 @@ describe('AgentWorker', () => {
 
   it('initializes with context and dispatcher', () => {
     const context = makeContext();
-    const worker = new AgentWorker(context, { get_handler: vi.fn() } as any);
+    const worker = new AgentWorker(context, { getHandler: vi.fn() } as any);
 
     expect(worker.context).toBe(context);
-    expect(worker.is_alive()).toBe(false);
-    expect(worker.status_manager).toBe(context.status_manager);
+    expect(worker.isAlive()).toBe(false);
+    expect(worker.statusManager).toBe(context.statusManager);
   });
 
-  it('start/stop lifecycle toggles is_alive', async () => {
+  it('start/stop lifecycle toggles isAlive', async () => {
     const context = makeContext();
-    context.state.input_event_queues = new AgentInputEventQueueManager();
-    const worker = new AgentWorker(context, { get_handler: vi.fn() } as any);
+    context.state.inputEventQueues = new AgentInputEventQueueManager();
+    const worker = new AgentWorker(context, { getHandler: vi.fn() } as any);
 
-    vi.spyOn(worker as any, '_initialize').mockResolvedValue(true as any);
+    vi.spyOn(worker as any, 'initialize').mockResolvedValue(true as any);
 
     worker.start();
     await new Promise((r) => setTimeout(r, 10));
-    expect(worker.is_alive()).toBe(true);
+    expect(worker.isAlive()).toBe(true);
 
     await worker.stop(0.5);
-    expect(worker.is_alive()).toBe(false);
+    expect(worker.isAlive()).toBe(false);
   });
 
   it('initialize succeeds when bootstrap reaches IDLE', async () => {
     const context = makeContext();
     const inputQueues = {
-      enqueue_internal_system_event: vi.fn(async () => undefined),
-      get_next_internal_event: vi.fn(async () => {
+      enqueueInternalSystemEvent: vi.fn(async () => undefined),
+      getNextInternalEvent: vi.fn(async () => {
         if (!(getNext as any).yielded) {
           (getNext as any).yielded = true;
-          return ['internal_system_event_queue', new UserMessageReceivedEvent({} as any)];
+          return ['internalSystemEventQueue', new UserMessageReceivedEvent({} as any)];
         }
         await new Promise((r) => setTimeout(r, 5));
         return null;
       })
     } as any;
-    const getNext = inputQueues.get_next_internal_event;
-    context.state.input_event_queues = inputQueues;
+    const getNext = inputQueues.getNextInternalEvent;
+    context.state.inputEventQueues = inputQueues;
 
-    const worker = new AgentWorker(context, { get_handler: vi.fn() } as any);
-    worker.worker_event_dispatcher.dispatch = vi.fn(async (_event, ctx) => {
-      ctx.current_status = AgentStatus.IDLE;
-      ctx.state.status_deriver = new AgentStatusDeriver(AgentStatus.IDLE);
+    const worker = new AgentWorker(context, { getHandler: vi.fn() } as any);
+    worker.workerEventDispatcher.dispatch = vi.fn(async (_event, ctx) => {
+      ctx.currentStatus = AgentStatus.IDLE;
+      ctx.state.statusDeriver = new AgentStatusDeriver(AgentStatus.IDLE);
     });
 
-    const success = await (worker as any)._initialize();
+    const success = await (worker as any).initialize();
 
     expect(success).toBe(true);
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalled();
-    expect(inputQueues.enqueue_internal_system_event.mock.calls[0][0]).toBeInstanceOf(BootstrapStartedEvent);
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalled();
+    expect(inputQueues.enqueueInternalSystemEvent.mock.calls[0][0]).toBeInstanceOf(BootstrapStartedEvent);
   });
 
   it('initialize fails when bootstrap reaches ERROR', async () => {
     const context = makeContext();
     const inputQueues = {
-      enqueue_internal_system_event: vi.fn(async () => undefined),
-      get_next_internal_event: vi.fn(async () => {
+      enqueueInternalSystemEvent: vi.fn(async () => undefined),
+      getNextInternalEvent: vi.fn(async () => {
         if (!(getNext as any).yielded) {
           (getNext as any).yielded = true;
-          return ['internal_system_event_queue', new UserMessageReceivedEvent({} as any)];
+          return ['internalSystemEventQueue', new UserMessageReceivedEvent({} as any)];
         }
         await new Promise((r) => setTimeout(r, 5));
         return null;
       })
     } as any;
-    const getNext = inputQueues.get_next_internal_event;
-    context.state.input_event_queues = inputQueues;
+    const getNext = inputQueues.getNextInternalEvent;
+    context.state.inputEventQueues = inputQueues;
 
-    const worker = new AgentWorker(context, { get_handler: vi.fn() } as any);
-    worker.worker_event_dispatcher.dispatch = vi.fn(async (_event, ctx) => {
-      ctx.current_status = AgentStatus.ERROR;
-      ctx.state.status_deriver = new AgentStatusDeriver(AgentStatus.ERROR);
+    const worker = new AgentWorker(context, { getHandler: vi.fn() } as any);
+    worker.workerEventDispatcher.dispatch = vi.fn(async (_event, ctx) => {
+      ctx.currentStatus = AgentStatus.ERROR;
+      ctx.state.statusDeriver = new AgentStatusDeriver(AgentStatus.ERROR);
     });
 
-    const success = await (worker as any)._initialize();
+    const success = await (worker as any).initialize();
 
     expect(success).toBe(false);
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalled();
-    expect(inputQueues.enqueue_internal_system_event.mock.calls[0][0]).toBeInstanceOf(BootstrapStartedEvent);
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalled();
+    expect(inputQueues.enqueueInternalSystemEvent.mock.calls[0][0]).toBeInstanceOf(BootstrapStartedEvent);
   });
 
   it('processes events from queue', async () => {
     const context = makeContext();
     const inputQueues = {
-      enqueue_internal_system_event: vi.fn(async () => undefined),
-      get_next_input_event: vi.fn(async () => {
+      enqueueInternalSystemEvent: vi.fn(async () => undefined),
+      getNextInputEvent: vi.fn(async () => {
         if (!(getNext as any).yielded) {
           (getNext as any).yielded = true;
-          return ['user_message_input_queue', new UserMessageReceivedEvent({} as any)];
+          return ['userMessageInputQueue', new UserMessageReceivedEvent({} as any)];
         }
         await new Promise((r) => setTimeout(r, 20));
         return null;
       })
     } as any;
-    const getNext = inputQueues.get_next_input_event;
-    context.state.input_event_queues = inputQueues;
+    const getNext = inputQueues.getNextInputEvent;
+    context.state.inputEventQueues = inputQueues;
 
-    const worker = new AgentWorker(context, { get_handler: vi.fn() } as any);
-    vi.spyOn(worker as any, '_initialize').mockResolvedValue(true as any);
-    worker.worker_event_dispatcher.dispatch = vi.fn(async () => undefined);
+    const worker = new AgentWorker(context, { getHandler: vi.fn() } as any);
+    vi.spyOn(worker as any, 'initialize').mockResolvedValue(true as any);
+    worker.workerEventDispatcher.dispatch = vi.fn(async () => undefined);
 
     worker.start();
     await new Promise((r) => setTimeout(r, 30));
 
-    expect(worker.worker_event_dispatcher.dispatch).toHaveBeenCalled();
+    expect(worker.workerEventDispatcher.dispatch).toHaveBeenCalled();
     await worker.stop(0.2);
   });
 
   it('stops when dispatcher throws', async () => {
     const context = makeContext();
     const inputQueues = {
-      get_next_input_event: vi.fn(async () => ['user_message_input_queue', new UserMessageReceivedEvent({} as any)])
+      getNextInputEvent: vi.fn(async () => ['userMessageInputQueue', new UserMessageReceivedEvent({} as any)])
     } as any;
-    context.state.input_event_queues = inputQueues;
+    context.state.inputEventQueues = inputQueues;
 
-    const worker = new AgentWorker(context, { get_handler: vi.fn() } as any);
-    vi.spyOn(worker as any, '_initialize').mockResolvedValue(true as any);
-    worker.worker_event_dispatcher.dispatch = vi.fn(async () => {
+    const worker = new AgentWorker(context, { getHandler: vi.fn() } as any);
+    vi.spyOn(worker as any, 'initialize').mockResolvedValue(true as any);
+    worker.workerEventDispatcher.dispatch = vi.fn(async () => {
       throw new Error('Dispatcher failed');
     });
 
     worker.start();
     await new Promise((r) => setTimeout(r, 20));
 
-    expect(worker.is_alive()).toBe(false);
+    expect(worker.isAlive()).toBe(false);
   });
 });

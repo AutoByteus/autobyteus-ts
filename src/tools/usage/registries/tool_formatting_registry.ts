@@ -20,6 +20,8 @@ import { PatchFileXmlSchemaFormatter } from '../formatters/patch_file_xml_schema
 import { PatchFileXmlExampleFormatter } from '../formatters/patch_file_xml_example_formatter.js';
 
 export class ToolFormattingRegistry extends Singleton {
+  protected static instance?: ToolFormattingRegistry;
+
   private readonly pairs!: Map<LLMProvider, ToolFormatterPair>;
   private readonly defaultPair!: ToolFormatterPair;
   private readonly xmlOverridePair!: ToolFormatterPair;
@@ -27,9 +29,8 @@ export class ToolFormattingRegistry extends Singleton {
 
   constructor() {
     super();
-    const existing = (ToolFormattingRegistry as any).instance as ToolFormattingRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (ToolFormattingRegistry.instance) {
+      return ToolFormattingRegistry.instance;
     }
 
     this.pairs = new Map<LLMProvider, ToolFormatterPair>([
@@ -60,7 +61,7 @@ export class ToolFormattingRegistry extends Singleton {
       new ToolFormatterPair(new PatchFileXmlSchemaFormatter(), new PatchFileXmlExampleFormatter())
     );
 
-    (ToolFormattingRegistry as any).instance = this;
+    ToolFormattingRegistry.instance = this;
   }
 
   public registerToolFormatter(toolName: string, formatterPair: ToolFormatterPair): void {

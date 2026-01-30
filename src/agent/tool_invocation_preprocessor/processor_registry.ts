@@ -1,21 +1,27 @@
 import { Singleton } from '../../utils/singleton.js';
 import { ProcessorOption } from '../processor_option.js';
 import { ToolInvocationPreprocessorDefinition } from './processor_definition.js';
+import { BaseToolInvocationPreprocessor } from './base_preprocessor.js';
+
+type ProcessorClass = (new () => BaseToolInvocationPreprocessor) & {
+  getOrder?: () => number;
+  isMandatory?: () => boolean;
+};
 
 export class ToolInvocationPreprocessorRegistry extends Singleton {
+  protected static instance?: ToolInvocationPreprocessorRegistry;
+
   private definitions: Map<string, ToolInvocationPreprocessorDefinition> = new Map();
 
   constructor() {
     super();
-    const existing = (ToolInvocationPreprocessorRegistry as any)
-      .instance as ToolInvocationPreprocessorRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (ToolInvocationPreprocessorRegistry.instance) {
+      return ToolInvocationPreprocessorRegistry.instance;
     }
-    (ToolInvocationPreprocessorRegistry as any).instance = this;
+    ToolInvocationPreprocessorRegistry.instance = this;
   }
 
-  register_preprocessor(definition: ToolInvocationPreprocessorDefinition): void {
+  registerPreprocessor(definition: ToolInvocationPreprocessorDefinition): void {
     if (!(definition instanceof ToolInvocationPreprocessorDefinition)) {
       throw new TypeError(
         `Expected ToolInvocationPreprocessorDefinition, got ${typeof definition}.`
@@ -30,21 +36,21 @@ export class ToolInvocationPreprocessorRegistry extends Singleton {
     console.info(`Tool invocation preprocessor definition '${name}' registered.`);
   }
 
-  get_preprocessor_definition(name: string): ToolInvocationPreprocessorDefinition | undefined {
+  getPreprocessorDefinition(name: string): ToolInvocationPreprocessorDefinition | undefined {
     if (typeof name !== 'string') {
       return undefined;
     }
     return this.definitions.get(name);
   }
 
-  get_preprocessor(name: string): any | undefined {
-    const definition = this.get_preprocessor_definition(name);
+  getPreprocessor(name: string): BaseToolInvocationPreprocessor | undefined {
+    const definition = this.getPreprocessorDefinition(name);
     if (!definition) {
       return undefined;
     }
 
     try {
-      return new definition.processor_class();
+      return new definition.processorClass();
     } catch (error) {
       console.error(
         `Failed to instantiate tool invocation preprocessor '${name}': ${error}`
@@ -53,41 +59,29 @@ export class ToolInvocationPreprocessorRegistry extends Singleton {
     }
   }
 
-  list_preprocessor_names(): string[] {
+  listPreprocessorNames(): string[] {
     return Array.from(this.definitions.keys());
   }
 
-  // Backwards-compatible alias
-  get_processor(name: string): any | undefined {
-    return this.get_preprocessor(name);
-  }
-
-  get_ordered_processor_options(): ProcessorOption[] {
+  getOrderedProcessorOptions(): ProcessorOption[] {
     const definitions = Array.from(this.definitions.values());
     const sortedDefinitions = definitions.sort((a, b) => {
-      const orderA =
-        typeof (a.processor_class as any).get_order === 'function'
-          ? (a.processor_class as any).get_order()
-          : 500;
-      const orderB =
-        typeof (b.processor_class as any).get_order === 'function'
-          ? (b.processor_class as any).get_order()
-          : 500;
+      const processorA = a.processorClass as ProcessorClass;
+      const processorB = b.processorClass as ProcessorClass;
+      const orderA = typeof processorA.getOrder === 'function' ? processorA.getOrder() : 500;
+      const orderB = typeof processorB.getOrder === 'function' ? processorB.getOrder() : 500;
       return orderA - orderB;
     });
 
-    return sortedDefinitions.map(
-      (definition) =>
-        new ProcessorOption(
-          definition.name,
-          typeof (definition.processor_class as any).is_mandatory === 'function'
-            ? (definition.processor_class as any).is_mandatory()
-            : false
-        )
-    );
+    return sortedDefinitions.map((definition) => {
+      const processorClass = definition.processorClass as ProcessorClass;
+      const isMandatory =
+        typeof processorClass.isMandatory === 'function' ? processorClass.isMandatory() : false;
+      return new ProcessorOption(definition.name, isMandatory);
+    });
   }
 
-  get_all_definitions(): Record<string, ToolInvocationPreprocessorDefinition> {
+  getAllDefinitions(): Record<string, ToolInvocationPreprocessorDefinition> {
     return Object.fromEntries(this.definitions.entries());
   }
 

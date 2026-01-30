@@ -67,8 +67,9 @@ export async function writeFile(
     }
     await fs.writeFile(finalPath, content, 'utf-8');
     return `File created/updated at ${returnPath}`;
-  } catch (error: any) {
-    throw new Error(`Could not write file at '${finalPath}': ${error?.message ?? String(error)}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Could not write file at '${finalPath}': ${message}`);
   }
 }
 

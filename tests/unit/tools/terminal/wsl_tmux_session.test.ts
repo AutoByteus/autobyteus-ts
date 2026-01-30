@@ -21,7 +21,7 @@ vi.mock('node-pty', () => {
   };
 });
 
-import { WslTmuxSession, _set_is_windows_for_tests } from '../../../../src/tools/terminal/wsl_tmux_session.js';
+import { WslTmuxSession, setIsWindowsForTests } from '../../../../src/tools/terminal/wsl_tmux_session.js';
 import * as wslUtils from '../../../../src/tools/terminal/wsl_utils.js';
 import * as nodePty from 'node-pty';
 
@@ -35,7 +35,7 @@ const spawnMock = (nodePty as any).spawn as ReturnType<typeof vi.fn>;
 
 describe('WslTmuxSession', () => {
   beforeEach(() => {
-    _set_is_windows_for_tests(() => true);
+    setIsWindowsForTests(() => true);
     mockState.onData = undefined;
     mockState.onExit = undefined;
     spawnMock.mockClear();
@@ -45,22 +45,22 @@ describe('WslTmuxSession', () => {
   });
 
   afterEach(() => {
-    _set_is_windows_for_tests(() => process.platform === 'win32');
+    setIsWindowsForTests(() => process.platform === 'win32');
     vi.restoreAllMocks();
   });
 
   it('throws on non-windows platforms', async () => {
-    _set_is_windows_for_tests(() => false);
+    setIsWindowsForTests(() => false);
     const session = new WslTmuxSession('test');
 
     await expect(session.start('C:\\tmp')).rejects.toThrow('only supported on Windows');
   });
 
   it('spawns wsl bash session and sets prompt/cwd', async () => {
-    vi.spyOn(wslUtils, 'ensure_wsl_available').mockReturnValue('wsl.exe');
-    vi.spyOn(wslUtils, 'ensure_wsl_distro_available').mockReturnValue(undefined);
-    vi.spyOn(wslUtils, 'select_wsl_distro').mockReturnValue('Ubuntu');
-    vi.spyOn(wslUtils, 'windows_path_to_wsl').mockReturnValue('/mnt/c/tmp');
+    vi.spyOn(wslUtils, 'ensureWslAvailable').mockReturnValue('wsl.exe');
+    vi.spyOn(wslUtils, 'ensureWslDistroAvailable').mockReturnValue(undefined);
+    vi.spyOn(wslUtils, 'selectWslDistro').mockReturnValue('Ubuntu');
+    vi.spyOn(wslUtils, 'windowsPathToWsl').mockReturnValue('/mnt/c/tmp');
 
     const session = new WslTmuxSession('test');
     await session.start('C:\\tmp');
@@ -77,10 +77,10 @@ describe('WslTmuxSession', () => {
   });
 
   it('reads queued output', async () => {
-    vi.spyOn(wslUtils, 'ensure_wsl_available').mockReturnValue('wsl.exe');
-    vi.spyOn(wslUtils, 'ensure_wsl_distro_available').mockReturnValue(undefined);
-    vi.spyOn(wslUtils, 'select_wsl_distro').mockReturnValue('Ubuntu');
-    vi.spyOn(wslUtils, 'windows_path_to_wsl').mockReturnValue('/mnt/c/tmp');
+    vi.spyOn(wslUtils, 'ensureWslAvailable').mockReturnValue('wsl.exe');
+    vi.spyOn(wslUtils, 'ensureWslDistroAvailable').mockReturnValue(undefined);
+    vi.spyOn(wslUtils, 'selectWslDistro').mockReturnValue('Ubuntu');
+    vi.spyOn(wslUtils, 'windowsPathToWsl').mockReturnValue('/mnt/c/tmp');
 
     const session = new WslTmuxSession('test');
     await session.start('C:\\tmp');

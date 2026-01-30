@@ -13,71 +13,78 @@ function extractPath(uri: string): string {
 
 export class ContextFile {
   uri: string;
-  file_type: ContextFileType;
-  file_name: string | null;
-  metadata: Record<string, any>;
+  fileType: ContextFileType;
+  fileName: string | null;
+  metadata: Record<string, unknown>;
 
   constructor(
     uri: string,
-    file_type: ContextFileType = ContextFileType.UNKNOWN,
-    file_name: string | null = null,
-    metadata: Record<string, any> = {}
+    fileType: ContextFileType = ContextFileType.UNKNOWN,
+    fileName: string | null = null,
+    metadata: Record<string, unknown> = {}
   ) {
     if (!uri || typeof uri !== 'string') {
       throw new TypeError(`ContextFile uri must be a non-empty string, got ${typeof uri}`);
     }
 
     this.uri = uri;
-    this.file_type = file_type;
-    this.file_name = file_name;
+    this.fileType = fileType;
+    this.fileName = fileName;
     this.metadata = metadata ?? {};
 
-    if (!this.file_name) {
+    if (!this.fileName) {
       try {
         const parsedPath = extractPath(this.uri);
-        this.file_name = path.basename(parsedPath);
+        this.fileName = path.basename(parsedPath);
       } catch {
-        this.file_name = 'unknown_file';
+        this.fileName = 'unknown_file';
       }
     }
 
-    if (this.file_type === ContextFileType.UNKNOWN) {
+    if (this.fileType === ContextFileType.UNKNOWN) {
       const inferred = ContextFileType.fromPath(this.uri);
       if (inferred !== ContextFileType.UNKNOWN) {
-        this.file_type = inferred;
+        this.fileType = inferred;
       }
     }
   }
 
-  toDict(): Record<string, any> {
+  toDict(): Record<string, unknown> {
     return {
       uri: this.uri,
-      file_type: this.file_type,
-      file_name: this.file_name,
+      file_type: this.fileType,
+      file_name: this.fileName,
       metadata: this.metadata
     };
   }
 
-  static fromDict(data: Record<string, any>): ContextFile {
-    if (!data || typeof data.uri !== 'string') {
+  static fromDict(data: Record<string, unknown>): ContextFile {
+    const payload = data ?? {};
+    if (!payload || typeof payload !== 'object' || typeof (payload as { uri?: unknown }).uri !== 'string') {
       throw new Error("ContextFile 'uri' in dictionary must be a string.");
     }
 
-    const fileTypeStr = data.file_type ?? ContextFileType.UNKNOWN;
-    const fileType = Object.values(ContextFileType).includes(fileTypeStr)
+    const payloadRecord = payload as Record<string, unknown>;
+    const fileTypeStr = payloadRecord.file_type ?? ContextFileType.UNKNOWN;
+    const fileType = Object.values(ContextFileType).includes(fileTypeStr as ContextFileType)
       ? (fileTypeStr as ContextFileType)
       : ContextFileType.UNKNOWN;
+    const fileName = typeof payloadRecord.file_name === 'string' ? payloadRecord.file_name : null;
+    const metadata =
+      payloadRecord.metadata && typeof payloadRecord.metadata === 'object' && !Array.isArray(payloadRecord.metadata)
+        ? (payloadRecord.metadata as Record<string, unknown>)
+        : {};
 
     return new ContextFile(
-      data.uri,
+      payloadRecord.uri as string,
       fileType,
-      data.file_name ?? null,
-      data.metadata ?? {}
+      fileName,
+      metadata
     );
   }
 
   toString(): string {
     const metaKeys = Object.keys(this.metadata ?? {});
-    return `ContextFile(uri='${this.uri}', file_name='${this.file_name}', file_type='${this.file_type}', metadata_keys=${metaKeys})`;
+    return `ContextFile(uri='${this.uri}', fileName='${this.fileName}', fileType='${this.fileType}', metadata_keys=${metaKeys})`;
   }
 }

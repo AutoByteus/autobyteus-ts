@@ -30,13 +30,13 @@ runIntegration('ApiToolCallStreamingResponseHandler (OpenAI live)', () => {
     const llm = new OpenAILLM(new LLMModel({
       name: 'gpt-5.2',
       value: 'gpt-5.2',
-      canonical_name: 'gpt-5.2',
+      canonicalName: 'gpt-5.2',
       provider: LLMProvider.OPENAI
     }));
 
     const events: any[] = [];
     const handler = new ApiToolCallStreamingResponseHandler({
-      on_segment_event: (event) => events.push(event)
+      onSegmentEvent: (event) => events.push(event)
     });
 
     const userMessage = new LLMUserMessage({
@@ -66,7 +66,7 @@ runIntegration('ApiToolCallStreamingResponseHandler (OpenAI live)', () => {
     );
     expect(toolStarts.length).toBeGreaterThan(0);
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations.length).toBeGreaterThanOrEqual(1);
 
     const invocation = invocations.find((entry) => entry.name === 'write_file');

@@ -3,9 +3,9 @@ import { LLMConfig } from '../../../../src/llm/utils/llm_config.js';
 
 describe('LLMConfig (integration)', () => {
   it('round-trips toJson/fromJson', () => {
-    const config = new LLMConfig({ system_message: 'Integration', temperature: 0.2 });
+    const config = new LLMConfig({ systemMessage: 'Integration', temperature: 0.2 });
     const parsed = LLMConfig.fromJson(config.toJson());
-    expect(parsed.system_message).toBe('Integration');
+    expect(parsed.systemMessage).toBe('Integration');
     expect(parsed.temperature).toBe(0.2);
   });
 });

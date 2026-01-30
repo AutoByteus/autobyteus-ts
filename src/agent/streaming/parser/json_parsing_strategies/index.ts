@@ -3,7 +3,7 @@ export { GeminiJsonToolParsingStrategy } from './gemini.js';
 export { OpenAiJsonToolParsingStrategy } from './openai.js';
 export {
   JsonToolParsingProfile,
-  get_json_tool_parsing_profile,
+  getJsonToolParsingProfile,
   DEFAULT_JSON_PATTERNS,
   GEMINI_JSON_PATTERNS,
   OPENAI_JSON_PATTERNS,

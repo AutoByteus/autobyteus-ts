@@ -10,19 +10,19 @@ import type { LLMCompleteResponseReceivedEvent } from '../../../../src/agent/eve
 import type { CompleteResponse } from '../../../../src/llm/utils/response_types.js';
 
 class ProcA extends BaseLLMResponseProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcA';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 100;
   }
 
-  static is_mandatory(): boolean {
+  static isMandatory(): boolean {
     return true;
   }
 
-  async process_response(
+  async processResponse(
     _response: CompleteResponse,
     _context: AgentContext,
     _event: LLMCompleteResponseReceivedEvent
@@ -32,15 +32,15 @@ class ProcA extends BaseLLMResponseProcessor {
 }
 
 class ProcB extends BaseLLMResponseProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcB';
   }
 
-  static get_order(): number {
+  static getOrder(): number {
     return 200;
   }
 
-  async process_response(
+  async processResponse(
     _response: CompleteResponse,
     _context: AgentContext,
     _event: LLMCompleteResponseReceivedEvent
@@ -50,7 +50,7 @@ class ProcB extends BaseLLMResponseProcessor {
 }
 
 class ProcWithInitError extends BaseLLMResponseProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'ProcWithInitError';
   }
 
@@ -59,7 +59,7 @@ class ProcWithInitError extends BaseLLMResponseProcessor {
     throw new Error('Init failed');
   }
 
-  async process_response(
+  async processResponse(
     _response: CompleteResponse,
     _context: AgentContext,
     _event: LLMCompleteResponseReceivedEvent
@@ -72,14 +72,14 @@ describe('LLMResponseProcessorRegistry', () => {
   let originalDefinitions: Record<string, LLMResponseProcessorDefinition> = {};
 
   beforeEach(() => {
-    originalDefinitions = defaultLlmResponseProcessorRegistry.get_all_definitions();
+    originalDefinitions = defaultLlmResponseProcessorRegistry.getAllDefinitions();
     defaultLlmResponseProcessorRegistry.clear();
   });
 
   afterEach(() => {
     defaultLlmResponseProcessorRegistry.clear();
     for (const definition of Object.values(originalDefinitions)) {
-      defaultLlmResponseProcessorRegistry.register_processor(definition);
+      defaultLlmResponseProcessorRegistry.registerProcessor(definition);
     }
   });
 
@@ -91,9 +91,9 @@ describe('LLMResponseProcessorRegistry', () => {
 
   it('registers processor definitions', () => {
     const definition = new LLMResponseProcessorDefinition('ProcA', ProcA);
-    defaultLlmResponseProcessorRegistry.register_processor(definition);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition);
 
-    expect(defaultLlmResponseProcessorRegistry.get_processor_definition('ProcA')).toBe(definition);
+    expect(defaultLlmResponseProcessorRegistry.getProcessorDefinition('ProcA')).toBe(definition);
     expect(defaultLlmResponseProcessorRegistry.length()).toBe(1);
   });
 
@@ -101,83 +101,83 @@ describe('LLMResponseProcessorRegistry', () => {
     const definition1 = new LLMResponseProcessorDefinition('ProcOverwrite', ProcA);
     const definition2 = new LLMResponseProcessorDefinition('ProcOverwrite', ProcB);
 
-    defaultLlmResponseProcessorRegistry.register_processor(definition1);
-    defaultLlmResponseProcessorRegistry.register_processor(definition2);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition1);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition2);
 
-    expect(defaultLlmResponseProcessorRegistry.get_processor_definition('ProcOverwrite')).toBe(definition2);
+    expect(defaultLlmResponseProcessorRegistry.getProcessorDefinition('ProcOverwrite')).toBe(definition2);
     expect(defaultLlmResponseProcessorRegistry.length()).toBe(1);
   });
 
   it('rejects invalid definition types', () => {
-    expect(() => defaultLlmResponseProcessorRegistry.register_processor({} as LLMResponseProcessorDefinition)).toThrow(
+    expect(() => defaultLlmResponseProcessorRegistry.registerProcessor({} as LLMResponseProcessorDefinition)).toThrow(
       /Expected LLMResponseProcessorDefinition/
     );
   });
 
   it('returns undefined for invalid name lookups', () => {
-    expect(defaultLlmResponseProcessorRegistry.get_processor_definition(null as unknown as string)).toBeUndefined();
-    expect(defaultLlmResponseProcessorRegistry.get_processor_definition(123 as unknown as string)).toBeUndefined();
+    expect(defaultLlmResponseProcessorRegistry.getProcessorDefinition(null as unknown as string)).toBeUndefined();
+    expect(defaultLlmResponseProcessorRegistry.getProcessorDefinition(123 as unknown as string)).toBeUndefined();
   });
 
   it('returns processor instances when available', () => {
     const definition = new LLMResponseProcessorDefinition('ProcA', ProcA);
-    defaultLlmResponseProcessorRegistry.register_processor(definition);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition);
 
-    const instance = defaultLlmResponseProcessorRegistry.get_processor('ProcA');
+    const instance = defaultLlmResponseProcessorRegistry.getProcessor('ProcA');
     expect(instance).toBeInstanceOf(ProcA);
   });
 
   it('returns undefined for missing processor', () => {
-    expect(defaultLlmResponseProcessorRegistry.get_processor('NonExistentProc')).toBeUndefined();
+    expect(defaultLlmResponseProcessorRegistry.getProcessor('NonExistentProc')).toBeUndefined();
   });
 
   it('returns undefined when processor instantiation fails', () => {
     const definition = new LLMResponseProcessorDefinition('ProcWithInitError', ProcWithInitError);
-    defaultLlmResponseProcessorRegistry.register_processor(definition);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition);
 
-    const instance = defaultLlmResponseProcessorRegistry.get_processor('ProcWithInitError');
+    const instance = defaultLlmResponseProcessorRegistry.getProcessor('ProcWithInitError');
     expect(instance).toBeUndefined();
   });
 
   it('lists processor names', () => {
     const definitionA = new LLMResponseProcessorDefinition('ProcA', ProcA);
     const definitionB = new LLMResponseProcessorDefinition('ProcB', ProcB);
-    defaultLlmResponseProcessorRegistry.register_processor(definitionA);
-    defaultLlmResponseProcessorRegistry.register_processor(definitionB);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definitionA);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definitionB);
 
-    const names = defaultLlmResponseProcessorRegistry.list_processor_names().sort();
+    const names = defaultLlmResponseProcessorRegistry.listProcessorNames().sort();
     expect(names).toEqual(['ProcA', 'ProcB']);
   });
 
   it('returns ordered processor options', () => {
     const definitionA = new LLMResponseProcessorDefinition('ProcA', ProcA);
     const definitionB = new LLMResponseProcessorDefinition('ProcB', ProcB);
-    defaultLlmResponseProcessorRegistry.register_processor(definitionB);
-    defaultLlmResponseProcessorRegistry.register_processor(definitionA);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definitionB);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definitionA);
 
-    const options = defaultLlmResponseProcessorRegistry.get_ordered_processor_options();
+    const options = defaultLlmResponseProcessorRegistry.getOrderedProcessorOptions();
     expect(options.map((opt) => opt.name)).toEqual(['ProcA', 'ProcB']);
-    expect(options[0].is_mandatory).toBe(true);
-    expect(options[1].is_mandatory).toBe(false);
+    expect(options[0].isMandatory).toBe(true);
+    expect(options[1].isMandatory).toBe(false);
   });
 
   it('returns all definitions', () => {
     const definition = new LLMResponseProcessorDefinition('ProcA', ProcA);
-    defaultLlmResponseProcessorRegistry.register_processor(definition);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition);
 
-    const defs = defaultLlmResponseProcessorRegistry.get_all_definitions();
+    const defs = defaultLlmResponseProcessorRegistry.getAllDefinitions();
     expect(Object.keys(defs)).toEqual(['ProcA']);
     expect(defs.ProcA).toBe(definition);
   });
 
   it('clears definitions', () => {
     const definition = new LLMResponseProcessorDefinition('ProcA', ProcA);
-    defaultLlmResponseProcessorRegistry.register_processor(definition);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition);
     expect(defaultLlmResponseProcessorRegistry.length()).toBe(1);
 
     defaultLlmResponseProcessorRegistry.clear();
     expect(defaultLlmResponseProcessorRegistry.length()).toBe(0);
-    expect(defaultLlmResponseProcessorRegistry.get_processor_definition('ProcA')).toBeUndefined();
+    expect(defaultLlmResponseProcessorRegistry.getProcessorDefinition('ProcA')).toBeUndefined();
   });
 
   it('supports contains and length helpers', () => {
@@ -185,7 +185,7 @@ describe('LLMResponseProcessorRegistry', () => {
     expect(defaultLlmResponseProcessorRegistry.contains('ProcA')).toBe(false);
 
     const definition = new LLMResponseProcessorDefinition('ProcA', ProcA);
-    defaultLlmResponseProcessorRegistry.register_processor(definition);
+    defaultLlmResponseProcessorRegistry.registerProcessor(definition);
 
     expect(defaultLlmResponseProcessorRegistry.length()).toBe(1);
     expect(defaultLlmResponseProcessorRegistry.contains('ProcA')).toBe(true);

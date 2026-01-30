@@ -4,25 +4,25 @@ import { AgentStatus } from '../status/status_enum.js';
 import type { ChunkResponse, CompleteResponse } from '../../llm/utils/response_types.js';
 
 export class AgentExternalEventNotifier extends EventEmitter {
-  agent_id: string;
+  agentId: string;
 
-  constructor(agent_id: string) {
+  constructor(agentId: string) {
     super();
-    this.agent_id = agent_id;
+    this.agentId = agentId;
     console.debug(
-      `AgentExternalEventNotifier initialized for agent_id '${this.agent_id}' (NotifierID: ${this.object_id}).`
+      `AgentExternalEventNotifier initialized for agent_id '${this.agentId}' (NotifierID: ${this.objectId}).`
     );
   }
 
   private emitEvent(eventType: EventType, payloadContent?: any): void {
-    const emitKwargs: Record<string, any> = { agent_id: this.agent_id };
+    const emitKwargs: Record<string, any> = { agent_id: this.agentId };
     if (payloadContent !== undefined) {
       emitKwargs['payload'] = payloadContent;
     }
     this.emit(eventType, emitKwargs);
 
     const logMessage =
-      `AgentExternalEventNotifier (NotifierID: ${this.object_id}, AgentID: ${this.agent_id}) ` +
+      `AgentExternalEventNotifier (NotifierID: ${this.objectId}, AgentID: ${this.agentId}) ` +
       `emitted ${eventType}. Kwarg keys for emit: ${Object.keys(emitKwargs)}`;
 
     if ([EventType.AGENT_DATA_ASSISTANT_CHUNK, EventType.AGENT_DATA_SEGMENT_EVENT].includes(eventType)) {
@@ -79,7 +79,7 @@ export class AgentExternalEventNotifier extends EventEmitter {
   private emitStatusUpdate(
     newStatus: AgentStatus,
     oldStatus?: AgentStatus,
-    additionalData?: Record<string, any>
+    additionalData?: Record<string, any> | null
   ): void {
     const statusPayload: Record<string, any> = {
       new_status: newStatus,
@@ -91,64 +91,64 @@ export class AgentExternalEventNotifier extends EventEmitter {
     this.emitEvent(EventType.AGENT_STATUS_UPDATED, statusPayload);
   }
 
-  notify_status_updated(
-    new_status: AgentStatus,
-    old_status?: AgentStatus,
-    additional_data?: Record<string, any>
+  notifyStatusUpdated(
+    newStatus: AgentStatus,
+    oldStatus?: AgentStatus,
+    additionalData?: Record<string, any> | null
   ): void {
-    this.emitStatusUpdate(new_status, old_status, additional_data);
+    this.emitStatusUpdate(newStatus, oldStatus, additionalData);
   }
 
-  notify_agent_data_assistant_chunk(chunk: ChunkResponse): void {
+  notifyAgentDataAssistantChunk(chunk: ChunkResponse): void {
     this.emitEvent(EventType.AGENT_DATA_ASSISTANT_CHUNK, chunk);
   }
 
-  notify_agent_data_assistant_complete_response(completeResponse: CompleteResponse): void {
+  notifyAgentDataAssistantCompleteResponse(completeResponse: CompleteResponse): void {
     this.emitEvent(EventType.AGENT_DATA_ASSISTANT_COMPLETE_RESPONSE, completeResponse);
   }
 
-  notify_agent_segment_event(eventDict: Record<string, any>): void {
+  notifyAgentSegmentEvent(eventDict: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_DATA_SEGMENT_EVENT, eventDict);
   }
 
-  notify_agent_data_tool_log(logData: Record<string, any>): void {
+  notifyAgentDataToolLog(logData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_DATA_TOOL_LOG, logData);
   }
 
-  notify_agent_data_tool_log_stream_end(): void {
+  notifyAgentDataToolLogStreamEnd(): void {
     this.emitEvent(EventType.AGENT_DATA_TOOL_LOG_STREAM_END);
   }
 
-  notify_agent_request_tool_invocation_approval(approvalData: Record<string, any>): void {
+  notifyAgentRequestToolInvocationApproval(approvalData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_REQUEST_TOOL_INVOCATION_APPROVAL, approvalData);
   }
 
-  notify_agent_tool_invocation_auto_executing(autoExecData: Record<string, any>): void {
+  notifyAgentToolInvocationAutoExecuting(autoExecData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_TOOL_INVOCATION_AUTO_EXECUTING, autoExecData);
   }
 
-  notify_agent_data_system_task_notification_received(notificationData: Record<string, any>): void {
+  notifyAgentDataSystemTaskNotificationReceived(notificationData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_DATA_SYSTEM_TASK_NOTIFICATION_RECEIVED, notificationData);
   }
 
-  notify_agent_data_inter_agent_message_received(messageData: Record<string, any>): void {
+  notifyAgentDataInterAgentMessageReceived(messageData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_DATA_INTER_AGENT_MESSAGE_RECEIVED, messageData);
   }
 
-  notify_agent_data_todo_list_updated(todoList: Array<Record<string, any>>): void {
+  notifyAgentDataTodoListUpdated(todoList: Array<Record<string, any>>): void {
     this.emitEvent(EventType.AGENT_DATA_TODO_LIST_UPDATED, { todos: todoList });
   }
 
-  notify_agent_error_output_generation(error_source: string, error_message: string, error_details?: string): void {
-    const payload = { source: error_source, message: error_message, details: error_details };
+  notifyAgentErrorOutputGeneration(errorSource: string, errorMessage: string, errorDetails?: string): void {
+    const payload = { source: errorSource, message: errorMessage, details: errorDetails };
     this.emitEvent(EventType.AGENT_ERROR_OUTPUT_GENERATION, payload);
   }
 
-  notify_agent_artifact_persisted(artifactData: Record<string, any>): void {
+  notifyAgentArtifactPersisted(artifactData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_ARTIFACT_PERSISTED, artifactData);
   }
 
-  notify_agent_artifact_updated(artifactData: Record<string, any>): void {
+  notifyAgentArtifactUpdated(artifactData: Record<string, any>): void {
     this.emitEvent(EventType.AGENT_ARTIFACT_UPDATED, artifactData);
   }
 }

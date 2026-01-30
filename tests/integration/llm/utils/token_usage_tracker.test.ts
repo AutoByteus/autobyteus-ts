@@ -10,7 +10,7 @@ class MockCounter extends BaseTokenCounter {
 
 describe('TokenUsageTracker (integration)', () => {
   it('throws if output calculated before input', () => {
-    const model = { default_config: { pricing_config: new TokenPricingConfig() } };
+    const model = { defaultConfig: { pricingConfig: new TokenPricingConfig() } };
     const tracker = new TokenUsageTracker(model, new MockCounter('test'));
     expect(() => tracker.calculateOutputMessage({} as any)).toThrow(/calculateInputMessages/);
   });

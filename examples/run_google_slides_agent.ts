@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { parseArgs } from 'node:util';
 import { AgentConfig } from '../src/agent/context/agent_config.js';
 import { AgentFactory } from '../src/agent/factory/agent_factory.js';
-import { run_agent_cli } from '../src/cli/index.js';
+import { runAgentCli } from '../src/cli/index.js';
 import { defaultToolRegistry } from '../src/tools/registry/tool_registry.js';
 import { McpToolRegistrar } from '../src/tools/mcp/tool_registrar.js';
 import { loadEnv } from './shared/example_paths.js';
@@ -92,10 +92,10 @@ async function main(): Promise<void> {
     false
   );
 
-  const agent = new AgentFactory().create_agent(agentConfig);
+  const agent = new AgentFactory().createAgent(agentConfig);
 
   try {
-    await run_agent_cli(agent, { showToolLogs: !values['no-tool-logs'] });
+    await runAgentCli(agent, { showToolLogs: !values['no-tool-logs'] });
   } finally {
     await llm.cleanup();
   }

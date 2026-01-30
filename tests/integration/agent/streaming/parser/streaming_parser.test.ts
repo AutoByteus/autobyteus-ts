@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ParserConfig } from '../../../../../src/agent/streaming/parser/parser_context.js';
-import { StreamingParser, extract_segments } from '../../../../../src/agent/streaming/parser/streaming_parser.js';
+import { StreamingParser, extractSegments } from '../../../../../src/agent/streaming/parser/streaming_parser.js';
 import { SegmentType } from '../../../../../src/agent/streaming/segments/segment_events.js';
 
 const collectEvents = (chunks: string[], config?: ParserConfig) => {
@@ -14,7 +14,7 @@ const collectEvents = (chunks: string[], config?: ParserConfig) => {
 };
 
 const collectSegments = (chunks: string[], config?: ParserConfig) => {
-  return extract_segments(collectEvents(chunks, config));
+  return extractSegments(collectEvents(chunks, config));
 };
 
 describe('StreamingParser (integration)', () => {
@@ -59,14 +59,14 @@ describe('StreamingParser (integration)', () => {
   });
 
   it('parses a tool tag when tool parsing is enabled', () => {
-    const config = new ParserConfig({ parse_tool_calls: true, strategy_order: ['xml_tag'] });
+    const config = new ParserConfig({ parseToolCalls: true, strategyOrder: ['xml_tag'] });
     const segments = collectSegments(["Let me check:<tool name='weather'>city=NYC</tool>"] , config);
     const toolSegments = segments.filter((segment) => segment.type === SegmentType.TOOL_CALL);
     expect(toolSegments.length).toBeGreaterThanOrEqual(1);
   });
 
   it('treats tool tags as text when parsing is disabled', () => {
-    const config = new ParserConfig({ parse_tool_calls: false });
+    const config = new ParserConfig({ parseToolCalls: false });
     const segments = collectSegments(["Here:<tool name='test'>args</tool>Done"], config);
     const toolSegments = segments.filter((segment) => segment.type === SegmentType.TOOL_CALL);
     expect(toolSegments.length).toBe(0);

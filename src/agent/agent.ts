@@ -12,84 +12,84 @@ import {
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export class Agent {
-  private _runtime: AgentRuntime;
-  agent_id: string;
+  private runtime: AgentRuntime;
+  agentId: string;
 
   constructor(runtime: AgentRuntime) {
-    this._runtime = runtime;
-    this.agent_id = this._runtime.context.agent_id;
+    this.runtime = runtime;
+    this.agentId = this.runtime.context.agentId;
 
-    console.info(`Agent facade initialized for agent_id '${this.agent_id}'.`);
+    console.info(`Agent facade initialized for agent_id '${this.agentId}'.`);
   }
 
   get context() {
-    return this._runtime.context;
+    return this.runtime.context;
   }
 
-  private async _submit_event_to_runtime(event: BaseEvent): Promise<void> {
-    if (!this._runtime.is_running) {
-      console.info(`Agent '${this.agent_id}' runtime is not running. Calling start() before submitting event.`);
+  private async submitEventToRuntime(event: BaseEvent): Promise<void> {
+    if (!this.runtime.isRunning) {
+      console.info(`Agent '${this.agentId}' runtime is not running. Calling start() before submitting event.`);
       this.start();
       await delay(0);
     }
 
-    console.debug(`Agent '${this.agent_id}': Submitting ${event.constructor.name} to runtime.`);
-    await this._runtime.submit_event(event);
+    console.debug(`Agent '${this.agentId}': Submitting ${event.constructor.name} to runtime.`);
+    await this.runtime.submitEvent(event);
   }
 
-  async post_user_message(agent_input_user_message: AgentInputUserMessage): Promise<void> {
-    const event = new UserMessageReceivedEvent(agent_input_user_message);
-    await this._submit_event_to_runtime(event);
+  async postUserMessage(agentInputUserMessage: AgentInputUserMessage): Promise<void> {
+    const event = new UserMessageReceivedEvent(agentInputUserMessage);
+    await this.submitEventToRuntime(event);
   }
 
-  async post_inter_agent_message(inter_agent_message: InterAgentMessage): Promise<void> {
-    const event = new InterAgentMessageReceivedEvent(inter_agent_message);
-    await this._submit_event_to_runtime(event);
+  async postInterAgentMessage(interAgentMessage: InterAgentMessage): Promise<void> {
+    const event = new InterAgentMessageReceivedEvent(interAgentMessage);
+    await this.submitEventToRuntime(event);
   }
 
-  async post_tool_execution_approval(
-    tool_invocation_id: string,
-    is_approved: boolean,
+  async postToolExecutionApproval(
+    toolInvocationId: string,
+    isApproved: boolean,
     reason: string | null = null
   ): Promise<void> {
-    if (!tool_invocation_id || typeof tool_invocation_id !== 'string') {
+    if (!toolInvocationId || typeof toolInvocationId !== 'string') {
       throw new Error('tool_invocation_id must be a non-empty string.');
     }
-    if (typeof is_approved !== 'boolean') {
+    if (typeof isApproved !== 'boolean') {
       throw new TypeError('is_approved must be a boolean.');
     }
 
-    const approvalEvent = new ToolExecutionApprovalEvent(tool_invocation_id, is_approved, reason ?? undefined);
-    await this._submit_event_to_runtime(approvalEvent);
+    const approvalEvent = new ToolExecutionApprovalEvent(toolInvocationId, isApproved, reason ?? undefined);
+    await this.submitEventToRuntime(approvalEvent);
   }
 
-  get_current_status(): AgentStatus {
-    if (!this._runtime) {
+  get currentStatus(): AgentStatus {
+    if (!this.runtime) {
       return AgentStatus.UNINITIALIZED;
     }
-    return this._runtime.current_status_property;
+    return this.runtime.currentStatus;
   }
 
-  get is_running(): boolean {
-    return this._runtime.is_running;
+  get isRunning(): boolean {
+    return this.runtime.isRunning;
   }
 
   start(): void {
-    if (this._runtime.is_running) {
-      console.info(`Agent '${this.agent_id}' runtime is already running. Ignoring start command.`);
+    if (this.runtime.isRunning) {
+      console.info(`Agent '${this.agentId}' runtime is already running. Ignoring start command.`);
       return;
     }
 
-    console.info(`Agent '${this.agent_id}' requesting runtime to start.`);
-    this._runtime.start();
+    console.info(`Agent '${this.agentId}' requesting runtime to start.`);
+    this.runtime.start();
   }
 
   async stop(timeout: number = 10.0): Promise<void> {
-    console.info(`Agent '${this.agent_id}' requesting runtime to stop (timeout: ${timeout}s).`);
-    await this._runtime.stop(timeout);
+    console.info(`Agent '${this.agentId}' requesting runtime to stop (timeout: ${timeout}s).`);
+    await this.runtime.stop(timeout);
   }
 
   toString(): string {
-    return `<Agent agent_id='${this.agent_id}', current_status='${this._runtime.current_status_property}'>`;
+    return `<Agent agentId='${this.agentId}', currentStatus='${this.runtime.currentStatus}'>`;
   }
 }

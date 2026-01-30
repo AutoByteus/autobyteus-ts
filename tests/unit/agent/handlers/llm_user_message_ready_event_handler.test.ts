@@ -31,24 +31,24 @@ const makeContext = (provider: LLMProvider, toolNames: string[] = []) => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
   const inputQueues = {
-    enqueue_internal_system_event: vi.fn(async () => undefined),
-    enqueue_tool_invocation_request: vi.fn(async () => undefined)
+    enqueueInternalSystemEvent: vi.fn(async () => undefined),
+    enqueueToolInvocationRequest: vi.fn(async () => undefined)
   } as any;
   const notifier = {
-    notify_agent_segment_event: vi.fn(),
-    notify_agent_error_output_generation: vi.fn()
+    notifyAgentSegmentEvent: vi.fn(),
+    notifyAgentErrorOutputGeneration: vi.fn()
   };
 
-  state.input_event_queues = inputQueues;
-  state.status_manager_ref = { notifier } as any;
-  state.tool_instances = toolNames.reduce((acc, name) => {
+  state.inputEventQueues = inputQueues;
+  state.statusManagerRef = { notifier } as any;
+  state.toolInstances = toolNames.reduce((acc, name) => {
     acc[name] = { getName: () => name };
     return acc;
   }, {} as Record<string, any>);
@@ -92,12 +92,12 @@ describe('LLMUserMessageReadyEventHandler', () => {
         }
       }
     };
-    context.state.llm_instance = mockLLM as any;
+    context.state.llmInstance = mockLLM as any;
 
     const event = new LLMUserMessageReadyEvent(new LLMUserMessage({ content: 'prompt' }));
     await handler.handle(event, context);
 
-    const deltas = notifier.notify_agent_segment_event.mock.calls
+    const deltas = notifier.notifyAgentSegmentEvent.mock.calls
       .map(([payload]) => payload)
       .filter((payload) => payload?.type === 'SEGMENT_CONTENT')
       .map((payload) => payload.payload?.delta)
@@ -107,7 +107,7 @@ describe('LLMUserMessageReadyEventHandler', () => {
     expect(combined).toContain('Hello ');
     expect(combined).toContain('World');
     expect(combined).not.toContain('<wr');
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledOnce();
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledOnce();
   });
 
   it('uses provider-aware JSON parsing for tool invocations', async () => {
@@ -124,15 +124,15 @@ describe('LLMUserMessageReadyEventHandler', () => {
         yield new ChunkResponse({ content: jsonPayload, is_complete: true });
       }
     };
-    context.state.llm_instance = mockLLM as any;
+    context.state.llmInstance = mockLLM as any;
 
     const event = new LLMUserMessageReadyEvent(new LLMUserMessage({ content: 'prompt' }));
     await handler.handle(event, context);
 
-    expect(inputQueues.enqueue_tool_invocation_request).toHaveBeenCalled();
-    const invocationEvent = inputQueues.enqueue_tool_invocation_request.mock.calls[0][0];
-    expect(invocationEvent.tool_invocation.name).toBe('search');
-    expect(invocationEvent.tool_invocation.arguments).toEqual({ query: 'autobyteus' });
+    expect(inputQueues.enqueueToolInvocationRequest).toHaveBeenCalled();
+    const invocationEvent = inputQueues.enqueueToolInvocationRequest.mock.calls[0][0];
+    expect(invocationEvent.toolInvocation.name).toBe('search');
+    expect(invocationEvent.toolInvocation.arguments).toEqual({ query: 'autobyteus' });
   });
 
   it('uses pass-through handler when no tools are configured', async () => {
@@ -146,12 +146,12 @@ describe('LLMUserMessageReadyEventHandler', () => {
         yield new ChunkResponse({ content: '<write_file>', is_complete: true });
       }
     };
-    context.state.llm_instance = mockLLM as any;
+    context.state.llmInstance = mockLLM as any;
 
     const event = new LLMUserMessageReadyEvent(new LLMUserMessage({ content: 'prompt' }));
     await handler.handle(event, context);
 
-    const deltas = notifier.notify_agent_segment_event.mock.calls
+    const deltas = notifier.notifyAgentSegmentEvent.mock.calls
       .map(([payload]) => payload)
       .filter((payload) => payload?.type === 'SEGMENT_CONTENT')
       .map((payload) => payload.payload?.delta)
@@ -159,7 +159,7 @@ describe('LLMUserMessageReadyEventHandler', () => {
     const combined = deltas.join('');
 
     expect(combined).toContain('<write_file>');
-    expect(inputQueues.enqueue_tool_invocation_request).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueToolInvocationRequest).not.toHaveBeenCalled();
   });
 
   it('passes tool schemas to LLM stream for api_tool_call mode', async () => {
@@ -192,7 +192,7 @@ describe('LLMUserMessageReadyEventHandler', () => {
         yield new ChunkResponse({ content: 'Hello', is_complete: true });
       }
     };
-    context.state.llm_instance = mockLLM as any;
+    context.state.llmInstance = mockLLM as any;
 
     const event = new LLMUserMessageReadyEvent(new LLMUserMessage({ content: 'prompt' }));
     await handler.handle(event, context);

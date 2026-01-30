@@ -7,14 +7,11 @@ import { AgentFactory } from '../../../src/agent/factory/agent_factory.js';
 import { AgentConfig } from '../../../src/agent/context/agent_config.js';
 import { AgentStatus } from '../../../src/agent/status/status_enum.js';
 import { AgentInputUserMessage } from '../../../src/agent/message/agent_input_user_message.js';
-import { OpenAILLM } from '../../../src/llm/api/openai_llm.js';
-import { LLMModel } from '../../../src/llm/models.js';
-import { LLMProvider } from '../../../src/llm/providers.js';
-import { LLMConfig } from '../../../src/llm/utils/llm_config.js';
 import { registerWriteFileTool } from '../../../src/tools/file/write_file.js';
 import { BaseAgentWorkspace } from '../../../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../../../src/agent/workspace/workspace_config.js';
 import { SkillRegistry } from '../../../src/skills/registry.js';
+import { createLmstudioLLM, hasLmstudioConfig } from '../helpers/lmstudio_llm_helper.js';
 
 class SimpleWorkspace extends BaseAgentWorkspace {
   private rootPath: string;
@@ -24,11 +21,6 @@ class SimpleWorkspace extends BaseAgentWorkspace {
     this.rootPath = rootPath;
   }
 
-  get_base_path(): string {
-    return this.rootPath;
-  }
-
-  // Tool compatibility: some tools expect camelCase.
   getBasePath(): string {
     return this.rootPath;
   }
@@ -69,10 +61,9 @@ const resetFactory = () => {
   (AgentFactory as any).instance = undefined;
 };
 
-const apiKey = process.env.OPENAI_API_KEY;
-const runIntegration = apiKey ? describe : describe.skip;
+const runIntegration = hasLmstudioConfig() ? describe : describe.skip;
 
-runIntegration('Agent single-flow integration (OpenAI, XML)', () => {
+runIntegration('Agent single-flow integration (LM Studio, XML)', () => {
   let tempDir: string;
   let originalParserEnv: string | undefined;
 
@@ -100,18 +91,8 @@ runIntegration('Agent single-flow integration (OpenAI, XML)', () => {
     const tool = registerWriteFileTool();
     const toolArgs = { path: 'poem.txt', content: 'Roses are red.' };
 
-    const model = new LLMModel({
-      name: 'gpt-5.2',
-      value: 'gpt-5.2',
-      canonical_name: 'gpt-5.2',
-      provider: LLMProvider.OPENAI
-    });
-    const llmConfig = new LLMConfig({
-      extra_params: {
-        temperature: 0
-      }
-    });
-    const llm = new OpenAILLM(model, llmConfig);
+    const llm = await createLmstudioLLM({ temperature: 0 });
+    if (!llm) return;
 
     const systemPrompt =
       'You MUST use the provided XML tool format. Respond with a single XML tool call only.';
@@ -134,14 +115,14 @@ runIntegration('Agent single-flow integration (OpenAI, XML)', () => {
     );
 
     const factory = new AgentFactory();
-    const agent = factory.create_agent(config);
+    const agent = factory.createAgent(config);
 
     try {
       agent.start();
-      const ready = await waitForStatus(agent.agent_id, () => agent.context.current_status);
+      const ready = await waitForStatus(agent.agentId, () => agent.context.currentStatus);
       expect(ready).toBe(true);
 
-      await agent.post_user_message(
+      await agent.postUserMessage(
         new AgentInputUserMessage(
           `Use the write_file tool to write "${toolArgs.content}" to "${toolArgs.path}". ` +
             `Return only the XML tool call and nothing else.`
@@ -155,7 +136,7 @@ runIntegration('Agent single-flow integration (OpenAI, XML)', () => {
       const content = await fs.readFile(filePath, 'utf8');
       expect(content.trim()).toBe(toolArgs.content);
     } finally {
-      if (agent.is_running) {
+      if (agent.isRunning) {
         await agent.stop(5);
       }
       await llm.cleanup();

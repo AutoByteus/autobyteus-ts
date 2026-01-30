@@ -6,16 +6,16 @@ import { ToDoDefinitionSchema } from '../../../../../src/task_management/schemas
 const buildContext = (agentId = 'agent_get_todos', withItems = true) => {
   const todoList = new ToDoList(agentId);
   if (withItems) {
-    todoList.add_todos([
+    todoList.addTodos([
       ToDoDefinitionSchema.parse({ description: 'Outline proposal' }),
       ToDoDefinitionSchema.parse({ description: 'Share proposal with mentor' })
     ]);
   }
 
   return {
-    agent_id: agentId,
+    agentId,
     state: {
-      todo_list: withItems ? todoList : null
+      todoList: withItems ? todoList : null
     }
   };
 };
@@ -52,7 +52,7 @@ describe('GetToDoList tool', () => {
   it('returns empty message when list has no items', async () => {
     const tool = new GetToDoList();
     const context = buildContext('agent_get_todos', false);
-    context.state.todo_list = new ToDoList('test');
+    context.state.todoList = new ToDoList('test');
 
     const result = await (tool as any)._execute(context);
 

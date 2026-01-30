@@ -11,7 +11,7 @@ import { ToolOrigin } from '../tool_origin.js';
 type McpToolDescriptor = {
   name: string;
   description: string;
-  inputSchema: Record<string, any>;
+  inputSchema: Record<string, unknown>;
 };
 
 type RegistrarDependencies = {
@@ -21,6 +21,8 @@ type RegistrarDependencies = {
 };
 
 export class McpToolRegistrar extends Singleton {
+  protected static instance?: McpToolRegistrar;
+
   private configService!: McpConfigService;
   private toolRegistry!: ToolRegistry;
   private instanceManager!: McpServerInstanceManager;
@@ -28,16 +30,15 @@ export class McpToolRegistrar extends Singleton {
 
   constructor(deps?: RegistrarDependencies) {
     super();
-    const existing = (McpToolRegistrar as any).instance as McpToolRegistrar | undefined;
-    if (existing) {
-      return existing;
+    if (McpToolRegistrar.instance) {
+      return McpToolRegistrar.instance;
     }
 
     this.configService = deps?.configService ?? McpConfigService.getInstance();
     this.toolRegistry = deps?.toolRegistry ?? ToolRegistry.getInstance();
     this.instanceManager = deps?.instanceManager ?? McpServerInstanceManager.getInstance();
 
-    (McpToolRegistrar as any).instance = this;
+    McpToolRegistrar.instance = this;
   }
 
   protected async fetchToolsFromServer(serverConfig: BaseMcpConfig): Promise<McpToolDescriptor[]> {
@@ -117,7 +118,7 @@ export class McpToolRegistrar extends Singleton {
     return await this.discoverAndRegisterFromConfig(configObject, schemaMapper);
   }
 
-  async loadAndRegisterServer(configDict: Record<string, any>): Promise<ToolDefinition[]> {
+  async loadAndRegisterServer(configDict: Record<string, unknown>): Promise<ToolDefinition[]> {
     const validatedConfig = this.configService.loadConfigFromDict(configDict);
     return await this.registerServer(validatedConfig);
   }
@@ -148,7 +149,7 @@ export class McpToolRegistrar extends Singleton {
     return allRegistered;
   }
 
-  async listRemoteTools(mcpConfig: BaseMcpConfig | Record<string, any>): Promise<ToolDefinition[]> {
+  async listRemoteTools(mcpConfig: BaseMcpConfig | Record<string, unknown>): Promise<ToolDefinition[]> {
     const validatedConfig =
       mcpConfig instanceof BaseMcpConfig
         ? mcpConfig

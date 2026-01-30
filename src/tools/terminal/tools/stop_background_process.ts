@@ -8,7 +8,7 @@ import type { AgentContextLike } from './run_bash.js';
 
 let defaultBackgroundManager: BackgroundProcessManager | null = null;
 
-function _get_background_manager(context: AgentContextLike | null | undefined): BackgroundProcessManager {
+function getBackgroundManager(context: AgentContextLike | null | undefined): BackgroundProcessManager {
   if (!context) {
     if (!defaultBackgroundManager) {
       defaultBackgroundManager = new BackgroundProcessManager();
@@ -16,21 +16,29 @@ function _get_background_manager(context: AgentContextLike | null | undefined): 
     return defaultBackgroundManager;
   }
 
-  const contextAny = context as Record<string, any>;
-  if (!contextAny._background_process_manager) {
-    contextAny._background_process_manager = new BackgroundProcessManager();
+  const contextRecord = context as Record<string, unknown>;
+  const existing = contextRecord._backgroundProcessManager as BackgroundProcessManager | undefined;
+
+  if (!existing) {
+    const manager = new BackgroundProcessManager();
+    contextRecord._backgroundProcessManager = manager;
+    return manager;
   }
 
-  return contextAny._background_process_manager as BackgroundProcessManager;
+  if (!contextRecord._backgroundProcessManager) {
+    contextRecord._backgroundProcessManager = existing;
+  }
+
+  return existing;
 }
 
-export async function stop_background_process(
+export async function stopBackgroundProcess(
   context: AgentContextLike | null,
-  process_id: string
-): Promise<{ status: string; process_id: string }> {
-  const manager = _get_background_manager(context);
-  const success = await manager.stop_process(process_id);
-  return { status: success ? 'stopped' : 'not_found', process_id };
+  processId: string
+): Promise<{ status: string; processId: string }> {
+  const manager = getBackgroundManager(context);
+  const success = await manager.stopProcess(processId);
+  return { status: success ? 'stopped' : 'not_found', processId };
 }
 
 const argumentSchema = new ParameterSchema();
@@ -50,8 +58,9 @@ export function registerStopBackgroundProcessTool(): BaseTool {
       name: TOOL_NAME,
       description: 'Stop a running background process.',
       argumentSchema,
-      category: ToolCategory.SYSTEM
-    })(stop_background_process) as BaseTool;
+      category: ToolCategory.SYSTEM,
+      paramNames: ['context', 'process_id']
+    })(stopBackgroundProcess) as BaseTool;
     return cachedTool;
   }
 

@@ -27,11 +27,11 @@ describe('McpToolFactory', () => {
       schema
     );
 
-    expect((factory as any)._server_id).toBe('test_server_123');
-    expect((factory as any)._remote_tool_name).toBe('remote_calculator');
-    expect((factory as any)._registered_tool_name).toBe('MyCalculator');
-    expect((factory as any)._tool_description).toContain('remote calculator');
-    expect((factory as any)._tool_argument_schema).toBe(schema);
+    expect((factory as any).serverId).toBe('test_server_123');
+    expect((factory as any).remoteToolName).toBe('remote_calculator');
+    expect((factory as any).registeredToolName).toBe('MyCalculator');
+    expect((factory as any).toolDescription).toContain('remote calculator');
+    expect((factory as any).toolArgumentSchema).toBe(schema);
   });
 
   it('creates a configured GenericMcpTool instance', () => {
@@ -48,8 +48,8 @@ describe('McpToolFactory', () => {
     const toolInstance = factory.createTool(dummyConfig) as GenericMcpTool;
 
     expect(toolInstance).toBeInstanceOf(GenericMcpTool);
-    expect((toolInstance as any)._server_id).toBe('test_server_123');
-    expect((toolInstance as any)._remote_tool_name).toBe('remote_calculator');
+    expect((toolInstance as any).serverId).toBe('test_server_123');
+    expect((toolInstance as any).remoteToolName).toBe('remote_calculator');
     expect(toolInstance.getName()).toBe('MyCalculator');
     expect(toolInstance.getDescription()).toBe('A remote calculator tool.');
     expect(toolInstance.getArgumentSchema()).toBe(schema);

@@ -60,7 +60,7 @@ runIntegration('terminal tools integration', () => {
 
       expect(result).toBeInstanceOf(TerminalResult);
       expect(result.stdout).toContain('hello');
-      expect(result.timed_out).toBe(false);
+      expect(result.timedOut).toBe(false);
     });
   });
 
@@ -82,7 +82,7 @@ runIntegration('terminal tools integration', () => {
       const context = new MockContext(tempDir);
       const result = await runBashTool.execute(context, { command: 'sleep 5', timeout_seconds: 1 });
 
-      expect(result.timed_out).toBe(true);
+      expect(result.timedOut).toBe(true);
     });
   });
 
@@ -95,13 +95,13 @@ runIntegration('terminal tools integration', () => {
       });
 
       expect(startResult.status).toBe('started');
-      const processId = startResult.process_id as string;
+      const processId = startResult.processId as string;
 
       await new Promise((resolve) => setTimeout(resolve, 500));
 
       const outputResult = await getProcessOutputTool.execute(context, { process_id: processId });
       expect(outputResult.output).toContain('line');
-      expect(outputResult.is_running).toBe(true);
+      expect(outputResult.isRunning).toBe(true);
 
       const stopResult = await stopBackgroundProcessTool.execute(context, { process_id: processId });
       expect(stopResult.status).toBe('stopped');
@@ -123,7 +123,7 @@ runIntegration('terminal tools integration', () => {
       const result = await getProcessOutputTool.execute(context, { process_id: 'nonexistent_123' });
 
       expect(result.error).toBeTruthy();
-      expect(result.is_running).toBe(false);
+      expect(result.isRunning).toBe(false);
     });
   });
 });

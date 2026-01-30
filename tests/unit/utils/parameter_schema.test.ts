@@ -191,6 +191,6 @@ describe('ParameterSchema', () => {
             type: ParameterType.OBJECT,
             description: "A profile.",
             objectSchema: { key: "value" } as unknown as ParameterSchema
-        })).toThrow(/objectSchema must be a ParameterSchema instance/);
+        })).toThrow(/objectSchema must be a ParameterSchema instance or schema config/);
     });
 });

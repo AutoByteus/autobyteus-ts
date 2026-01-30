@@ -6,13 +6,13 @@ import { ParameterSchema, ParameterType } from '../../../../../src/utils/paramet
 const makeAgentContext = () => ({
   agentId: 'test_agent_create_tasks',
   config: { name: 'test_agent' },
-  custom_data: {} as Record<string, any>
+  customData: {} as Record<string, any>
 });
 
 const makeTeamContext = () => ({
   state: {
-    task_plan: {
-      add_tasks: vi.fn()
+    taskPlan: {
+      addTasks: vi.fn()
     }
   }
 });
@@ -43,10 +43,10 @@ describe('CreateTasks tool', () => {
     const tool = new CreateTasks();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
-    const taskPlan = teamContext.state.task_plan;
-    taskPlan.add_tasks.mockReturnValue([{ task_name: 'task1' }, { task_name: 'task2' }]);
+    const taskPlan = teamContext.state.taskPlan;
+    taskPlan.addTasks.mockReturnValue([{ task_name: 'task1' }, { task_name: 'task2' }]);
 
     const tasksDef = TasksDefinitionSchema.parse({
       tasks: [
@@ -58,9 +58,9 @@ describe('CreateTasks tool', () => {
     const result = await (tool as any)._execute(context, { tasks: tasksDef.tasks });
 
     expect(result).toBe('Successfully created 2 new task(s) in the task plan.');
-    expect(taskPlan.add_tasks).toHaveBeenCalledOnce();
+    expect(taskPlan.addTasks).toHaveBeenCalledOnce();
 
-    const [addedTasks] = taskPlan.add_tasks.mock.calls[0];
+    const [addedTasks] = taskPlan.addTasks.mock.calls[0];
     expect(Array.isArray(addedTasks)).toBe(true);
     expect(addedTasks).toHaveLength(2);
     expect(addedTasks[0].task_name).toBe('task1');
@@ -79,8 +79,8 @@ describe('CreateTasks tool', () => {
   it('returns an error when task plan is missing', async () => {
     const tool = new CreateTasks();
     const context = makeAgentContext();
-    const teamContext = { state: { task_plan: null } };
-    context.custom_data.team_context = teamContext;
+    const teamContext = { state: { taskPlan: null } };
+    context.customData.teamContext = teamContext;
 
     const result = await (tool as any)._execute(context, { tasks: [] });
 
@@ -91,19 +91,19 @@ describe('CreateTasks tool', () => {
     const tool = new CreateTasks();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
     const result = await (tool as any)._execute(context, { tasks: [{ task_name: 'task1' }] });
 
     expect(result).toContain('Error: Invalid task definitions provided');
-    expect(teamContext.state.task_plan.add_tasks).not.toHaveBeenCalled();
+    expect(teamContext.state.taskPlan.addTasks).not.toHaveBeenCalled();
   });
 
   it('surfaces duplicate task name validation errors', async () => {
     const tool = new CreateTasks();
     const context = makeAgentContext();
     const teamContext = makeTeamContext();
-    context.custom_data.team_context = teamContext;
+    context.customData.teamContext = teamContext;
 
     const result = await (tool as any)._execute(context, {
       tasks: [

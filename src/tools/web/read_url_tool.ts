@@ -4,7 +4,7 @@ import { ToolCategory } from '../tool_category.js';
 import { ParameterSchema, ParameterDefinition, ParameterType } from '../../utils/parameter_schema.js';
 import { clean, CleaningMode } from '../../utils/html_cleaner.js';
 
-export class ReadUrl extends BaseTool {
+export class ReadUrl extends BaseTool<unknown, Record<string, unknown>, string> {
   static CATEGORY = ToolCategory.WEB;
 
   static getName(): string {
@@ -38,9 +38,9 @@ export class ReadUrl extends BaseTool {
     return schema;
   }
 
-  protected async _execute(_context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const url = String(kwargs.url ?? '').trim();
-    const output_format = String(kwargs.output_format ?? 'text');
+  protected async _execute(_context: unknown, args: Record<string, unknown> = {}): Promise<string> {
+    const url = String(args['url'] ?? '').trim();
+    const outputFormat = String(args['output_format'] ?? 'text');
     if (!url) {
       throw new Error("Parameter 'url' is required for read_url.");
     }
@@ -56,7 +56,7 @@ export class ReadUrl extends BaseTool {
       }
 
       const htmlContent = typeof response.data === 'string' ? response.data : String(response.data ?? '');
-      const mode = output_format === 'text'
+      const mode = outputFormat === 'text'
         ? CleaningMode.TEXT_CONTENT_FOCUSED
         : CleaningMode.THOROUGH;
       const cleaned = clean(htmlContent, mode);

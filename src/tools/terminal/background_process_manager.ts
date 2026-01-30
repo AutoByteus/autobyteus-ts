@@ -1,65 +1,65 @@
 import { randomBytes } from 'node:crypto';
 import { OutputBuffer } from './output_buffer.js';
-import { get_default_session_factory } from './session_factory.js';
+import { getDefaultSessionFactory } from './session_factory.js';
 import { BackgroundProcessOutput, ProcessInfo } from './types.js';
-import { strip_ansi_codes } from './ansi_utils.js';
+import { stripAnsiCodes } from './ansi_utils.js';
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 class BackgroundProcess {
-  process_id: string;
+  processId: string;
   command: string;
   session: any;
-  output_buffer: OutputBuffer;
-  started_at: number;
+  outputBuffer: OutputBuffer;
+  startedAt: number;
   readerPromise: Promise<void> | null = null;
   cancelled = false;
 
-  constructor(process_id: string, command: string, session: any, output_buffer: OutputBuffer) {
-    this.process_id = process_id;
+  constructor(processId: string, command: string, session: any, outputBuffer: OutputBuffer) {
+    this.processId = processId;
     this.command = command;
     this.session = session;
-    this.output_buffer = output_buffer;
-    this.started_at = Date.now() / 1000;
+    this.outputBuffer = outputBuffer;
+    this.startedAt = Date.now() / 1000;
   }
 
-  get is_running(): boolean {
-    return this.session.is_alive;
+  get isRunning(): boolean {
+    return this.session.isAlive;
   }
 
-  to_info(): ProcessInfo {
-    return new ProcessInfo(this.process_id, this.command, this.started_at, this.is_running);
+  toInfo(): ProcessInfo {
+    return new ProcessInfo(this.processId, this.command, this.startedAt, this.isRunning);
   }
 }
 
 export class BackgroundProcessManager {
-  private sessionFactory: new (session_id: string) => any;
+  private sessionFactory: new (sessionId: string) => any;
   private maxOutputBytes: number;
   private processes: Map<string, BackgroundProcess> = new Map();
   private counter = 0;
 
-  constructor(session_factory?: new (session_id: string) => any, max_output_bytes: number = 1_000_000) {
-    this.sessionFactory = session_factory ?? get_default_session_factory();
-    this.maxOutputBytes = max_output_bytes;
+  constructor(sessionFactory?: new (sessionId: string) => any, maxOutputBytes: number = 1_000_000) {
+    this.sessionFactory = sessionFactory ?? getDefaultSessionFactory();
+    this.maxOutputBytes = maxOutputBytes;
   }
 
-  private _generate_id(): string {
+  private generateId(): string {
     this.counter += 1;
     return `bg_${String(this.counter).padStart(3, '0')}`;
   }
 
-  async start_process(command: string, cwd: string): Promise<string> {
-    const process_id = this._generate_id();
-    const session_id = `bg-${randomBytes(4).toString('hex')}`;
+  async startProcess(command: string, cwd: string): Promise<string> {
+    const processId = this.generateId();
+    const sessionId = `bg-${randomBytes(4).toString('hex')}`;
 
-    const session = new this.sessionFactory(session_id);
-    const output_buffer = new OutputBuffer(this.maxOutputBytes);
+    const session = new this.sessionFactory(sessionId);
+    const outputBuffer = new OutputBuffer(this.maxOutputBytes);
 
     await session.start(cwd);
 
-    const bg_process = new BackgroundProcess(process_id, command, session, output_buffer);
+    const bgProcess = new BackgroundProcess(processId, command, session, outputBuffer);
 
     let normalized = command;
     if (!normalized.endsWith('\n')) {
@@ -67,19 +67,19 @@ export class BackgroundProcessManager {
     }
     await session.write(Buffer.from(normalized, 'utf8'));
 
-    bg_process.readerPromise = this._read_loop(bg_process);
-    this.processes.set(process_id, bg_process);
+    bgProcess.readerPromise = this.readLoop(bgProcess);
+    this.processes.set(processId, bgProcess);
 
-    return process_id;
+    return processId;
   }
 
-  private async _read_loop(process: BackgroundProcess): Promise<void> {
+  private async readLoop(process: BackgroundProcess): Promise<void> {
     try {
-      while (process.session.is_alive && !process.cancelled) {
+      while (process.session.isAlive && !process.cancelled) {
         try {
           const data = await process.session.read(0.1);
           if (data) {
-            process.output_buffer.append(data);
+            process.outputBuffer.append(data);
           }
         } catch {
           break;
@@ -91,19 +91,19 @@ export class BackgroundProcessManager {
     }
   }
 
-  get_output(process_id: string, lines: number = 100): BackgroundProcessOutput {
-    const process = this.processes.get(process_id);
+  getOutput(processId: string, lines: number = 100): BackgroundProcessOutput {
+    const process = this.processes.get(processId);
     if (!process) {
-      throw new Error(`Process ${process_id} not found`);
+      throw new Error(`Process ${processId} not found`);
     }
 
-    const raw_output = process.output_buffer.get_lines(lines);
-    const clean_output = strip_ansi_codes(raw_output);
-    return new BackgroundProcessOutput(clean_output, process.is_running, process_id);
+    const rawOutput = process.outputBuffer.getLines(lines);
+    const cleanOutput = stripAnsiCodes(rawOutput);
+    return new BackgroundProcessOutput(cleanOutput, process.isRunning, processId);
   }
 
-  async stop_process(process_id: string): Promise<boolean> {
-    const process = this.processes.get(process_id);
+  async stopProcess(processId: string): Promise<boolean> {
+    const process = this.processes.get(processId);
     if (!process) {
       return false;
     }
@@ -115,27 +115,27 @@ export class BackgroundProcessManager {
     }
 
     await process.session.close();
-    this.processes.delete(process_id);
+    this.processes.delete(processId);
     return true;
   }
 
-  async stop_all(): Promise<number> {
+  async stopAll(): Promise<number> {
     const ids = Array.from(this.processes.keys());
-    for (const process_id of ids) {
-      await this.stop_process(process_id);
+    for (const processId of ids) {
+      await this.stopProcess(processId);
     }
     return ids.length;
   }
 
-  list_processes(): Record<string, ProcessInfo> {
+  listProcesses(): Record<string, ProcessInfo> {
     const result: Record<string, ProcessInfo> = {};
-    for (const [process_id, process] of this.processes.entries()) {
-      result[process_id] = process.to_info();
+    for (const [processId, process] of this.processes.entries()) {
+      result[processId] = process.toInfo();
     }
     return result;
   }
 
-  get process_count(): number {
+  get processCount(): number {
     return this.processes.size;
   }
 }

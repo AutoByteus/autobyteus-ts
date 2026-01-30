@@ -5,8 +5,8 @@ import { ToolManifestProvider } from '../../../../src/tools/usage/providers/tool
 import { LLMProvider } from '../../../../src/llm/providers.js';
 
 const makeContext = (provider: LLMProvider) => ({
-  agent_id: 'test_agent_123',
-  llm_instance: { model: { provider } }
+  agentId: 'test_agent_123',
+  llmInstance: { model: { provider } }
 });
 
 describe('ToolManifestInjectorProcessor', () => {
@@ -22,12 +22,12 @@ describe('ToolManifestInjectorProcessor', () => {
 
   it('returns correct name', () => {
     const processor = new ToolManifestInjectorProcessor();
-    expect(processor.get_name()).toBe('ToolManifestInjector');
+    expect(processor.getName()).toBe('ToolManifestInjector');
   });
 
   it('is mandatory', () => {
     const processor = new ToolManifestInjectorProcessor();
-    expect(processor.is_mandatory()).toBe(true);
+    expect(processor.isMandatory()).toBe(true);
   });
 
   it('returns prompt unchanged when no tools are provided', () => {

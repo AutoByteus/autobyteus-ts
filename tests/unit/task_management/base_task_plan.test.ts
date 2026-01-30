@@ -4,31 +4,31 @@ import type { Task } from '../../../src/task_management/task.js';
 import type { TaskDefinition } from '../../../src/task_management/schemas/task_definition.js';
 
 class DummyPlan extends BaseTaskPlan {
-  add_tasks(_task_definitions: TaskDefinition[]): Task[] {
+  addTasks(_taskDefinitions: TaskDefinition[]): Task[] {
     return [];
   }
 
-  add_task(_task_definition: TaskDefinition): Task | null {
+  addTask(_taskDefinition: TaskDefinition): Task | null {
     return null;
   }
 
-  update_task_status(_task_id: string, _status: TaskStatus, _agent_name: string): boolean {
+  updateTaskStatus(_taskId: string, _status: TaskStatus, _agentName: string): boolean {
     return false;
   }
 
-  get_status_overview(): Record<string, any> {
-    return {};
+  getStatusOverview() {
+    return { taskStatuses: {}, tasks: [] };
   }
 
-  get_next_runnable_tasks(): Task[] {
+  getNextRunnableTasks(): Task[] {
     return [];
   }
 }
 
 describe('BaseTaskPlan', () => {
-  it('stores team_id and initializes tasks', () => {
+  it('stores teamId and initializes tasks', () => {
     const plan = new DummyPlan('team-123');
-    expect(plan.team_id).toBe('team-123');
+    expect(plan.teamId).toBe('team-123');
     expect(plan.tasks).toEqual([]);
   });
 });

@@ -15,7 +15,7 @@ import { TokenUsage } from '../utils/token_usage.js';
 // For this migration step, I will define a helper or interface to get it.
 
 export interface TokenCounterFactory {
-  getTokenCounter(model: any, llm: BaseLLM): BaseTokenCounter | null;
+  getTokenCounter(model: unknown, llm: BaseLLM): BaseTokenCounter | null;
 }
 
 export class TokenUsageTrackingExtension extends LLMExtension {
@@ -36,11 +36,11 @@ export class TokenUsageTrackingExtension extends LLMExtension {
     // Accessing llm.model might require casting if BaseLLM is still skeletal.
     
     if (tokenCounterFactory) {
-      this.tokenCounter = tokenCounterFactory.getTokenCounter((llm as any).model, llm);
+      this.tokenCounter = tokenCounterFactory.getTokenCounter(llm.model, llm);
     }
 
     if (this.tokenCounter) {
-      this.usageTracker = new TokenUsageTracker((llm as any).model, this.tokenCounter);
+      this.usageTracker = new TokenUsageTracker(llm.model, this.tokenCounter);
     }
   }
 
@@ -52,11 +52,11 @@ export class TokenUsageTrackingExtension extends LLMExtension {
     return this.latestUsage;
   }
 
-  async beforeInvoke(userMessage: LLMUserMessage, kwargs?: Record<string, any>): Promise<void> {
+  async beforeInvoke(userMessage: LLMUserMessage, kwargs?: Record<string, unknown>): Promise<void> {
     // No-op
   }
 
-  async afterInvoke(userMessage: LLMUserMessage, response: CompleteResponse | null, kwargs?: Record<string, any>): Promise<void> {
+  async afterInvoke(userMessage: LLMUserMessage, response: CompleteResponse | null, kwargs?: Record<string, unknown>): Promise<void> {
     if (!this.isEnabled || !this.usageTracker) return;
 
     const latest = this.usageTracker.getLatestUsage();
@@ -85,7 +85,7 @@ export class TokenUsageTrackingExtension extends LLMExtension {
     if (!this.isEnabled || !this.usageTracker) return;
     // We need access to llm.messages. BaseLLM skeleton needs this property.
     // We'll cast for now.
-    const history = (this.llm as any).messages || [];
+    const history = this.llm.messages || [];
     this.usageTracker.calculateInputMessages(history);
   }
 

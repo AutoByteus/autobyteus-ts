@@ -29,7 +29,7 @@ class MockAgentEventStream {
     return new Promise((resolve) => this.waiters.push(resolve));
   }
 
-  async *all_events(): AsyncGenerator<StreamEvent, void, unknown> {
+  async *allEvents(): AsyncGenerator<StreamEvent, void, unknown> {
     while (true) {
       const item = await this.get();
       if (item === SENTINEL) {
@@ -42,11 +42,11 @@ class MockAgentEventStream {
 
 describe('AgentEventBridge', () => {
   it('forwards agent events to notifier', async () => {
-    const notifier = { publish_agent_event: vi.fn() } as any;
+    const notifier = { publishAgentEvent: vi.fn() } as any;
     const stream = new MockAgentEventStream();
 
     const bridge = new AgentEventBridge(
-      { agent_id: 'agent-1' } as any,
+      { agentId: 'agent-1' } as any,
       'TestAgent',
       notifier,
       { stream } as any
@@ -68,9 +68,9 @@ describe('AgentEventBridge', () => {
 
     await new Promise((resolve) => setTimeout(resolve, 20));
 
-    expect(notifier.publish_agent_event).toHaveBeenCalledTimes(2);
-    expect(notifier.publish_agent_event).toHaveBeenCalledWith('TestAgent', event1);
-    expect(notifier.publish_agent_event).toHaveBeenCalledWith('TestAgent', event2);
+    expect(notifier.publishAgentEvent).toHaveBeenCalledTimes(2);
+    expect(notifier.publishAgentEvent).toHaveBeenCalledWith('TestAgent', event1);
+    expect(notifier.publishAgentEvent).toHaveBeenCalledWith('TestAgent', event2);
 
     await bridge.cancel();
     expect(stream.close).toHaveBeenCalledTimes(1);

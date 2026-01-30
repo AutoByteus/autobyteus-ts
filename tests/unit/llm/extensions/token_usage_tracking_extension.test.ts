@@ -12,10 +12,10 @@ import { LLMProvider } from '../../../../src/llm/providers.js';
 
 // Mocks
 class MockLLM extends BaseLLM {
-  async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse> {
+  async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
     return new CompleteResponse({ content: '' });
   }
-  async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown> {
+  async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: '' });
   }
   // No custom constructor needed if we pass correct args to super, or we override it.
@@ -41,16 +41,16 @@ describe('TokenUsageTrackingExtension', () => {
     const model = new LLMModel({
       name: 'test',
       value: 'test',
-      canonical_name: 'test',
+      canonicalName: 'test',
       provider: LLMProvider.OPENAI,
-      default_config: new LLMConfig({
-        pricing_config: new TokenPricingConfig({
-          input_token_pricing: 10.0,
-          output_token_pricing: 20.0
+      defaultConfig: new LLMConfig({
+        pricingConfig: new TokenPricingConfig({
+          inputTokenPricing: 10.0,
+          outputTokenPricing: 20.0
         })
       })
     });
-    llm = new MockLLM(model, model.default_config);
+    llm = new MockLLM(model, model.defaultConfig);
     ext = new TokenUsageTrackingExtension(llm, mockFactory);
   });
 

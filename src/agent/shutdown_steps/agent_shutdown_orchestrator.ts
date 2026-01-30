@@ -5,25 +5,25 @@ import { ToolCleanupStep } from './tool_cleanup_step.js';
 import { McpServerCleanupStep } from './mcp_server_cleanup_step.js';
 
 export class AgentShutdownOrchestrator {
-  shutdown_steps: BaseShutdownStep[];
+  shutdownSteps: BaseShutdownStep[];
 
   constructor(steps?: BaseShutdownStep[]) {
     if (!steps) {
-      this.shutdown_steps = [
+      this.shutdownSteps = [
         new LLMInstanceCleanupStep(),
         new ToolCleanupStep(),
         new McpServerCleanupStep()
       ];
     } else {
-      this.shutdown_steps = steps;
+      this.shutdownSteps = steps;
     }
   }
 
   async run(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
 
-    for (let index = 0; index < this.shutdown_steps.length; index += 1) {
-      const step = this.shutdown_steps[index];
+    for (let index = 0; index < this.shutdownSteps.length; index += 1) {
+      const step = this.shutdownSteps[index];
       const success = await step.execute(context);
       if (!success) {
         console.error(`Agent '${agentId}': Shutdown step ${step.constructor.name} failed.`);

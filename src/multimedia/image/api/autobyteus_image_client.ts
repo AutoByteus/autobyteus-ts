@@ -2,12 +2,14 @@ import crypto from 'node:crypto';
 import { AutobyteusClient } from '../../../clients/autobyteus_client.js';
 import { BaseImageClient } from '../base_image_client.js';
 import { ImageGenerationResponse } from '../../utils/response_types.js';
+import type { ImageModel } from '../image_model.js';
+import type { MultimediaConfig } from '../../utils/multimedia_config.js';
 
 export class AutobyteusImageClient extends BaseImageClient {
   private autobyteusClient: AutobyteusClient;
   sessionId: string;
 
-  constructor(model: any, config: any) {
+  constructor(model: ImageModel, config: MultimediaConfig) {
     super(model, config);
     if (!model.hostUrl) {
       throw new Error('AutobyteusImageClient requires a hostUrl in its ImageModel.');
@@ -20,7 +22,7 @@ export class AutobyteusImageClient extends BaseImageClient {
   async generateImage(
     prompt: string,
     inputImageUrls?: string[] | null,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<ImageGenerationResponse> {
     return this.callRemoteGenerate(prompt, inputImageUrls ?? null, null, generationConfig ?? null);
   }
@@ -29,7 +31,7 @@ export class AutobyteusImageClient extends BaseImageClient {
     prompt: string,
     inputImageUrls: string[],
     maskUrl?: string | null,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<ImageGenerationResponse> {
     return this.callRemoteGenerate(prompt, inputImageUrls, maskUrl ?? null, generationConfig ?? null);
   }
@@ -38,7 +40,7 @@ export class AutobyteusImageClient extends BaseImageClient {
     prompt: string,
     inputImageUrls: string[] | null,
     maskUrl: string | null,
-    generationConfig: Record<string, any> | null
+    generationConfig: Record<string, unknown> | null
   ): Promise<ImageGenerationResponse> {
     const responseData = await this.autobyteusClient.generateImage(
       this.model.name,
@@ -49,8 +51,10 @@ export class AutobyteusImageClient extends BaseImageClient {
       this.sessionId
     );
 
-    const imageUrls = responseData?.image_urls ?? [];
-    if (!imageUrls || imageUrls.length === 0) {
+    const imageUrls = Array.isArray(responseData?.image_urls)
+      ? responseData.image_urls.filter((url): url is string => typeof url === 'string')
+      : [];
+    if (imageUrls.length === 0) {
       throw new Error('Remote Autobyteus server did not return any image URLs.');
     }
 

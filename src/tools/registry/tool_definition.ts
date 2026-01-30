@@ -15,7 +15,7 @@ export class ToolDefinition {
   private _description: string;
   private _origin: ToolOrigin;
   private _category: string;
-  private _metadata: Record<string, any>;
+  private _metadata: Record<string, unknown>;
 
   private _argumentSchemaProvider: () => ParameterSchema | null;
   private _configSchemaProvider: () => ParameterSchema | null;
@@ -37,7 +37,7 @@ export class ToolDefinition {
     options: {
       toolClass?: ToolClass;
       customFactory?: (config?: ToolConfig) => BaseTool;
-      metadata?: Record<string, any>;
+      metadata?: Record<string, unknown>;
       descriptionProvider?: () => string;
     }
   ) {
@@ -79,7 +79,7 @@ export class ToolDefinition {
     if (this.customFactory && typeof this.customFactory !== 'function') {
       throw new TypeError(`ToolDefinition '${name}' requires a callable for 'custom_factory'.`);
     }
-    if (this._origin === ToolOrigin.MCP && !this._metadata?.mcp_server_id) {
+    if (this._origin === ToolOrigin.MCP && !this._metadata?.['mcp_server_id']) {
       throw new Error(`ToolDefinition '${name}' with origin MCP must provide a 'mcp_server_id' in its metadata.`);
     }
 
@@ -100,7 +100,7 @@ export class ToolDefinition {
   get description(): string { return this._description; }
   get origin(): ToolOrigin { return this._origin; }
   get category(): string { return this._category; }
-  get metadata(): Record<string, any> { return this._metadata; }
+  get metadata(): Record<string, unknown> { return this._metadata; }
 
   get argumentSchema(): ParameterSchema | null {
     if (this._cachedArgumentSchema === CACHE_NOT_SET) {
@@ -155,7 +155,7 @@ export class ToolDefinition {
     return formatter.provide(this);
   }
 
-  public getUsageJson(provider?: LLMProvider): any {
+  public getUsageJson(provider?: LLMProvider): unknown {
     const formatter = new DefaultJsonSchemaFormatter();
     return formatter.provide(this);
   }
@@ -165,7 +165,7 @@ export class ToolDefinition {
     return formatter.provide(this);
   }
 
-  public getUsageJsonExample(provider?: LLMProvider): any {
+  public getUsageJsonExample(provider?: LLMProvider): unknown {
     const formatter = new DefaultJsonExampleFormatter();
     return formatter.provide(this);
   }
@@ -175,7 +175,7 @@ export class ToolDefinition {
     return !!schema && schema.parameters.length > 0;
   }
 
-  public validateInstantiationConfig(configData: Record<string, any>): [boolean, string[]] {
+  public validateInstantiationConfig(configData: Record<string, unknown>): [boolean, string[]] {
     const schema = this.configSchema;
     const payload = configData || {};
     if (!schema) {

@@ -6,15 +6,15 @@ import {
 } from '../schemas/task_status_report.js';
 
 export class TaskPlanConverter {
-  static to_schema(task_plan: BaseTaskPlan): TaskStatusReport | null {
-    if (task_plan.tasks.length === 0) {
+  static toSchema(taskPlan: BaseTaskPlan): TaskStatusReport | null {
+    if (taskPlan.tasks.length === 0) {
       return null;
     }
 
-    const internalStatus = task_plan.get_status_overview();
-    const idToNameMap = new Map(task_plan.tasks.map((task) => [task.task_id, task.task_name]));
+    const internalStatus = taskPlan.getStatusOverview();
+    const idToNameMap = new Map(taskPlan.tasks.map((task) => [task.task_id, task.task_name]));
 
-    const reportItems = task_plan.tasks.map((task) => {
+    const reportItems = taskPlan.tasks.map((task) => {
       const depNames = (task.dependencies ?? []).map((depId) => idToNameMap.get(depId) ?? String(depId));
 
       return TaskStatusReportItemSchema.parse({
@@ -22,7 +22,7 @@ export class TaskPlanConverter {
         assignee_name: task.assignee_name,
         description: task.description,
         dependencies: depNames,
-        status: internalStatus.task_statuses?.[task.task_id],
+        status: internalStatus.taskStatuses?.[task.task_id],
         file_deliverables: task.file_deliverables
       });
     });

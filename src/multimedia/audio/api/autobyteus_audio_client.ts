@@ -1,13 +1,15 @@
 import crypto from 'node:crypto';
 import { AutobyteusClient } from '../../../clients/autobyteus_client.js';
 import { BaseAudioClient } from '../base_audio_client.js';
+import type { AudioModel } from '../audio_model.js';
+import type { MultimediaConfig } from '../../utils/multimedia_config.js';
 import { SpeechGenerationResponse } from '../../utils/response_types.js';
 
 export class AutobyteusAudioClient extends BaseAudioClient {
   private autobyteusClient: AutobyteusClient;
   sessionId: string;
 
-  constructor(model: any, config: any) {
+  constructor(model: AudioModel, config: MultimediaConfig) {
     super(model, config);
     if (!model.hostUrl) {
       throw new Error('AutobyteusAudioClient requires a hostUrl in its AudioModel.');
@@ -19,7 +21,7 @@ export class AutobyteusAudioClient extends BaseAudioClient {
 
   async generateSpeech(
     prompt: string,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<SpeechGenerationResponse> {
     const responseData = await this.autobyteusClient.generateSpeech(
       this.model.name,
@@ -28,8 +30,10 @@ export class AutobyteusAudioClient extends BaseAudioClient {
       this.sessionId
     );
 
-    const audioUrls = responseData?.audio_urls ?? [];
-    if (!audioUrls || audioUrls.length === 0) {
+    const audioUrls = Array.isArray(responseData?.audio_urls)
+      ? responseData.audio_urls.filter((url): url is string => typeof url === 'string')
+      : [];
+    if (audioUrls.length === 0) {
       throw new Error('Remote Autobyteus server did not return any audio URLs.');
     }
 

@@ -29,11 +29,12 @@ const original = {
 const LOGGER_MARK = Symbol.for('autobyteus.logger');
 
 function markLogger(fn: (...args: unknown[]) => void): void {
-  (fn as any)[LOGGER_MARK] = true;
+  const marker = fn as typeof fn & { [key: symbol]: boolean };
+  marker[LOGGER_MARK] = true;
 }
 
 function isLoggerAttached(): boolean {
-  return Boolean((console.info as any)[LOGGER_MARK]);
+  return Boolean((console.info as typeof console.info & { [key: symbol]: boolean })[LOGGER_MARK]);
 }
 
 function normalizeLevel(value?: string | null): LogLevel {

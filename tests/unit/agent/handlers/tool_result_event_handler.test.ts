@@ -35,16 +35,16 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
-  const inputQueues = { enqueue_user_message: vi.fn(async () => undefined) } as any;
-  state.input_event_queues = inputQueues;
-  const notifier = { notify_agent_data_tool_log: vi.fn() };
-  state.status_manager_ref = { notifier } as any;
+  const inputQueues = { enqueueUserMessage: vi.fn(async () => undefined) } as any;
+  state.inputEventQueues = inputQueues;
+  const notifier = { notifyAgentDataToolLog: vi.fn() };
+  state.statusManagerRef = { notifier } as any;
   const context = new AgentContext('agent-1', config, state);
   return { context, inputQueues, notifier };
 };
@@ -73,7 +73,7 @@ describe('ToolResultEventHandler', () => {
     const handler = new ToolResultEventHandler();
     const { context, inputQueues, notifier } = makeContext();
     const event = new ToolResultEvent('calculator', { sum: 15 }, 'calc-123');
-    context.state.active_multi_tool_call_turn = null;
+    context.state.activeMultiToolCallTurn = null;
 
     await handler.handle(event, context);
 
@@ -84,43 +84,43 @@ describe('ToolResultEventHandler', () => {
     ).toBe(true);
 
     const expectedLogMsg = `[TOOL_RESULT_SUCCESS_PROCESSED] Agent_ID: agent-1, Tool: calculator, Invocation_ID: calc-123, Result: ${formatToCleanString({ sum: 15 })}`;
-    expect(notifier.notify_agent_data_tool_log).toHaveBeenCalledWith({
+    expect(notifier.notifyAgentDataToolLog).toHaveBeenCalledWith({
       log_entry: expectedLogMsg,
       tool_invocation_id: 'calc-123',
       tool_name: 'calculator'
     });
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(UserMessageReceivedEvent);
-    const message = enqueued.agent_input_user_message;
-    expect(message.sender_type).toBe(SenderType.TOOL);
+    const message = enqueued.agentInputUserMessage;
+    expect(message.senderType).toBe(SenderType.TOOL);
     expect(message.content).toContain('Tool: calculator (ID: calc-123)');
     expect(message.content).toContain('Status: Success');
     expect(message.content).toContain(`Result:\n${formatToCleanString({ sum: 15 })}`);
-    expect(message.context_files).toBeNull();
+    expect(message.contextFiles).toBeNull();
   });
 
   it('handles a single tool result with error', async () => {
     const handler = new ToolResultEventHandler();
     const { context, inputQueues, notifier } = makeContext();
     const event = new ToolResultEvent('write_file', null, 'fw-456', 'Permission denied');
-    context.state.active_multi_tool_call_turn = null;
+    context.state.activeMultiToolCallTurn = null;
 
     await handler.handle(event, context);
 
     const expectedLogMsg =
       '[TOOL_RESULT_ERROR_PROCESSED] Agent_ID: agent-1, Tool: write_file, Invocation_ID: fw-456, Error: Permission denied';
-    expect(notifier.notify_agent_data_tool_log).toHaveBeenCalledWith({
+    expect(notifier.notifyAgentDataToolLog).toHaveBeenCalledWith({
       log_entry: expectedLogMsg,
       tool_invocation_id: 'fw-456',
       tool_name: 'write_file'
     });
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const message = enqueued.agent_input_user_message;
-    expect(message.sender_type).toBe(SenderType.TOOL);
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const message = enqueued.agentInputUserMessage;
+    expect(message.senderType).toBe(SenderType.TOOL);
     expect(message.content).toContain('Tool: write_file (ID: fw-456)');
     expect(message.content).toContain('Status: Error');
     expect(message.content).toContain('Details: Permission denied');
@@ -131,28 +131,28 @@ describe('ToolResultEventHandler', () => {
     const { context, inputQueues, notifier } = makeContext();
     const invA = new ToolInvocation('tool_A', { arg: 'A' }, 'call_A');
     const invB = new ToolInvocation('tool_B', { arg: 'B' }, 'call_B');
-    context.state.active_multi_tool_call_turn = new ToolInvocationTurn([invA, invB]);
+    context.state.activeMultiToolCallTurn = new ToolInvocationTurn([invA, invB]);
 
     const resB = new ToolResultEvent('tool_B', 'Result B', 'call_B');
     const resA = new ToolResultEvent('tool_A', 'Result A', 'call_A');
 
     await handler.handle(resB, context);
 
-    expect(notifier.notify_agent_data_tool_log).toHaveBeenCalledTimes(1);
-    expect(inputQueues.enqueue_user_message).not.toHaveBeenCalled();
+    expect(notifier.notifyAgentDataToolLog).toHaveBeenCalledTimes(1);
+    expect(inputQueues.enqueueUserMessage).not.toHaveBeenCalled();
 
     await handler.handle(resA, context);
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const content = enqueued.agent_input_user_message.content;
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const content = enqueued.agentInputUserMessage.content;
     const posA = content.indexOf('Tool: tool_A (ID: call_A)');
     const posB = content.indexOf('Tool: tool_B (ID: call_B)');
     expect(posA).toBeGreaterThanOrEqual(0);
     expect(posB).toBeGreaterThanOrEqual(0);
     expect(posA).toBeLessThan(posB);
 
-    expect(context.state.active_multi_tool_call_turn).toBeNull();
+    expect(context.state.activeMultiToolCallTurn).toBeNull();
   });
 
   it('handles multi-tool with error in sequence', async () => {
@@ -160,7 +160,7 @@ describe('ToolResultEventHandler', () => {
     const { context, inputQueues } = makeContext();
     const invA = new ToolInvocation('tool_A', { arg: 'A' }, 'call_A');
     const invB = new ToolInvocation('tool_B', { arg: 'B' }, 'call_B');
-    context.state.active_multi_tool_call_turn = new ToolInvocationTurn([invA, invB]);
+    context.state.activeMultiToolCallTurn = new ToolInvocationTurn([invA, invB]);
 
     const resBError = new ToolResultEvent('tool_B', null, 'call_B', 'Failed B');
     const resASuccess = new ToolResultEvent('tool_A', 'Success A', 'call_A');
@@ -168,9 +168,9 @@ describe('ToolResultEventHandler', () => {
     await handler.handle(resBError, context);
     await handler.handle(resASuccess, context);
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const content = enqueued.agent_input_user_message.content;
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const content = enqueued.agentInputUserMessage.content;
     const posA = content.indexOf('Tool: tool_A (ID: call_A)');
     const posB = content.indexOf('Tool: tool_B (ID: call_B)');
     expect(posA).toBeLessThan(posB);
@@ -187,12 +187,12 @@ describe('ToolResultEventHandler', () => {
 
     await handler.handle(event, context);
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const message = enqueued.agent_input_user_message;
-    expect(message.sender_type).toBe(SenderType.TOOL);
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const message = enqueued.agentInputUserMessage;
+    expect(message.senderType).toBe(SenderType.TOOL);
     expect(message.content).toContain("The file 'image.png' has been loaded into the context");
-    expect(message.context_files).toEqual([contextFile]);
+    expect(message.contextFiles).toEqual([contextFile]);
   });
 
   it('handles list of context files', async () => {
@@ -204,13 +204,13 @@ describe('ToolResultEventHandler', () => {
 
     await handler.handle(event, context);
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const message = enqueued.agent_input_user_message;
-    expect(message.sender_type).toBe(SenderType.TOOL);
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const message = enqueued.agentInputUserMessage;
+    expect(message.senderType).toBe(SenderType.TOOL);
     expect(message.content).toContain('The following files have been loaded into the context');
     expect(message.content).toContain("['file1.txt', 'file2.log']");
-    expect(message.context_files).toEqual([contextFile1, contextFile2]);
+    expect(message.contextFiles).toEqual([contextFile1, contextFile2]);
   });
 
   it('handles multi-tool with mixed media and text', async () => {
@@ -219,7 +219,7 @@ describe('ToolResultEventHandler', () => {
     const contextFile = new ContextFile('/path/to/image.png', undefined, 'image.png');
     const invA = new ToolInvocation('read_media_file', { path: '/path/to/image.png' }, 'media-1');
     const invB = new ToolInvocation('calculator', { op: 'add' }, 'calc-1');
-    context.state.active_multi_tool_call_turn = new ToolInvocationTurn([invA, invB]);
+    context.state.activeMultiToolCallTurn = new ToolInvocationTurn([invA, invB]);
 
     const resA = new ToolResultEvent('read_media_file', contextFile, 'media-1');
     const resB = new ToolResultEvent('calculator', { sum: 5 }, 'calc-1');
@@ -227,11 +227,11 @@ describe('ToolResultEventHandler', () => {
     await handler.handle(resA, context);
     await handler.handle(resB, context);
 
-    expect(inputQueues.enqueue_user_message).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const message = enqueued.agent_input_user_message;
-    expect(message.sender_type).toBe(SenderType.TOOL);
-    expect(message.context_files).toEqual([contextFile]);
+    expect(inputQueues.enqueueUserMessage).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const message = enqueued.agentInputUserMessage;
+    expect(message.senderType).toBe(SenderType.TOOL);
+    expect(message.contextFiles).toEqual([contextFile]);
     const content = message.content;
     const posA = content.indexOf('Tool: read_media_file');
     const posB = content.indexOf('Tool: calculator');
@@ -256,8 +256,8 @@ describe('ToolResultEventHandler', () => {
 
     await handler.handle(event, context);
 
-    const enqueued = inputQueues.enqueue_user_message.mock.calls[0][0];
-    const content = enqueued.agent_input_user_message.content;
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    const content = enqueued.agentInputUserMessage.content;
     expect(content).toContain(`Result:\n${String(objResult)}`);
   });
 
@@ -273,8 +273,8 @@ describe('ToolResultEventHandler', () => {
         String(msg).includes('ToolResultEventHandler received non-ToolResultEvent: GenericEvent. Skipping.')
       )
     ).toBe(true);
-    expect(notifier.notify_agent_data_tool_log).not.toHaveBeenCalled();
-    expect(inputQueues.enqueue_user_message).not.toHaveBeenCalled();
+    expect(notifier.notifyAgentDataToolLog).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueUserMessage).not.toHaveBeenCalled();
   });
 
   it('logs initialization', () => {

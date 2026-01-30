@@ -1,9 +1,9 @@
 export class AgentNotFoundException extends Error {
-  agent_id: string;
+  agentId: string;
 
-  constructor(agent_id: string) {
-    super(`Agent with id ${agent_id} not found. This is an invalid state.`);
-    this.agent_id = agent_id;
+  constructor(agentId: string) {
+    super(`Agent with id ${agentId} not found. This is an invalid state.`);
+    this.agentId = agentId;
     this.name = 'AgentNotFoundException';
   }
 }

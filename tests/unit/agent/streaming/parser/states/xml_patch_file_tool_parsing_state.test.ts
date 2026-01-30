@@ -16,10 +16,10 @@ describe('XmlPatchFileToolParsingState', () => {
     ctx.append(signature + content);
 
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].segment_type).toBe(SegmentType.PATCH_FILE);
@@ -58,14 +58,14 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature);
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
 
     for (const chunk of chunks) {
       ctx.append(chunk);
       state.run();
     }
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
 
@@ -82,17 +82,17 @@ describe('XmlPatchFileToolParsingState', () => {
     const ctx = new ParserContext();
     const signature = '<tool name="patch_file">';
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
 
     ctx.append('<tool name="patch_file"><arguments>');
     state.run();
 
-    expect(ctx.get_events()).toHaveLength(0);
+    expect(ctx.getEvents()).toHaveLength(0);
 
     ctx.append("<arg name='path'>/tmp/delayed.py</arg>");
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].payload.metadata?.path).toBe('/tmp/delayed.py');
@@ -100,7 +100,7 @@ describe('XmlPatchFileToolParsingState', () => {
     ctx.append("<arg name='patch'>@@ diff @@</arg></arguments></tool>");
     state.run();
 
-    const contentEvents = ctx.get_and_clear_events().filter((e) => e.event_type === SegmentEventType.CONTENT);
+    const contentEvents = ctx.getAndClearEvents().filter((e) => e.event_type === SegmentEventType.CONTENT);
     expect(contentEvents.length).toBeGreaterThan(0);
     expect(contentEvents.map((e) => e.payload.delta).join('')).toContain('@@ diff @@');
   });
@@ -109,7 +109,7 @@ describe('XmlPatchFileToolParsingState', () => {
     const ctx = new ParserContext();
     const signature = '<tool name="patch_file">';
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
 
     let fullText =
       "<arguments>" +
@@ -121,11 +121,11 @@ describe('XmlPatchFileToolParsingState', () => {
     ctx.append(fullText);
     state.run();
 
-    while (ctx.has_more_chars()) {
-      ctx.current_state.run();
+    while (ctx.hasMoreChars()) {
+      ctx.currentState.run();
     }
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const fullDump = events.filter((e) => e.event_type === SegmentEventType.CONTENT).map((e) => e.payload.delta).join('');
 
     expect(fullDump).toContain('patch data');
@@ -154,10 +154,10 @@ describe('XmlPatchFileToolParsingState', () => {
     ctx.append(signature + content);
 
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
 
@@ -182,14 +182,14 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature);
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
 
     for (const chunk of chunks) {
       ctx.append(chunk);
       state.run();
     }
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
 
@@ -222,10 +222,10 @@ describe('XmlPatchFileToolParsingState', () => {
     ctx.append(signature + content);
 
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
 
@@ -257,10 +257,10 @@ describe('XmlPatchFileToolParsingState', () => {
     ctx.append(signature + content);
 
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
 
@@ -290,14 +290,14 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature);
     const state = new XmlPatchFileToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
 
     for (const chunk of chunks) {
       ctx.append(chunk);
       state.run();
     }
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
 

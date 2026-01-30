@@ -4,14 +4,15 @@ import { ToolCategory } from '../../../tools/tool_category.js';
 import { zodToParameterSchema } from '../../../tools/zod_schema_converter.js';
 import { ToDosDefinitionSchema, type ToDosDefinition } from '../../schemas/todo_definition.js';
 import { ToDoList } from '../../todo_list.js';
+import type { TodoToolContext } from './types.js';
 
-function notifyTodoUpdate(context: any): void {
-  const notifier = context?.status_manager?.notifier;
-  const todoList = context?.state?.todo_list;
+function notifyTodoUpdate(context: TodoToolContext): void {
+  const notifier = context?.statusManager?.notifier;
+  const todoList = context?.state?.todoList;
   if (notifier && todoList) {
-    const todosForLLM = todoList.get_all_todos();
-    if (typeof notifier.notify_agent_data_todo_list_updated === 'function') {
-      notifier.notify_agent_data_todo_list_updated(todosForLLM);
+    const todosForLLM = todoList.getAllTodos();
+    if (typeof notifier.notifyAgentDataTodoListUpdated === 'function') {
+      notifier.notifyAgentDataTodoListUpdated(todosForLLM);
     }
   }
 }
@@ -35,8 +36,8 @@ export class CreateToDoList extends BaseTool {
     return zodToParameterSchema(ToDosDefinitionSchema);
   }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const agentId = context?.agent_id ?? context?.agentId ?? 'unknown';
+  protected async _execute(context: TodoToolContext, kwargs: Record<string, unknown> = {}): Promise<string> {
+    const agentId = context?.agentId ?? 'unknown';
 
     let todosDef: ToDosDefinition;
     try {
@@ -55,8 +56,8 @@ export class CreateToDoList extends BaseTool {
     }
 
     const todoList = new ToDoList(agentId);
-    const newTodos = todoList.add_todos(todosDef.todos);
-    context.state.todo_list = todoList;
+    const newTodos = todoList.addTodos(todosDef.todos);
+    context.state.todoList = todoList;
 
     notifyTodoUpdate(context);
 

@@ -21,15 +21,15 @@ export class XmlTagInitializationState extends BaseState {
   }
 
   run(): void {
-    if (!this.context.has_more_chars()) {
+    if (!this.context.hasMoreChars()) {
       return;
     }
 
-    const startPos = this.context.get_position();
+    const startPos = this.context.getPosition();
     const endIdx = this.context.find('>', startPos);
 
     if (endIdx === -1) {
-      this.tagBuffer += this.context.consume_remaining();
+      this.tagBuffer += this.context.consumeRemaining();
 
       const lowerBuffer = this.tagBuffer.toLowerCase();
       const possibleWriteFile =
@@ -43,8 +43,8 @@ export class XmlTagInitializationState extends BaseState {
         lowerBuffer.startsWith(XmlTagInitializationState.POSSIBLE_TOOL);
 
       if (!(possibleWriteFile || possibleRunBash || possibleTool)) {
-        this.context.append_text_segment(this.tagBuffer);
-        this.context.transition_to(new TextState(this.context));
+        this.context.appendTextSegment(this.tagBuffer);
+        this.context.transitionTo(new TextState(this.context));
       }
       return;
     }
@@ -53,56 +53,56 @@ export class XmlTagInitializationState extends BaseState {
     const lowerBuffer = this.tagBuffer.toLowerCase();
 
     if (lowerBuffer.startsWith(XmlTagInitializationState.POSSIBLE_WRITE_FILE)) {
-      if (this.context.get_current_segment_type() === SegmentType.TEXT) {
-        this.context.emit_segment_end();
+      if (this.context.getCurrentSegmentType() === SegmentType.TEXT) {
+        this.context.emitSegmentEnd();
       }
-      this.context.transition_to(new CustomXmlTagWriteFileParsingState(this.context, this.tagBuffer));
+      this.context.transitionTo(new CustomXmlTagWriteFileParsingState(this.context, this.tagBuffer));
       return;
     }
 
     if (lowerBuffer.startsWith(XmlTagInitializationState.POSSIBLE_RUN_BASH)) {
-      if (this.context.get_current_segment_type() === SegmentType.TEXT) {
-        this.context.emit_segment_end();
+      if (this.context.getCurrentSegmentType() === SegmentType.TEXT) {
+        this.context.emitSegmentEnd();
       }
-      this.context.transition_to(new CustomXmlTagRunBashParsingState(this.context, this.tagBuffer));
+      this.context.transitionTo(new CustomXmlTagRunBashParsingState(this.context, this.tagBuffer));
       return;
     }
 
     if (lowerBuffer.startsWith(XmlTagInitializationState.POSSIBLE_TOOL)) {
-      if (this.context.parse_tool_calls) {
-        if (this.context.get_current_segment_type() === SegmentType.TEXT) {
-          this.context.emit_segment_end();
+      if (this.context.parseToolCalls) {
+        if (this.context.getCurrentSegmentType() === SegmentType.TEXT) {
+          this.context.emitSegmentEnd();
         }
 
         const nameMatch = /name\s*=\s*["']([^"']+)["']/i.exec(this.tagBuffer);
         if (nameMatch) {
           const toolName = nameMatch[1].toLowerCase();
           const registry = new XmlToolParsingStateRegistry();
-          const stateClass = registry.get_state_for_tool(toolName);
+          const stateClass = registry.getStateForTool(toolName);
           if (stateClass) {
-            this.context.transition_to(new stateClass(this.context, this.tagBuffer));
+            this.context.transitionTo(new stateClass(this.context, this.tagBuffer));
           } else {
-            this.context.transition_to(new XmlToolParsingState(this.context, this.tagBuffer));
+            this.context.transitionTo(new XmlToolParsingState(this.context, this.tagBuffer));
           }
         } else {
-          this.context.transition_to(new XmlToolParsingState(this.context, this.tagBuffer));
+          this.context.transitionTo(new XmlToolParsingState(this.context, this.tagBuffer));
         }
       } else {
-        this.context.append_text_segment(this.tagBuffer);
-        this.context.transition_to(new TextState(this.context));
+        this.context.appendTextSegment(this.tagBuffer);
+        this.context.transitionTo(new TextState(this.context));
       }
       return;
     }
 
-    this.context.append_text_segment(this.tagBuffer);
-    this.context.transition_to(new TextState(this.context));
+    this.context.appendTextSegment(this.tagBuffer);
+    this.context.transitionTo(new TextState(this.context));
   }
 
   finalize(): void {
     if (this.tagBuffer) {
-      this.context.append_text_segment(this.tagBuffer);
+      this.context.appendTextSegment(this.tagBuffer);
       this.tagBuffer = '';
     }
-    this.context.transition_to(new TextState(this.context));
+    this.context.transitionTo(new TextState(this.context));
   }
 }

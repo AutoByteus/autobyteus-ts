@@ -13,18 +13,19 @@ import { WebsocketManagedMcpServer } from './server/websocket_managed_mcp_server
 type WorkspacePathProvider = (agentId: string) => string | null;
 
 export class McpServerInstanceManager extends Singleton {
+  protected static instance?: McpServerInstanceManager;
+
   private configService!: McpConfigService;
   private activeServers: Map<string, Map<string, BaseManagedMcpServer>> = new Map();
   private workspacePathProvider: WorkspacePathProvider | null = null;
 
   constructor(deps?: { configService?: McpConfigService }) {
     super();
-    const existing = (McpServerInstanceManager as any).instance as McpServerInstanceManager | undefined;
-    if (existing) {
-      return existing;
+    if (McpServerInstanceManager.instance) {
+      return McpServerInstanceManager.instance;
     }
     this.configService = deps?.configService ?? McpConfigService.getInstance();
-    (McpServerInstanceManager as any).instance = this;
+    McpServerInstanceManager.instance = this;
   }
 
   setWorkspacePathProvider(provider: WorkspacePathProvider | null): void {

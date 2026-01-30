@@ -7,9 +7,9 @@ export function buildLLMUserMessage(agentInputUserMessage: AgentInputUserMessage
   const audioUrls: string[] = [];
   const videoUrls: string[] = [];
 
-  if (agentInputUserMessage.context_files) {
-    for (const contextFile of agentInputUserMessage.context_files) {
-      const fileType = contextFile.file_type;
+  if (agentInputUserMessage.contextFiles) {
+    for (const contextFile of agentInputUserMessage.contextFiles) {
+      const fileType = contextFile.fileType;
       if (fileType === ContextFileType.IMAGE) {
         imageUrls.push(contextFile.uri);
       } else if (fileType === ContextFileType.AUDIO) {

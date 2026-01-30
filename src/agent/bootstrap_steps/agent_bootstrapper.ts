@@ -4,18 +4,18 @@ import { SystemPromptProcessingStep } from './system_prompt_processing_step.js';
 import { McpServerPrewarmingStep } from './mcp_server_prewarming_step.js';
 
 export class AgentBootstrapper {
-  bootstrap_steps: BaseBootstrapStep[];
+  bootstrapSteps: BaseBootstrapStep[];
 
   constructor(steps: BaseBootstrapStep[] | null = null) {
     if (!steps) {
-      this.bootstrap_steps = [
+      this.bootstrapSteps = [
         new WorkspaceContextInitializationStep(),
         new McpServerPrewarmingStep(),
         new SystemPromptProcessingStep()
       ];
       console.debug('AgentBootstrapper initialized with default steps.');
     } else {
-      this.bootstrap_steps = steps;
+      this.bootstrapSteps = steps;
       console.debug(`AgentBootstrapper initialized with ${steps.length} custom steps.`);
     }
   }

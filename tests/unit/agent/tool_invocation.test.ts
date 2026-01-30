@@ -10,7 +10,7 @@ describe('ToolInvocation', () => {
 
   it('reports valid invocations', () => {
     const invocation = new ToolInvocation('tool', { a: 1 }, 'id');
-    expect(invocation.is_valid()).toBe(true);
+    expect(invocation.isValid()).toBe(true);
   });
 });
 
@@ -18,8 +18,8 @@ describe('ToolInvocationTurn', () => {
   it('tracks completion based on results count', () => {
     const invocation = new ToolInvocation('tool', {}, 'id');
     const turn = new ToolInvocationTurn([invocation]);
-    expect(turn.is_complete()).toBe(false);
+    expect(turn.isComplete()).toBe(false);
     turn.results.push({} as any);
-    expect(turn.is_complete()).toBe(true);
+    expect(turn.isComplete()).toBe(true);
   });
 });

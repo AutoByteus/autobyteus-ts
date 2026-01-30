@@ -11,7 +11,7 @@ const STRATEGY_REGISTRY: Record<string, DetectionStrategy> = {
   json_tool: new JsonToolStrategy()
 };
 
-export const create_detection_strategies = (strategyOrder: string[]): DetectionStrategy[] => {
+export const createDetectionStrategies = (strategyOrder: string[]): DetectionStrategy[] => {
   const strategies: DetectionStrategy[] = [];
   for (const name of strategyOrder) {
     const strategy = STRATEGY_REGISTRY[name];

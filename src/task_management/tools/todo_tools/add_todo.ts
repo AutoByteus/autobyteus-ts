@@ -4,14 +4,15 @@ import { ToolCategory } from '../../../tools/tool_category.js';
 import { zodToParameterSchema } from '../../../tools/zod_schema_converter.js';
 import { ToDoDefinitionSchema, type ToDoDefinition } from '../../schemas/todo_definition.js';
 import { ToDoList } from '../../todo_list.js';
+import type { TodoToolContext } from './types.js';
 
-function notifyTodoUpdate(context: any): void {
-  const notifier = context?.status_manager?.notifier;
-  const todoList = context?.state?.todo_list;
+function notifyTodoUpdate(context: TodoToolContext): void {
+  const notifier = context?.statusManager?.notifier;
+  const todoList = context?.state?.todoList;
   if (notifier && todoList) {
-    const todosForLLM = todoList.get_all_todos();
-    if (typeof notifier.notify_agent_data_todo_list_updated === 'function') {
-      notifier.notify_agent_data_todo_list_updated(todosForLLM);
+    const todosForLLM = todoList.getAllTodos();
+    if (typeof notifier.notifyAgentDataTodoListUpdated === 'function') {
+      notifier.notifyAgentDataTodoListUpdated(todosForLLM);
     }
   }
 }
@@ -34,14 +35,14 @@ export class AddToDo extends BaseTool {
     return zodToParameterSchema(ToDoDefinitionSchema);
   }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const agentId = context?.agent_id ?? context?.agentId ?? 'unknown';
+  protected async _execute(context: TodoToolContext, kwargs: Record<string, unknown> = {}): Promise<string> {
+    const agentId = context?.agentId ?? 'unknown';
 
-    if (context.state.todo_list == null) {
-      context.state.todo_list = new ToDoList(agentId);
+    if (context.state.todoList == null) {
+      context.state.todoList = new ToDoList(agentId);
     }
 
-    const todoList = context.state.todo_list as ToDoList;
+    const todoList = context.state.todoList as ToDoList;
 
     let todoDef: ToDoDefinition;
     try {
@@ -59,7 +60,7 @@ export class AddToDo extends BaseTool {
       return `Error: Invalid to-do item definition provided${suffix}`;
     }
 
-    const newTodo = todoList.add_todo(todoDef);
+    const newTodo = todoList.addTodo(todoDef);
     if (newTodo) {
       notifyTodoUpdate(context);
       return `Successfully added new item to your to-do list: '${newTodo.description}' (ID: ${newTodo.todo_id}).`;

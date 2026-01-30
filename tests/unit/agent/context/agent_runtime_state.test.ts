@@ -5,7 +5,7 @@ import { BaseAgentWorkspace } from '../../../../src/agent/workspace/base_workspa
 import { ToolInvocation } from '../../../../src/agent/tool_invocation.js';
 
 class TestWorkspace extends BaseAgentWorkspace {
-  get_base_path(): string {
+  getBasePath(): string {
     return '/tmp';
   }
 }
@@ -22,22 +22,22 @@ describe('AgentRuntimeState', () => {
     vi.restoreAllMocks();
   });
 
-  it('requires a non-empty agent_id', () => {
-    expect(() => new AgentRuntimeState('')).toThrow(/agent_id/);
-    expect(() => new AgentRuntimeState(null as unknown as string)).toThrow(/agent_id/);
+  it('requires a non-empty agentId', () => {
+    expect(() => new AgentRuntimeState('')).toThrow(/agentId/);
+    expect(() => new AgentRuntimeState(null as unknown as string)).toThrow(/agentId/);
   });
 
   it('initializes with defaults', () => {
     const state = new AgentRuntimeState('agent-1');
 
-    expect(state.agent_id).toBe('agent-1');
-    expect(state.current_status).toBe(AgentStatus.UNINITIALIZED);
-    expect(state.conversation_history).toEqual([]);
-    expect(state.pending_tool_approvals).toEqual({});
-    expect(state.custom_data).toEqual({});
+    expect(state.agentId).toBe('agent-1');
+    expect(state.currentStatus).toBe(AgentStatus.UNINITIALIZED);
+    expect(state.conversationHistory).toEqual([]);
+    expect(state.pendingToolApprovals).toEqual({});
+    expect(state.customData).toEqual({});
     expect(state.workspace).toBeNull();
-    expect(state.active_multi_tool_call_turn).toBeNull();
-    expect(state.todo_list).toBeNull();
+    expect(state.activeMultiToolCallTurn).toBeNull();
+    expect(state.todoList).toBeNull();
   });
 
   it('accepts a workspace instance', () => {
@@ -54,50 +54,50 @@ describe('AgentRuntimeState', () => {
   it('adds valid messages to history', () => {
     const state = new AgentRuntimeState('agent-4');
 
-    state.add_message_to_history({ role: 'user', content: 'hi' });
+    state.addMessageToHistory({ role: 'user', content: 'hi' });
 
-    expect(state.conversation_history).toHaveLength(1);
-    expect(state.conversation_history[0]).toEqual({ role: 'user', content: 'hi' });
+    expect(state.conversationHistory).toHaveLength(1);
+    expect(state.conversationHistory[0]).toEqual({ role: 'user', content: 'hi' });
   });
 
   it('ignores malformed messages', () => {
     const state = new AgentRuntimeState('agent-5');
 
-    state.add_message_to_history({ content: 'missing role' } as Record<string, unknown>);
+    state.addMessageToHistory({ content: 'missing role' } as Record<string, unknown>);
 
-    expect(state.conversation_history).toHaveLength(0);
+    expect(state.conversationHistory).toHaveLength(0);
   });
 
   it('stores and retrieves pending tool invocations', () => {
     const state = new AgentRuntimeState('agent-6');
     const invocation = new ToolInvocation('tool', { foo: 'bar' }, 'inv-1');
 
-    state.store_pending_tool_invocation(invocation);
-    expect(state.pending_tool_approvals['inv-1']).toBe(invocation);
+    state.storePendingToolInvocation(invocation);
+    expect(state.pendingToolApprovals['inv-1']).toBe(invocation);
 
-    const retrieved = state.retrieve_pending_tool_invocation('inv-1');
+    const retrieved = state.retrievePendingToolInvocation('inv-1');
     expect(retrieved).toBe(invocation);
-    expect(state.pending_tool_approvals['inv-1']).toBeUndefined();
+    expect(state.pendingToolApprovals['inv-1']).toBeUndefined();
   });
 
   it('handles missing pending tool invocations', () => {
     const state = new AgentRuntimeState('agent-7');
 
-    expect(state.retrieve_pending_tool_invocation('missing')).toBeUndefined();
+    expect(state.retrievePendingToolInvocation('missing')).toBeUndefined();
   });
 
   it('does not store invalid tool invocations', () => {
     const state = new AgentRuntimeState('agent-8');
 
-    state.store_pending_tool_invocation({} as ToolInvocation);
+    state.storePendingToolInvocation({} as ToolInvocation);
 
-    expect(Object.keys(state.pending_tool_approvals)).toHaveLength(0);
+    expect(Object.keys(state.pendingToolApprovals)).toHaveLength(0);
   });
 
   it('renders a readable string representation', () => {
     const state = new AgentRuntimeState('agent-9');
 
-    expect(state.toString()).toContain("agent_id='agent-9'");
-    expect(state.toString()).toContain("current_status='uninitialized'");
+    expect(state.toString()).toContain("agentId='agent-9'");
+    expect(state.toString()).toContain("currentStatus='uninitialized'");
   });
 });

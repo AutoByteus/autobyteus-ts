@@ -2,14 +2,15 @@ import { BaseTool } from '../../../tools/base_tool.js';
 import { ToolCategory } from '../../../tools/tool_category.js';
 import { ParameterSchema, ParameterDefinition, ParameterType } from '../../../utils/parameter_schema.js';
 import { ToDoStatus } from '../../todo.js';
+import type { TodoToolContext } from './types.js';
 
-function notifyTodoUpdate(context: any): void {
-  const notifier = context?.status_manager?.notifier;
-  const todoList = context?.state?.todo_list;
+function notifyTodoUpdate(context: TodoToolContext): void {
+  const notifier = context?.statusManager?.notifier;
+  const todoList = context?.state?.todoList;
   if (notifier && todoList) {
-    const todosForLLM = todoList.get_all_todos();
-    if (typeof notifier.notify_agent_data_todo_list_updated === 'function') {
-      notifier.notify_agent_data_todo_list_updated(todosForLLM);
+    const todosForLLM = todoList.getAllTodos();
+    if (typeof notifier.notifyAgentDataTodoListUpdated === 'function') {
+      notifier.notifyAgentDataTodoListUpdated(todosForLLM);
     }
   }
 }
@@ -43,15 +44,19 @@ export class UpdateToDoStatus extends BaseTool {
     return schema;
   }
 
-  protected async _execute(context: any, kwargs: Record<string, any> = {}): Promise<string> {
-    const todoId = kwargs.todo_id;
-    const status = kwargs.status;
+  protected async _execute(context: TodoToolContext, kwargs: Record<string, unknown> = {}): Promise<string> {
+    const todoId = kwargs.todo_id as string | undefined;
+    const status = kwargs.status as string | undefined;
 
-    if (context.state.todo_list == null) {
+    if (context.state.todoList == null) {
       return 'Error: You do not have a to-do list to update.';
     }
 
-    const todoList = context.state.todo_list;
+    const todoList = context.state.todoList;
+
+    if (!todoId || typeof todoId !== 'string') {
+      return 'Error: todo_id is required and must be a string.';
+    }
 
     const statusEnum = Object.values(ToDoStatus).includes(status as ToDoStatus)
       ? (status as ToDoStatus)
@@ -60,11 +65,11 @@ export class UpdateToDoStatus extends BaseTool {
       return `Error: Invalid status '${status}'. Must be one of: ${Object.values(ToDoStatus).join(', ')}.`;
     }
 
-    if (!todoList.get_todo_by_id(todoId)) {
+    if (!todoList.getTodoById(todoId)) {
       return `Error: Failed to update status. A to-do item with ID '${todoId}' does not exist on your list.`;
     }
 
-    if (todoList.update_todo_status(todoId, statusEnum)) {
+    if (todoList.updateTodoStatus(todoId, statusEnum)) {
       notifyTodoUpdate(context);
       return `Successfully updated status of to-do item '${todoId}' to '${status}'.`;
     }

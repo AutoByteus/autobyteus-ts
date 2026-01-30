@@ -14,28 +14,34 @@ export class SerperSearchStrategy extends SearchStrategy {
     this.apiKey = apiKey;
   }
 
-  protected formatResults(data: Record<string, any>): string {
+  protected formatResults(data: Record<string, unknown>): string {
     const summaryParts: string[] = [];
 
-    if (data.answerBox) {
-      const title = data.answerBox.title ?? '';
-      const snippet = data.answerBox.snippet ?? data.answerBox.answer;
+    const answerBox = data['answerBox'] as Record<string, unknown> | undefined;
+    if (answerBox) {
+      const title = String(answerBox['title'] ?? '');
+      const snippet = String(answerBox['snippet'] ?? answerBox['answer'] ?? '');
       summaryParts.push(`Direct Answer for '${title}':\n${snippet}`);
     }
 
-    if (data.knowledgeGraph) {
-      const title = data.knowledgeGraph.title ?? '';
-      const description = data.knowledgeGraph.description ?? '';
+    const knowledgeGraph = data['knowledgeGraph'] as Record<string, unknown> | undefined;
+    if (knowledgeGraph) {
+      const title = String(knowledgeGraph['title'] ?? '');
+      const description = String(knowledgeGraph['description'] ?? '');
       summaryParts.push(`Summary for '${title}':\n${description}`);
     }
 
-    if (Array.isArray(data.organic) && data.organic.length > 0) {
-      const resultsStr = data.organic
-        .map((result: Record<string, any>, index: number) => (
-          `${index + 1}. ${result.title ?? 'No Title'}\n` +
-          `   Link: ${result.link ?? 'No Link'}\n` +
-          `   Snippet: ${result.snippet ?? 'No Snippet'}`
-        ))
+    const organic = data['organic'];
+    if (Array.isArray(organic) && organic.length > 0) {
+      const resultsStr = organic
+        .map((result: unknown, index: number) => {
+          const record = result as Record<string, unknown>;
+          return (
+            `${index + 1}. ${String(record['title'] ?? 'No Title')}\n` +
+            `   Link: ${String(record['link'] ?? 'No Link')}\n` +
+            `   Snippet: ${String(record['snippet'] ?? 'No Snippet')}`
+          );
+        })
         .join('\n');
       summaryParts.push(`Search Results:\n${resultsStr}`);
     }

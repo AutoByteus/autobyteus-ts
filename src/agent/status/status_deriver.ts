@@ -22,12 +22,12 @@ import type { AgentContextLike } from '../context/agent_context_like.js';
 export class AgentStatusDeriver {
   private currentStatusValue: AgentStatus;
 
-  constructor(initial_status: AgentStatus = AgentStatus.UNINITIALIZED) {
-    this.currentStatusValue = initial_status;
-    console.debug(`AgentStatusDeriver initialized with status '${initial_status}'.`);
+  constructor(initialStatus: AgentStatus = AgentStatus.UNINITIALIZED) {
+    this.currentStatusValue = initialStatus;
+    console.debug(`AgentStatusDeriver initialized with status '${initialStatus}'.`);
   }
 
-  get current_status(): AgentStatus {
+  get currentStatus(): AgentStatus {
     return this.currentStatusValue;
   }
 
@@ -38,12 +38,12 @@ export class AgentStatusDeriver {
     return [oldStatus, newStatus];
   }
 
-  private reduce(event: BaseEvent, current_status: AgentStatus, context: AgentContextLike | null): AgentStatus {
+  private reduce(event: BaseEvent, currentStatus: AgentStatus, context: AgentContextLike | null): AgentStatus {
     if (event instanceof BootstrapStartedEvent) {
       return AgentStatus.BOOTSTRAPPING;
     }
     if (event instanceof BootstrapCompletedEvent) {
-      return current_status;
+      return currentStatus;
     }
     if (event instanceof AgentReadyEvent) {
       return AgentStatus.IDLE;
@@ -52,13 +52,13 @@ export class AgentStatusDeriver {
       return AgentStatus.IDLE;
     }
     if (event instanceof ShutdownRequestedEvent) {
-      if (current_status === AgentStatus.ERROR) {
-        return current_status;
+      if (currentStatus === AgentStatus.ERROR) {
+        return currentStatus;
       }
       return AgentStatus.SHUTTING_DOWN;
     }
     if (event instanceof AgentStoppedEvent) {
-      if (current_status === AgentStatus.ERROR) {
+      if (currentStatus === AgentStatus.ERROR) {
         return AgentStatus.ERROR;
       }
       return AgentStatus.SHUTDOWN_COMPLETE;
@@ -71,20 +71,20 @@ export class AgentStatusDeriver {
       return AgentStatus.PROCESSING_USER_INPUT;
     }
     if (event instanceof LLMUserMessageReadyEvent) {
-      if (current_status === AgentStatus.AWAITING_LLM_RESPONSE || current_status === AgentStatus.ERROR) {
-        return current_status;
+      if (currentStatus === AgentStatus.AWAITING_LLM_RESPONSE || currentStatus === AgentStatus.ERROR) {
+        return currentStatus;
       }
       return AgentStatus.AWAITING_LLM_RESPONSE;
     }
     if (event instanceof LLMCompleteResponseReceivedEvent) {
-      if (current_status !== AgentStatus.AWAITING_LLM_RESPONSE) {
-        return current_status;
+      if (currentStatus !== AgentStatus.AWAITING_LLM_RESPONSE) {
+        return currentStatus;
       }
       return AgentStatus.ANALYZING_LLM_RESPONSE;
     }
 
     if (event instanceof PendingToolInvocationEvent) {
-      if (context && context.auto_execute_tools === false) {
+      if (context && context.autoExecuteTools === false) {
         return AgentStatus.AWAITING_TOOL_APPROVAL;
       }
       return AgentStatus.EXECUTING_TOOL;
@@ -93,18 +93,18 @@ export class AgentStatusDeriver {
       return AgentStatus.EXECUTING_TOOL;
     }
     if (event instanceof ToolExecutionApprovalEvent) {
-      if (event.is_approved) {
+      if (event.isApproved) {
         return AgentStatus.EXECUTING_TOOL;
       }
       return AgentStatus.TOOL_DENIED;
     }
     if (event instanceof ToolResultEvent) {
-      if (current_status !== AgentStatus.EXECUTING_TOOL) {
-        return current_status;
+      if (currentStatus !== AgentStatus.EXECUTING_TOOL) {
+        return currentStatus;
       }
       return AgentStatus.PROCESSING_TOOL_RESULT;
     }
 
-    return current_status;
+    return currentStatus;
   }
 }

@@ -1,13 +1,21 @@
-type ModelDumpLike = { model_dump: () => Record<string, any> };
-type DictLike = { dict: () => Record<string, any> };
+type ModelDumpLike = { model_dump: () => Record<string, unknown> };
+type DictLike = { dict: () => Record<string, unknown> };
 
-const hasModelDump = (value: any): value is ModelDumpLike =>
-  value && typeof value === 'object' && typeof value.model_dump === 'function';
+const hasModelDump = (value: unknown): value is ModelDumpLike =>
+  Boolean(
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { model_dump?: unknown }).model_dump === 'function'
+  );
 
-const hasDict = (value: any): value is DictLike =>
-  value && typeof value === 'object' && typeof value.dict === 'function';
+const hasDict = (value: unknown): value is DictLike =>
+  Boolean(
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { dict?: unknown }).dict === 'function'
+  );
 
-const isPlainObject = (value: any): value is Record<string, any> => {
+const isPlainObject = (value: unknown): value is Record<string, unknown> => {
   if (!value || typeof value !== 'object') {
     return false;
   }
@@ -20,7 +28,7 @@ const isPlainObject = (value: any): value is Record<string, any> => {
 
 const lstrip = (value: string): string => value.replace(/^\s+/, '');
 
-const isComplexValue = (value: any): boolean => {
+const isComplexValue = (value: unknown): boolean => {
   if (value && typeof value === 'string' && value.includes('\n')) {
     return true;
   }
@@ -39,7 +47,7 @@ const isComplexValue = (value: any): boolean => {
   return false;
 };
 
-export function formatToCleanString(data: any, indent = 0): string {
+export function formatToCleanString(data: unknown, indent = 0): string {
   const indentStr = ' '.repeat(indent);
 
   if (data instanceof Set) {

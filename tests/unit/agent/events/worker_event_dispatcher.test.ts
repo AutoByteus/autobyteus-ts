@@ -45,7 +45,7 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -53,12 +53,12 @@ const makeContext = () => {
   const state = new AgentRuntimeState('agent-1');
   const context = new AgentContext('agent-1', config, state);
 
-  context.state.input_event_queues = new AgentInputEventQueueManager();
-  context.state.status_deriver = new AgentStatusDeriver(AgentStatus.IDLE);
-  context.current_status = AgentStatus.IDLE;
+  context.state.inputEventQueues = new AgentInputEventQueueManager();
+  context.state.statusDeriver = new AgentStatusDeriver(AgentStatus.IDLE);
+  context.currentStatus = AgentStatus.IDLE;
 
   const emit_status_update = vi.fn(async () => undefined);
-  context.state.status_manager_ref = { emit_status_update } as any;
+  context.state.statusManagerRef = { emit_status_update } as any;
 
   return { context, emit_status_update };
 };
@@ -72,7 +72,7 @@ describe('WorkerEventDispatcher', () => {
 
   it('warns when no handler exists', async () => {
     const { context } = makeContext();
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => null } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => null } as any);
 
     await dispatcher.dispatch(new BaseEvent(), context);
 
@@ -82,7 +82,7 @@ describe('WorkerEventDispatcher', () => {
   it('dispatches to handler and emits status update', async () => {
     const { context, emit_status_update } = makeContext();
     const handler: AgentEventHandler = { handle: vi.fn(async () => undefined) } as any;
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => handler } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => handler } as any);
 
     const event = new UserMessageReceivedEvent({} as any);
     await dispatcher.dispatch(event, context);
@@ -98,23 +98,23 @@ describe('WorkerEventDispatcher', () => {
         throw new Error('Handler failed');
       })
     } as any;
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => handler } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => handler } as any);
 
     const event = new UserMessageReceivedEvent({} as any);
     await dispatcher.dispatch(event, context);
 
-    const idleQueue = context.input_event_queues.internal_system_event_queue;
+    const idleQueue = context.inputEventQueues.internalSystemEventQueue;
     const errorEvent = idleQueue.tryGet();
     expect(errorEvent).toBeInstanceOf(AgentErrorEvent);
   });
 
   it('emits status update before handling AgentReadyEvent', async () => {
     const { context, emit_status_update } = makeContext();
-    context.current_status = AgentStatus.BOOTSTRAPPING;
-    context.state.status_deriver = new AgentStatusDeriver(AgentStatus.BOOTSTRAPPING);
+    context.currentStatus = AgentStatus.BOOTSTRAPPING;
+    context.state.statusDeriver = new AgentStatusDeriver(AgentStatus.BOOTSTRAPPING);
 
     const handler: AgentEventHandler = { handle: vi.fn(async () => undefined) } as any;
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => handler } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => handler } as any);
 
     const event = new AgentReadyEvent();
     await dispatcher.dispatch(event, context);
@@ -127,53 +127,53 @@ describe('WorkerEventDispatcher', () => {
 
   it('enqueues AgentIdleEvent after LLMCompleteResponseReceivedEvent when no pending work', async () => {
     const { context } = makeContext();
-    context.current_status = AgentStatus.AWAITING_LLM_RESPONSE;
-    context.state.status_deriver = new AgentStatusDeriver(AgentStatus.AWAITING_LLM_RESPONSE);
-    context.state.pending_tool_approvals = {};
+    context.currentStatus = AgentStatus.AWAITING_LLM_RESPONSE;
+    context.state.statusDeriver = new AgentStatusDeriver(AgentStatus.AWAITING_LLM_RESPONSE);
+    context.state.pendingToolApprovals = {};
 
     const handler: AgentEventHandler = { handle: vi.fn(async () => undefined) } as any;
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => handler } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => handler } as any);
 
     const event = new LLMCompleteResponseReceivedEvent(new CompleteResponse({ content: 'ok' }));
     await dispatcher.dispatch(event, context);
 
-    const queued = context.input_event_queues.internal_system_event_queue.tryGet();
+    const queued = context.inputEventQueues.internalSystemEventQueue.tryGet();
     expect(queued).toBeInstanceOf(AgentIdleEvent);
   });
 
   it('does not enqueue AgentIdleEvent when approvals pending', async () => {
     const { context } = makeContext();
-    context.current_status = AgentStatus.AWAITING_LLM_RESPONSE;
-    context.state.status_deriver = new AgentStatusDeriver(AgentStatus.AWAITING_LLM_RESPONSE);
-    context.state.pending_tool_approvals = { tid1: new ToolInvocation('tool', {}, 'tid1') };
+    context.currentStatus = AgentStatus.AWAITING_LLM_RESPONSE;
+    context.state.statusDeriver = new AgentStatusDeriver(AgentStatus.AWAITING_LLM_RESPONSE);
+    context.state.pendingToolApprovals = { tid1: new ToolInvocation('tool', {}, 'tid1') };
 
     const handler: AgentEventHandler = { handle: vi.fn(async () => undefined) } as any;
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => handler } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => handler } as any);
 
     const event = new LLMCompleteResponseReceivedEvent(new CompleteResponse({ content: 'ok' }));
     await dispatcher.dispatch(event, context);
 
-    const queued = context.input_event_queues.internal_system_event_queue.tryGet();
+    const queued = context.inputEventQueues.internalSystemEventQueue.tryGet();
     expect(queued).toBeUndefined();
   });
 
   it('does not enqueue AgentIdleEvent when tool invocations pending', async () => {
     const { context } = makeContext();
-    context.current_status = AgentStatus.AWAITING_LLM_RESPONSE;
-    context.state.status_deriver = new AgentStatusDeriver(AgentStatus.AWAITING_LLM_RESPONSE);
-    context.state.pending_tool_approvals = {};
+    context.currentStatus = AgentStatus.AWAITING_LLM_RESPONSE;
+    context.state.statusDeriver = new AgentStatusDeriver(AgentStatus.AWAITING_LLM_RESPONSE);
+    context.state.pendingToolApprovals = {};
 
-    await context.input_event_queues.enqueue_tool_invocation_request(
+    await context.inputEventQueues.enqueueToolInvocationRequest(
       new PendingToolInvocationEvent(new ToolInvocation('tool', {}, 'tid1'))
     );
 
     const handler: AgentEventHandler = { handle: vi.fn(async () => undefined) } as any;
-    const dispatcher = new WorkerEventDispatcher({ get_handler: () => handler } as any);
+    const dispatcher = new WorkerEventDispatcher({ getHandler: () => handler } as any);
 
     const event = new LLMCompleteResponseReceivedEvent(new CompleteResponse({ content: 'ok' }));
     await dispatcher.dispatch(event, context);
 
-    const queued = context.input_event_queues.internal_system_event_queue.tryGet();
+    const queued = context.inputEventQueues.internalSystemEventQueue.tryGet();
     expect(queued).toBeUndefined();
   });
 });

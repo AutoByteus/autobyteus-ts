@@ -1,20 +1,22 @@
+import { BaseToolInvocationPreprocessor } from './base_preprocessor.js';
+
 export class ToolInvocationPreprocessorDefinition {
   name: string;
-  processor_class: new () => any;
+  processorClass: new () => BaseToolInvocationPreprocessor;
 
-  constructor(name: string, processor_class: new () => any) {
+  constructor(name: string, processorClass: new () => BaseToolInvocationPreprocessor) {
     if (!name || typeof name !== 'string') {
       throw new Error('Processor name must be a non-empty string.');
     }
-    if (typeof processor_class !== 'function') {
-      throw new Error('processor_class must be a class type.');
+    if (typeof processorClass !== 'function') {
+      throw new Error('processorClass must be a class type.');
     }
 
     this.name = name;
-    this.processor_class = processor_class;
+    this.processorClass = processorClass;
   }
 
   toString(): string {
-    return `<ToolInvocationPreprocessorDefinition name='${this.name}', class='${this.processor_class.name}'>`;
+    return `<ToolInvocationPreprocessorDefinition name='${this.name}', class='${this.processorClass.name}'>`;
   }
 }

@@ -4,8 +4,8 @@ const mocks = vi.hoisted(() => ({
   workerInstance: {
     start: vi.fn(),
     stop: vi.fn().mockResolvedValue(undefined),
-    is_alive: vi.fn().mockReturnValue(false),
-    add_done_callback: vi.fn()
+    isAlive: vi.fn().mockReturnValue(false),
+    addDoneCallback: vi.fn()
   },
   statusManagerInstance: {
     emit_status_update: vi.fn(async () => undefined)
@@ -18,8 +18,8 @@ vi.mock('../../../../src/agent/runtime/agent_worker.js', () => {
   class MockAgentWorker {
     start = mocks.workerInstance.start;
     stop = mocks.workerInstance.stop;
-    is_alive = mocks.workerInstance.is_alive;
-    add_done_callback = mocks.workerInstance.add_done_callback;
+    isAlive = mocks.workerInstance.isAlive;
+    addDoneCallback = mocks.workerInstance.addDoneCallback;
   }
   return { AgentWorker: MockAgentWorker };
 });
@@ -71,7 +71,7 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -84,8 +84,8 @@ describe('AgentRuntime', () => {
   beforeEach(() => {
     mocks.workerInstance.start.mockReset();
     mocks.workerInstance.stop.mockReset();
-    mocks.workerInstance.is_alive.mockReset();
-    mocks.workerInstance.add_done_callback.mockReset();
+    mocks.workerInstance.isAlive.mockReset();
+    mocks.workerInstance.addDoneCallback.mockReset();
     mocks.registerContext.mockReset();
     mocks.unregisterContext.mockReset();
   });
@@ -100,10 +100,10 @@ describe('AgentRuntime', () => {
 
     const runtime = new AgentRuntime(context, registry);
 
-    expect(runtime.external_event_notifier.agent_id).toBe(context.agent_id);
-    expect(runtime.status_manager).toBe(mocks.statusManagerInstance);
-    expect(context.state.status_manager_ref).toBe(mocks.statusManagerInstance);
-    expect(mocks.workerInstance.add_done_callback).toHaveBeenCalledOnce();
+    expect(runtime.externalEventNotifier.agentId).toBe(context.agentId);
+    expect(runtime.statusManager).toBe(mocks.statusManagerInstance);
+    expect(context.state.statusManagerRef).toBe(mocks.statusManagerInstance);
+    expect(mocks.workerInstance.addDoneCallback).toHaveBeenCalledOnce();
     expect(mocks.registerContext).toHaveBeenCalledWith(context);
   });
 
@@ -111,7 +111,7 @@ describe('AgentRuntime', () => {
     const context = makeContext();
     const runtime = new AgentRuntime(context, {} as any);
 
-    mocks.workerInstance.is_alive.mockReturnValue(false);
+    mocks.workerInstance.isAlive.mockReturnValue(false);
     runtime.start();
 
     expect(mocks.workerInstance.start).toHaveBeenCalledOnce();
@@ -121,7 +121,7 @@ describe('AgentRuntime', () => {
     const context = makeContext();
     const runtime = new AgentRuntime(context, {} as any);
 
-    mocks.workerInstance.is_alive.mockReturnValue(true);
+    mocks.workerInstance.isAlive.mockReturnValue(true);
     runtime.start();
 
     expect(mocks.workerInstance.start).not.toHaveBeenCalled();
@@ -131,29 +131,29 @@ describe('AgentRuntime', () => {
     const context = makeContext();
     const runtime = new AgentRuntime(context, {} as any);
 
-    mocks.workerInstance.is_alive.mockReturnValue(true);
-    runtime._apply_event_and_derive_status = vi.fn(async () => undefined) as any;
+    mocks.workerInstance.isAlive.mockReturnValue(true);
+    runtime.applyEventAndDeriveStatus = vi.fn(async () => undefined) as any;
 
     await runtime.stop(0.1);
 
-    expect(runtime._apply_event_and_derive_status).toHaveBeenCalledTimes(2);
-    expect((runtime._apply_event_and_derive_status as any).mock.calls[0][0]).toBeInstanceOf(ShutdownRequestedEvent);
+    expect(runtime.applyEventAndDeriveStatus).toHaveBeenCalledTimes(2);
+    expect((runtime.applyEventAndDeriveStatus as any).mock.calls[0][0]).toBeInstanceOf(ShutdownRequestedEvent);
     expect(mocks.workerInstance.stop).toHaveBeenCalledWith(0.1);
-    expect(mocks.unregisterContext).toHaveBeenCalledWith(context.agent_id);
-    expect((runtime._apply_event_and_derive_status as any).mock.calls[1][0]).toBeInstanceOf(AgentStoppedEvent);
+    expect(mocks.unregisterContext).toHaveBeenCalledWith(context.agentId);
+    expect((runtime.applyEventAndDeriveStatus as any).mock.calls[1][0]).toBeInstanceOf(AgentStoppedEvent);
   });
 
   it('stop returns early when worker not alive', async () => {
     const context = makeContext();
     const runtime = new AgentRuntime(context, {} as any);
 
-    mocks.workerInstance.is_alive.mockReturnValue(false);
-    runtime._apply_event_and_derive_status = vi.fn(async () => undefined) as any;
+    mocks.workerInstance.isAlive.mockReturnValue(false);
+    runtime.applyEventAndDeriveStatus = vi.fn(async () => undefined) as any;
 
     await runtime.stop(0.1);
 
-    expect(runtime._apply_event_and_derive_status).toHaveBeenCalledTimes(1);
-    expect((runtime._apply_event_and_derive_status as any).mock.calls[0][0]).toBeInstanceOf(AgentStoppedEvent);
+    expect(runtime.applyEventAndDeriveStatus).toHaveBeenCalledTimes(1);
+    expect((runtime.applyEventAndDeriveStatus as any).mock.calls[0][0]).toBeInstanceOf(AgentStoppedEvent);
     expect(mocks.workerInstance.stop).not.toHaveBeenCalled();
     expect(mocks.unregisterContext).not.toHaveBeenCalled();
   });
@@ -161,26 +161,26 @@ describe('AgentRuntime', () => {
   it('handles worker completion with error', () => {
     const context = makeContext();
     const runtime = new AgentRuntime(context, {} as any);
-    runtime._apply_event_and_derive_status = vi.fn(async () => undefined) as any;
+    runtime.applyEventAndDeriveStatus = vi.fn(async () => undefined) as any;
 
-    (runtime as any)._handle_worker_completion({ status: 'rejected', reason: new Error('Worker crashed') } as any);
+    (runtime as any).handleWorkerCompletion({ status: 'rejected', reason: new Error('Worker crashed') } as any);
 
-    expect(runtime._apply_event_and_derive_status).toHaveBeenCalledTimes(2);
-    expect((runtime._apply_event_and_derive_status as any).mock.calls[0][0]).toBeInstanceOf(AgentErrorEvent);
-    expect((runtime._apply_event_and_derive_status as any).mock.calls[1][0]).toBeInstanceOf(AgentStoppedEvent);
+    expect(runtime.applyEventAndDeriveStatus).toHaveBeenCalledTimes(2);
+    expect((runtime.applyEventAndDeriveStatus as any).mock.calls[0][0]).toBeInstanceOf(AgentErrorEvent);
+    expect((runtime.applyEventAndDeriveStatus as any).mock.calls[1][0]).toBeInstanceOf(AgentStoppedEvent);
   });
 
-  it('exposes current_status_property and is_running', () => {
+  it('exposes currentStatus and isRunning', () => {
     const context = makeContext();
     const runtime = new AgentRuntime(context, {} as any);
 
-    context.current_status = AgentStatus.IDLE;
-    expect(runtime.current_status_property).toBe(AgentStatus.IDLE);
+    context.currentStatus = AgentStatus.IDLE;
+    expect(runtime.currentStatus).toBe(AgentStatus.IDLE);
 
-    mocks.workerInstance.is_alive.mockReturnValue(true);
-    expect(runtime.is_running).toBe(true);
+    mocks.workerInstance.isAlive.mockReturnValue(true);
+    expect(runtime.isRunning).toBe(true);
 
-    mocks.workerInstance.is_alive.mockReturnValue(false);
-    expect(runtime.is_running).toBe(false);
+    mocks.workerInstance.isAlive.mockReturnValue(false);
+    expect(runtime.isRunning).toBe(false);
   });
 });

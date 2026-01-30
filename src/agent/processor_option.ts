@@ -1,19 +1,19 @@
 export class ProcessorOption {
   readonly name: string;
-  readonly is_mandatory: boolean;
+  readonly isMandatory: boolean;
 
-  constructor(name: string, is_mandatory: boolean) {
+  constructor(name: string, isMandatory: boolean) {
     this.name = name;
-    this.is_mandatory = is_mandatory;
+    this.isMandatory = isMandatory;
   }
 }
 
 export class HookOption {
   readonly name: string;
-  readonly is_mandatory: boolean;
+  readonly isMandatory: boolean;
 
-  constructor(name: string, is_mandatory: boolean) {
+  constructor(name: string, isMandatory: boolean) {
     this.name = name;
-    this.is_mandatory = is_mandatory;
+    this.isMandatory = isMandatory;
   }
 }

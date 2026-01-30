@@ -12,35 +12,45 @@ export enum CleaningMode {
 
 const VOID_TAGS = new Set(['br', 'hr', 'img']);
 
+type CheerioApi = ReturnType<typeof load>;
+type CheerioArg = Parameters<CheerioApi>[0];
+type CheerioNode = {
+  type?: string;
+  tagName?: string;
+  data?: string;
+  attribs?: Record<string, string>;
+};
+
 const cleanWhitespace = (text: string): string => {
   return text.replace(/\s+/g, ' ').trim();
 };
 
-const removeEmptyTags = ($: ReturnType<typeof load>, element: any): boolean => {
-  if (element.type === 'comment') {
-    $(element).remove();
+const removeEmptyTags = ($: ReturnType<typeof load>, element: unknown): boolean => {
+  const node = element as CheerioNode;
+  if (node.type === 'comment') {
+    $(element as CheerioArg).remove();
     return true;
   }
 
-  if (element.type === 'text') {
-    const data = (element.data ?? '').trim();
+  if (node.type === 'text') {
+    const data = (node.data ?? '').trim();
     if (!data) {
-      $(element).remove();
+      $(element as CheerioArg).remove();
       return true;
     }
     return false;
   }
 
-  if (element.type === 'tag') {
-    const children = $(element).contents().toArray();
+  if (node.type === 'tag') {
+    const children = $(element as CheerioArg).contents().toArray();
     for (const child of children) {
       removeEmptyTags($, child);
     }
 
-    const tagName = element.tagName?.toLowerCase() ?? '';
-    const textContent = $(element).text().trim();
+    const tagName = node.tagName?.toLowerCase() ?? '';
+    const textContent = $(element as CheerioArg).text().trim();
     if (!VOID_TAGS.has(tagName) && textContent.length === 0) {
-      $(element).remove();
+      $(element as CheerioArg).remove();
       return true;
     }
   }
@@ -65,11 +75,12 @@ const cleanGoogleSearchResult = ($: ReturnType<typeof load>): string => {
   $.root()
     .find('*')
     .contents()
-    .each((_: any, node: any) => {
-      if (node.type !== 'text') {
+    .each((_index: number, node: unknown) => {
+      const nodeInfo = node as CheerioNode;
+      if (nodeInfo.type !== 'text') {
         return;
       }
-      const text = (node.data ?? '').trim();
+      const text = (nodeInfo.data ?? '').trim();
       if (!text || addedText.has(text)) {
         return;
       }
@@ -88,7 +99,7 @@ export const clean = (htmlText: string, mode: CleaningMode = CleaningMode.STANDA
     return '';
   }
 
-  const $ = load(htmlText, { decodeEntities: false } as any);
+  const $ = load(htmlText, { decodeEntities: false } as Record<string, unknown>);
 
   if (mode === CleaningMode.TEXT_CONTENT_FOCUSED) {
     $('script, style').remove();
@@ -107,9 +118,10 @@ export const clean = (htmlText: string, mode: CleaningMode = CleaningMode.STANDA
   content
     .find('*')
     .contents()
-    .each((_: any, node: any) => {
-      if (node.type === 'comment') {
-        $(node).remove();
+    .each((_index: number, node: unknown) => {
+      const nodeInfo = node as CheerioNode;
+      if (nodeInfo.type === 'comment') {
+        $(node as CheerioArg).remove();
       }
     });
 
@@ -133,21 +145,22 @@ export const clean = (htmlText: string, mode: CleaningMode = CleaningMode.STANDA
 
   const whitelistSet = new Set(whitelistTags);
 
-  content.find('*').toArray().forEach((el: any) => {
-    const tagName = el.tagName?.toLowerCase() ?? '';
+  content.find('*').toArray().forEach((el: unknown) => {
+    const node = el as CheerioNode;
+    const tagName = node.tagName?.toLowerCase() ?? '';
     if (!whitelistSet.has(tagName)) {
       if (mode === CleaningMode.ULTIMATE) {
-        $(el).replaceWith($(el).contents());
+        $(el as CheerioArg).replaceWith($(el as CheerioArg).contents());
       } else {
-        $(el).remove();
+        $(el as CheerioArg).remove();
       }
     }
   });
 
-  content.find('img').each((_: any, img: any) => {
-    const src = $(img).attr('src') ?? '';
+  content.find('img').each((_index: number, img: unknown) => {
+    const src = $(img as CheerioArg).attr('src') ?? '';
     if (src.startsWith('data:image')) {
-      $(img).remove();
+      $(img as CheerioArg).remove();
     }
   });
 
@@ -164,20 +177,21 @@ export const clean = (htmlText: string, mode: CleaningMode = CleaningMode.STANDA
 
     const whitelistAttrSet = new Set(whitelistAttrs);
 
-    content.find('*').each((_: any, el: any) => {
-      const attrs = (el.attribs ?? {}) as Record<string, string>;
+    content.find('*').each((_index: number, el: unknown) => {
+      const node = el as CheerioNode;
+      const attrs = (node.attribs ?? {}) as Record<string, string>;
       for (const attr of Object.keys(attrs)) {
         if (!whitelistAttrSet.has(attr)) {
-          $(el).removeAttr(attr);
+          $(el as CheerioArg).removeAttr(attr);
         }
       }
-      if ($(el).attr('style')) {
-        $(el).removeAttr('style');
+      if ($(el as CheerioArg).attr('style')) {
+        $(el as CheerioArg).removeAttr('style');
       }
     });
   }
 
-  content.contents().toArray().forEach((el: any) => {
+  content.contents().toArray().forEach((el: unknown) => {
     removeEmptyTags($, el);
   });
 

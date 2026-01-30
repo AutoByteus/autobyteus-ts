@@ -8,28 +8,28 @@ import { TeamNodeConfig } from '../../../../src/agent_team/context/team_node_con
 import { AgentTeamStatus } from '../../../../src/agent_team/status/agent_team_status.js';
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: { name: 'Coordinator' } });
+  const node = new TeamNodeConfig({ nodeDefinition: { name: 'Coordinator' } });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1', current_status: AgentTeamStatus.IDLE });
-  state.input_event_queues = {
-    enqueue_internal_system_event: vi.fn(async () => undefined)
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1', currentStatus: AgentTeamStatus.IDLE });
+  state.inputEventQueues = {
+    enqueueInternalSystemEvent: vi.fn(async () => undefined)
   } as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
 describe('ToolApprovalTeamEventHandler', () => {
   let handler: ToolApprovalTeamEventHandler;
-  let agent_team_context: AgentTeamContext;
+  let agentTeamContext: AgentTeamContext;
   let event: ToolApprovalTeamEvent;
 
   beforeEach(() => {
     handler = new ToolApprovalTeamEventHandler();
-    agent_team_context = makeContext();
+    agentTeamContext = makeContext();
     event = new ToolApprovalTeamEvent(
       'ApproverAgent',
       'tool-call-123',
@@ -39,31 +39,31 @@ describe('ToolApprovalTeamEventHandler', () => {
   });
 
   it('posts approval to agent', async () => {
-    const mock_agent = { post_tool_execution_approval: vi.fn(async () => undefined) };
-    agent_team_context.state.team_manager = {
-      ensure_node_is_ready: vi.fn(async () => mock_agent)
+    const mockAgent = { postToolExecutionApproval: vi.fn(async () => undefined) };
+    agentTeamContext.state.teamManager = {
+      ensureNodeIsReady: vi.fn(async () => mockAgent)
     } as any;
 
-    await handler.handle(event, agent_team_context);
+    await handler.handle(event, agentTeamContext);
 
-    expect(agent_team_context.state.team_manager?.ensure_node_is_ready).toHaveBeenCalledWith('ApproverAgent');
-    expect(mock_agent.post_tool_execution_approval).toHaveBeenCalledWith(
-      event.tool_invocation_id,
-      event.is_approved,
+    expect(agentTeamContext.state.teamManager?.ensureNodeIsReady).toHaveBeenCalledWith('ApproverAgent');
+    expect(mockAgent.postToolExecutionApproval).toHaveBeenCalledWith(
+      event.toolInvocationId,
+      event.isApproved,
       event.reason
     );
   });
 
   it('enqueues error when target agent not found', async () => {
-    agent_team_context.state.team_manager = {
-      ensure_node_is_ready: vi.fn(async () => null)
+    agentTeamContext.state.teamManager = {
+      ensureNodeIsReady: vi.fn(async () => null)
     } as any;
 
-    await handler.handle(event, agent_team_context);
+    await handler.handle(event, agentTeamContext);
 
-    const enqueue = agent_team_context.state.input_event_queues?.enqueue_internal_system_event as any;
+    const enqueue = agentTeamContext.state.inputEventQueues?.enqueueInternalSystemEvent as any;
     expect(enqueue).toHaveBeenCalledTimes(1);
-    const enqueued_event = enqueue.mock.calls[0][0];
-    expect(enqueued_event).toBeInstanceOf(AgentTeamErrorEvent);
+    const enqueuedEvent = enqueue.mock.calls[0][0];
+    expect(enqueuedEvent).toBeInstanceOf(AgentTeamErrorEvent);
   });
 });

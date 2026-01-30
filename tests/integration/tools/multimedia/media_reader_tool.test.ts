@@ -35,8 +35,8 @@ describe('ReadMediaFile tool (integration)', () => {
 
     expect(result).toBeInstanceOf(ContextFile);
     expect(result.uri).toBe(imagePath);
-    expect(result.file_name).toBe('test_image.png');
-    expect(result.file_type).toBe(ContextFileType.IMAGE);
+    expect(result.fileName).toBe('test_image.png');
+    expect(result.fileType).toBe(ContextFileType.IMAGE);
   });
 
   it('reads media file with absolute path', async () => {
@@ -55,8 +55,8 @@ describe('ReadMediaFile tool (integration)', () => {
 
     expect(result).toBeInstanceOf(ContextFile);
     expect(result.uri).toBe(imagePath);
-    expect(result.file_name).toBe('test_image.png');
-    expect(result.file_type).toBe(ContextFileType.IMAGE);
+    expect(result.fileName).toBe('test_image.png');
+    expect(result.fileType).toBe(ContextFileType.IMAGE);
   });
 
   it('throws for non-existent file', async () => {

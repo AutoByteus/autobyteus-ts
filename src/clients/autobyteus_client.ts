@@ -6,7 +6,7 @@ import axios, { AxiosError, AxiosInstance } from 'axios';
 
 export class CertificateError extends Error {}
 
-type JsonRecord = Record<string, any>;
+type JsonRecord = Record<string, unknown>;
 
 function joinUrl(baseUrl: string, path: string): string {
   return new URL(path, baseUrl).toString();
@@ -38,7 +38,7 @@ function formatHttpError(error: AxiosError): Error {
   }
 
   const wrapped = new Error(message);
-  (wrapped as any).cause = error;
+  Object.assign(wrapped, { cause: error });
   return wrapped;
 }
 
@@ -56,9 +56,9 @@ export class AutobyteusClient {
   private asyncAgent?: https.Agent;
   private syncAgent?: https.Agent;
 
-  constructor(server_url?: string) {
+  constructor(serverUrl?: string) {
     this.serverUrl =
-      server_url ??
+      serverUrl ??
       process.env.AUTOBYTEUS_LLM_SERVER_URL ??
       AutobyteusClient.DEFAULT_SERVER_URL;
     this.apiKey = process.env[AutobyteusClient.API_KEY_ENV_VAR] ?? '';
@@ -177,21 +177,21 @@ export class AutobyteusClient {
   }
 
   async sendMessage(
-    conversation_id: string,
-    model_name: string,
-    user_message: string,
-    image_urls?: string[] | null,
-    audio_urls?: string[] | null,
-    video_urls?: string[] | null
+    conversationId: string,
+    modelName: string,
+    userMessage: string,
+    imageUrls?: string[] | null,
+    audioUrls?: string[] | null,
+    videoUrls?: string[] | null
   ): Promise<JsonRecord> {
     try {
       const payload = {
-        conversation_id,
-        model_name,
-        user_message,
-        image_urls: image_urls ?? [],
-        audio_urls: audio_urls ?? [],
-        video_urls: video_urls ?? []
+        conversation_id: conversationId,
+        model_name: modelName,
+        user_message: userMessage,
+        image_urls: imageUrls ?? [],
+        audio_urls: audioUrls ?? [],
+        video_urls: videoUrls ?? []
       };
       const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/send-message'), payload);
       return response.data;
@@ -201,20 +201,20 @@ export class AutobyteusClient {
   }
 
   async *streamMessage(
-    conversation_id: string,
-    model_name: string,
-    user_message: string,
-    image_urls?: string[] | null,
-    audio_urls?: string[] | null,
-    video_urls?: string[] | null
+    conversationId: string,
+    modelName: string,
+    userMessage: string,
+    imageUrls?: string[] | null,
+    audioUrls?: string[] | null,
+    videoUrls?: string[] | null
   ): AsyncGenerator<JsonRecord, void, void> {
     const payload = {
-      conversation_id,
-      model_name,
-      user_message,
-      image_urls: image_urls ?? [],
-      audio_urls: audio_urls ?? [],
-      video_urls: video_urls ?? []
+      conversation_id: conversationId,
+      model_name: modelName,
+      user_message: userMessage,
+      image_urls: imageUrls ?? [],
+      audio_urls: audioUrls ?? [],
+      video_urls: videoUrls ?? []
     };
 
     try {
@@ -249,21 +249,21 @@ export class AutobyteusClient {
   }
 
   async generateImage(
-    model_name: string,
+    modelName: string,
     prompt: string,
-    input_image_urls?: string[] | null,
-    mask_url?: string | null,
-    generation_config?: Record<string, any> | null,
-    session_id?: string | null
+    inputImageUrls?: string[] | null,
+    maskUrl?: string | null,
+    generationConfig?: Record<string, unknown> | null,
+    sessionId?: string | null
   ): Promise<JsonRecord> {
     try {
       const payload = {
-        model_name,
+        model_name: modelName,
         prompt,
-        input_image_urls: input_image_urls ?? [],
-        mask_url: mask_url ?? null,
-        generation_config: generation_config ?? {},
-        session_id: session_id ?? null
+        input_image_urls: inputImageUrls ?? [],
+        mask_url: maskUrl ?? null,
+        generation_config: generationConfig ?? {},
+        session_id: sessionId ?? null
       };
       const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/generate-image'), payload);
       return response.data;
@@ -273,17 +273,17 @@ export class AutobyteusClient {
   }
 
   async generateSpeech(
-    model_name: string,
+    modelName: string,
     prompt: string,
-    generation_config?: Record<string, any> | null,
-    session_id?: string | null
+    generationConfig?: Record<string, unknown> | null,
+    sessionId?: string | null
   ): Promise<JsonRecord> {
     try {
       const payload = {
-        model_name,
+        model_name: modelName,
         prompt,
-        generation_config: generation_config ?? {},
-        session_id: session_id ?? null
+        generation_config: generationConfig ?? {},
+        session_id: sessionId ?? null
       };
       const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/generate-speech'), payload);
       return response.data;
@@ -292,10 +292,10 @@ export class AutobyteusClient {
     }
   }
 
-  async cleanup(conversation_id: string): Promise<JsonRecord> {
+  async cleanup(conversationId: string): Promise<JsonRecord> {
     try {
       const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/cleanup'), {
-        conversation_id
+        conversation_id: conversationId
       });
       return response.data;
     } catch (error) {
@@ -303,18 +303,22 @@ export class AutobyteusClient {
     }
   }
 
-  async cleanupImageSession(session_id: string): Promise<JsonRecord> {
+  async cleanupImageSession(sessionId: string): Promise<JsonRecord> {
     try {
-      const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/cleanup/image'), { session_id });
+      const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/cleanup/image'), {
+        session_id: sessionId
+      });
       return response.data;
     } catch (error) {
       throw this.handleAxiosError(error, 'Image session cleanup error');
     }
   }
 
-  async cleanupAudioSession(session_id: string): Promise<JsonRecord> {
+  async cleanupAudioSession(sessionId: string): Promise<JsonRecord> {
     try {
-      const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/cleanup/audio'), { session_id });
+      const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/cleanup/audio'), {
+        session_id: sessionId
+      });
       return response.data;
     } catch (error) {
       throw this.handleAxiosError(error, 'Audio session cleanup error');

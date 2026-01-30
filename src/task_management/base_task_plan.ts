@@ -15,22 +15,27 @@ export function isTerminalTaskStatus(status: TaskStatus): boolean {
   return status === TaskStatus.COMPLETED || status === TaskStatus.FAILED;
 }
 
+export type TaskStatusOverview = {
+  taskStatuses: Record<string, TaskStatus>;
+  tasks: Task[];
+};
+
 export abstract class BaseTaskPlan extends EventEmitter {
-  team_id: string;
+  teamId: string;
   tasks: Task[] = [];
 
-  constructor(team_id: string) {
+  constructor(teamId: string) {
     super();
-    this.team_id = team_id;
+    this.teamId = teamId;
   }
 
-  abstract add_tasks(task_definitions: TaskDefinition[]): Task[];
+  abstract addTasks(taskDefinitions: TaskDefinition[]): Task[];
 
-  abstract add_task(task_definition: TaskDefinition): Task | null;
+  abstract addTask(taskDefinition: TaskDefinition): Task | null;
 
-  abstract update_task_status(task_id: string, status: TaskStatus, agent_name: string): boolean;
+  abstract updateTaskStatus(taskId: string, status: TaskStatus, agentName: string): boolean;
 
-  abstract get_status_overview(): Record<string, any>;
+  abstract getStatusOverview(): TaskStatusOverview;
 
-  abstract get_next_runnable_tasks(): Task[];
+  abstract getNextRunnableTasks(): Task[];
 }

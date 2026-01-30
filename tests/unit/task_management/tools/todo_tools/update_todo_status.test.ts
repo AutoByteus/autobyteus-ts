@@ -5,16 +5,16 @@ import { ToDoStatus } from '../../../../../src/task_management/todo.js';
 import { ToDoList } from '../../../../../src/task_management/todo_list.js';
 
 const buildContext = (agentId = 'agent_update_todo', withList = true) => {
-  const state: { todo_list: ToDoList | null } = { todo_list: null };
+  const state: { todoList: ToDoList | null } = { todoList: null };
   if (withList) {
     const todoList = new ToDoList(agentId);
-    todoList.add_todo(ToDoDefinitionSchema.parse({ description: 'Initial step' }));
-    state.todo_list = todoList;
+    todoList.addTodo(ToDoDefinitionSchema.parse({ description: 'Initial step' }));
+    state.todoList = todoList;
   }
 
   return {
-    agent_id: agentId,
-    status_manager: { notifier: { notify_agent_data_todo_list_updated: () => {} } },
+    agentId,
+    statusManager: { notifier: { notifyAgentDataTodoListUpdated: () => {} } },
     state
   };
 };
@@ -28,7 +28,7 @@ describe('UpdateToDoStatus tool', () => {
   it('updates a todo successfully', async () => {
     const tool = new UpdateToDoStatus();
     const context = buildContext();
-    const todo = context.state.todo_list?.get_all_todos()[0];
+    const todo = context.state.todoList?.getAllTodos()[0];
     expect(todo?.todo_id).toBe('todo_0001');
 
     const result = await (tool as any)._execute(context, {
@@ -55,7 +55,7 @@ describe('UpdateToDoStatus tool', () => {
   it('returns an error for invalid status', async () => {
     const tool = new UpdateToDoStatus();
     const context = buildContext();
-    const todo = context.state.todo_list?.get_all_todos()[0];
+    const todo = context.state.todoList?.getAllTodos()[0];
 
     const result = await (tool as any)._execute(context, {
       todo_id: todo?.todo_id,

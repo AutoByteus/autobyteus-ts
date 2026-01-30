@@ -7,34 +7,39 @@ export interface TokenPricingConfigData {
   output_token_pricing?: number;
 }
 
-export class TokenPricingConfig {
-  public input_token_pricing: number;
-  public output_token_pricing: number;
+export interface TokenPricingConfigInput {
+  inputTokenPricing?: number;
+  outputTokenPricing?: number;
+}
 
-  constructor(data: TokenPricingConfigData = {}) {
-    this.input_token_pricing = data.input_token_pricing ?? 0.0;
-    this.output_token_pricing = data.output_token_pricing ?? 0.0;
+export class TokenPricingConfig {
+  public inputTokenPricing: number;
+  public outputTokenPricing: number;
+
+  constructor(data: TokenPricingConfigInput = {}) {
+    this.inputTokenPricing = data.inputTokenPricing ?? 0.0;
+    this.outputTokenPricing = data.outputTokenPricing ?? 0.0;
   }
 
-  static fromDict(data: Record<string, any>): TokenPricingConfig {
+  static fromDict(data: Record<string, unknown>): TokenPricingConfig {
     return new TokenPricingConfig({
-      input_token_pricing: data?.input_token_pricing ?? 0.0,
-      output_token_pricing: data?.output_token_pricing ?? 0.0
+      inputTokenPricing: (data as { input_token_pricing?: number }).input_token_pricing ?? 0.0,
+      outputTokenPricing: (data as { output_token_pricing?: number }).output_token_pricing ?? 0.0
     });
   }
 
   toDict(): TokenPricingConfigData {
     return {
-      input_token_pricing: this.input_token_pricing,
-      output_token_pricing: this.output_token_pricing
+      input_token_pricing: this.inputTokenPricing,
+      output_token_pricing: this.outputTokenPricing
     };
   }
 
   mergeWith(override: TokenPricingConfig | null | undefined): void {
     if (!override) return;
     // Match Python behavior: any override value (including 0.0) replaces current.
-    this.input_token_pricing = override.input_token_pricing;
-    this.output_token_pricing = override.output_token_pricing;
+    this.inputTokenPricing = override.inputTokenPricing;
+    this.outputTokenPricing = override.outputTokenPricing;
   }
 }
 
@@ -48,43 +53,58 @@ export interface LLMConfigData {
   frequency_penalty?: number | null;
   presence_penalty?: number | null;
   stop_sequences?: string[] | null;
-  extra_params?: Record<string, any>;
+  extra_params?: Record<string, unknown>;
   pricing_config?: TokenPricingConfig | TokenPricingConfigData;
 }
 
+export interface LLMConfigInput {
+  rateLimit?: number | null;
+  tokenLimit?: number | null;
+  systemMessage?: string;
+  temperature?: number;
+  maxTokens?: number | null;
+  topP?: number | null;
+  frequencyPenalty?: number | null;
+  presencePenalty?: number | null;
+  stopSequences?: string[] | null;
+  extraParams?: Record<string, unknown>;
+  pricingConfig?: TokenPricingConfig | TokenPricingConfigInput;
+}
+
 export class LLMConfig {
-  public rate_limit: number | null;
-  public token_limit: number | null;
-  public system_message: string;
+  public rateLimit: number | null;
+  public tokenLimit: number | null;
+  public systemMessage: string;
   public temperature: number;
-  public max_tokens: number | null;
-  public top_p: number | null;
-  public frequency_penalty: number | null;
-  public presence_penalty: number | null;
-  public stop_sequences: string[] | null;
-  public extra_params: Record<string, any>;
-  public pricing_config: TokenPricingConfig;
+  public maxTokens: number | null;
+  public topP: number | null;
+  public frequencyPenalty: number | null;
+  public presencePenalty: number | null;
+  public stopSequences: string[] | null;
+  public extraParams: Record<string, unknown>;
+  public pricingConfig: TokenPricingConfig;
 
-  constructor(data: LLMConfigData = {}) {
-    this.rate_limit = data.rate_limit ?? null;
-    this.token_limit = data.token_limit ?? null;
-    this.system_message = data.system_message ?? "You are a helpful assistant.";
+  constructor(data: LLMConfigInput = {}) {
+    this.rateLimit = data.rateLimit ?? null;
+    this.tokenLimit = data.tokenLimit ?? null;
+    this.systemMessage = data.systemMessage ?? 'You are a helpful assistant.';
     this.temperature = data.temperature ?? 0.7;
-    this.max_tokens = data.max_tokens ?? null;
-    this.top_p = data.top_p ?? null;
-    this.frequency_penalty = data.frequency_penalty ?? null;
-    this.presence_penalty = data.presence_penalty ?? null;
-    this.stop_sequences = data.stop_sequences ?? null;
-    this.extra_params = data.extra_params ?? {};
+    this.maxTokens = data.maxTokens ?? null;
+    this.topP = data.topP ?? null;
+    this.frequencyPenalty = data.frequencyPenalty ?? null;
+    this.presencePenalty = data.presencePenalty ?? null;
+    this.stopSequences = data.stopSequences ?? null;
+    this.extraParams = data.extraParams ?? {};
 
-    if (data.pricing_config instanceof TokenPricingConfig) {
-      this.pricing_config = data.pricing_config;
-    } else if (data.pricing_config && typeof data.pricing_config === 'object') {
-      this.pricing_config = TokenPricingConfig.fromDict(data.pricing_config as Record<string, any>);
-    } else if (data.pricing_config === undefined || data.pricing_config === null) {
-      this.pricing_config = new TokenPricingConfig();
+    if (data.pricingConfig instanceof TokenPricingConfig) {
+      this.pricingConfig = data.pricingConfig;
+    } else if (data.pricingConfig && typeof data.pricingConfig === 'object') {
+      const configData = data.pricingConfig as TokenPricingConfigInput;
+      this.pricingConfig = new TokenPricingConfig(configData);
+    } else if (data.pricingConfig === undefined || data.pricingConfig === null) {
+      this.pricingConfig = new TokenPricingConfig();
     } else {
-      this.pricing_config = new TokenPricingConfig();
+      this.pricingConfig = new TokenPricingConfig();
     }
   }
 
@@ -92,45 +112,56 @@ export class LLMConfig {
     return new LLMConfig();
   }
 
-  static fromDict(data: Record<string, any>): LLMConfig {
-    const dataCopy = { ...data };
-    const pricingData = dataCopy.pricing_config ?? {};
-    delete dataCopy.pricing_config;
+  static fromDict(data: Record<string, unknown>): LLMConfig {
+    const pricingData = (data as { pricing_config?: TokenPricingConfigData }).pricing_config ?? {};
 
-    const configData: LLMConfigData = {
-      ...dataCopy,
-      pricing_config: pricingData
+    const configData: LLMConfigInput = {
+      rateLimit: (data as { rate_limit?: number | null }).rate_limit ?? null,
+      tokenLimit: (data as { token_limit?: number | null }).token_limit ?? null,
+      systemMessage: (data as { system_message?: string }).system_message ?? undefined,
+      temperature: (data as { temperature?: number }).temperature ?? undefined,
+      maxTokens: (data as { max_tokens?: number | null }).max_tokens ?? null,
+      topP: (data as { top_p?: number | null }).top_p ?? null,
+      frequencyPenalty: (data as { frequency_penalty?: number | null }).frequency_penalty ?? null,
+      presencePenalty: (data as { presence_penalty?: number | null }).presence_penalty ?? null,
+      stopSequences: (data as { stop_sequences?: string[] | null }).stop_sequences ?? null,
+      extraParams: (data as { extra_params?: Record<string, unknown> }).extra_params ?? {},
+      pricingConfig: new TokenPricingConfig({
+        inputTokenPricing: pricingData.input_token_pricing,
+        outputTokenPricing: pricingData.output_token_pricing
+      })
     };
+
     return new LLMConfig(configData);
   }
 
-  toDict(): Record<string, any> {
-    const data: Record<string, any> = {
-      rate_limit: this.rate_limit,
-      token_limit: this.token_limit,
-      system_message: this.system_message,
+  toDict(): LLMConfigData {
+    const data: LLMConfigData = {
+      rate_limit: this.rateLimit,
+      token_limit: this.tokenLimit,
+      system_message: this.systemMessage,
       temperature: this.temperature,
-      max_tokens: this.max_tokens,
-      top_p: this.top_p,
-      frequency_penalty: this.frequency_penalty,
-      presence_penalty: this.presence_penalty,
-      stop_sequences: this.stop_sequences,
-      extra_params: this.extra_params,
-      pricing_config: this.pricing_config instanceof TokenPricingConfig
-        ? this.pricing_config.toDict()
-        : this.pricing_config ?? {}
+      max_tokens: this.maxTokens,
+      top_p: this.topP,
+      frequency_penalty: this.frequencyPenalty,
+      presence_penalty: this.presencePenalty,
+      stop_sequences: this.stopSequences,
+      extra_params: this.extraParams,
+      pricing_config: this.pricingConfig instanceof TokenPricingConfig
+        ? this.pricingConfig.toDict()
+        : {}
     };
     
     // Filter None/null values? Python implementation does:
     // return {k: v for k, v in data.items() if v is not None}
     
-    const filtered: Record<string, any> = {};
-    for (const key in data) {
-      if (data[key] !== null && data[key] !== undefined) {
-        filtered[key] = data[key];
+    const filtered: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (value !== null && value !== undefined) {
+        filtered[key] = value;
       }
     }
-    return filtered;
+    return filtered as LLMConfigData;
   }
 
   toJson(): string {
@@ -142,29 +173,33 @@ export class LLMConfig {
     return LLMConfig.fromDict(data);
   }
 
-  update(updates: Record<string, any>): void {
+  update(updates: Record<string, unknown>): void {
     for (const [key, value] of Object.entries(updates)) {
-      if (key === 'pricing_config' && value && typeof value === 'object') {
-        if (this.pricing_config instanceof TokenPricingConfig) {
-          this.pricing_config.mergeWith(TokenPricingConfig.fromDict(value));
+      if (key === 'pricingConfig' && value && typeof value === 'object') {
+        const nextConfig =
+          value instanceof TokenPricingConfig
+            ? value
+            : new TokenPricingConfig(value as TokenPricingConfigInput);
+        if (this.pricingConfig instanceof TokenPricingConfig) {
+          this.pricingConfig.mergeWith(nextConfig);
         } else {
-          this.pricing_config = TokenPricingConfig.fromDict(value);
+          this.pricingConfig = nextConfig;
         }
         continue;
       }
 
       if (key in this) {
-        (this as any)[key] = value;
+        (this as Record<string, unknown>)[key] = value;
       } else {
-        this.extra_params[key] = value;
+        this.extraParams[key] = value;
       }
     }
 
-    if (this.pricing_config && !(this.pricing_config instanceof TokenPricingConfig)) {
-      if (typeof this.pricing_config === 'object') {
-        this.pricing_config = TokenPricingConfig.fromDict(this.pricing_config as Record<string, any>);
+    if (this.pricingConfig && !(this.pricingConfig instanceof TokenPricingConfig)) {
+      if (typeof this.pricingConfig === 'object') {
+        this.pricingConfig = new TokenPricingConfig(this.pricingConfig as TokenPricingConfigInput);
       } else {
-        this.pricing_config = new TokenPricingConfig();
+        this.pricingConfig = new TokenPricingConfig();
       }
     }
   }
@@ -172,31 +207,37 @@ export class LLMConfig {
   mergeWith(override: LLMConfig | null | undefined): void {
     if (!override) return;
     
-    if (override.rate_limit !== null && override.rate_limit !== undefined) this.rate_limit = override.rate_limit;
-    if (override.token_limit !== null && override.token_limit !== undefined) this.token_limit = override.token_limit;
-    if (override.system_message !== null && override.system_message !== undefined) this.system_message = override.system_message;
+    if (override.rateLimit !== null && override.rateLimit !== undefined) this.rateLimit = override.rateLimit;
+    if (override.tokenLimit !== null && override.tokenLimit !== undefined) this.tokenLimit = override.tokenLimit;
+    if (override.systemMessage !== null && override.systemMessage !== undefined) this.systemMessage = override.systemMessage;
     if (override.temperature !== null && override.temperature !== undefined) this.temperature = override.temperature;
-    if (override.max_tokens !== null && override.max_tokens !== undefined) this.max_tokens = override.max_tokens;
-    if (override.top_p !== null && override.top_p !== undefined) this.top_p = override.top_p;
-    if (override.frequency_penalty !== null && override.frequency_penalty !== undefined) this.frequency_penalty = override.frequency_penalty;
-    if (override.presence_penalty !== null && override.presence_penalty !== undefined) this.presence_penalty = override.presence_penalty;
-    if (override.stop_sequences !== null && override.stop_sequences !== undefined) this.stop_sequences = override.stop_sequences;
-
-    if (override.extra_params && typeof override.extra_params === 'object') {
-      this.extra_params = { ...this.extra_params, ...override.extra_params };
+    if (override.maxTokens !== null && override.maxTokens !== undefined) this.maxTokens = override.maxTokens;
+    if (override.topP !== null && override.topP !== undefined) this.topP = override.topP;
+    if (override.frequencyPenalty !== null && override.frequencyPenalty !== undefined) {
+      this.frequencyPenalty = override.frequencyPenalty;
+    }
+    if (override.presencePenalty !== null && override.presencePenalty !== undefined) {
+      this.presencePenalty = override.presencePenalty;
+    }
+    if (override.stopSequences !== null && override.stopSequences !== undefined) {
+      this.stopSequences = override.stopSequences;
     }
 
-    if (!(this.pricing_config instanceof TokenPricingConfig)) {
-      this.pricing_config = new TokenPricingConfig();
+    if (override.extraParams && typeof override.extraParams === 'object') {
+      this.extraParams = { ...this.extraParams, ...override.extraParams };
     }
-    if (override.pricing_config instanceof TokenPricingConfig) {
-      this.pricing_config.mergeWith(override.pricing_config);
-    } else if (override.pricing_config && typeof override.pricing_config === 'object') {
-      this.pricing_config.mergeWith(TokenPricingConfig.fromDict(override.pricing_config as Record<string, any>));
+
+    if (!(this.pricingConfig instanceof TokenPricingConfig)) {
+      this.pricingConfig = new TokenPricingConfig();
+    }
+    if (override.pricingConfig instanceof TokenPricingConfig) {
+      this.pricingConfig.mergeWith(override.pricingConfig);
+    } else if (override.pricingConfig && typeof override.pricingConfig === 'object') {
+      this.pricingConfig.mergeWith(new TokenPricingConfig(override.pricingConfig as TokenPricingConfigInput));
     }
   }
 
   clone(): LLMConfig {
-    return LLMConfig.fromDict(this.toDict());
+    return LLMConfig.fromDict(this.toDict() as Record<string, unknown>);
   }
 }

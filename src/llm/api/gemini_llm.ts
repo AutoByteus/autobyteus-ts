@@ -19,12 +19,15 @@ const THINKING_LEVEL_BUDGETS: Record<string, number> = {
   high: 16384
 };
 
-const splitGeminiParts = (parts: Array<Record<string, any>> = []): { content: string; reasoning: string } => {
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const splitGeminiParts = (parts: Array<Record<string, unknown>> = []): { content: string; reasoning: string } => {
   let content = '';
   let reasoning = '';
   for (const part of parts) {
     const text = part?.text;
-    if (!text) {
+    if (typeof text !== 'string' || text.length === 0) {
       continue;
     }
     if (part?.thought) {
@@ -46,7 +49,7 @@ export class GeminiLLM extends BaseLLM {
       new LLMModel({
         name: 'gemini-3-flash-preview',
         value: 'gemini-3-flash-preview',
-        canonical_name: 'gemini-3-flash',
+        canonicalName: 'gemini-3-flash',
         provider: LLMProvider.GEMINI
       });
 
@@ -58,8 +61,8 @@ export class GeminiLLM extends BaseLLM {
     this.runtimeInfo = init.runtimeInfo;
   }
 
-  private async formatGeminiHistory(messages: Message[]): Promise<Array<Record<string, any>>> {
-    const history: Array<Record<string, any>> = [];
+  private async formatGeminiHistory(messages: Message[]): Promise<Array<Record<string, unknown>>> {
+    const history: Array<Record<string, unknown>> = [];
 
     for (const msg of messages) {
       if (msg.role !== MessageRole.USER && msg.role !== MessageRole.ASSISTANT) {
@@ -67,7 +70,7 @@ export class GeminiLLM extends BaseLLM {
       }
 
       const role = msg.role === MessageRole.ASSISTANT ? 'model' : 'user';
-      const parts: Array<Record<string, any>> = [];
+      const parts: Array<Record<string, unknown>> = [];
 
       if (msg.content) {
         parts.push({ text: msg.content });
@@ -92,22 +95,22 @@ export class GeminiLLM extends BaseLLM {
     return history;
   }
 
-  private buildGenerationConfig(tools?: any[]): Record<string, any> {
-    const extraParams = { ...(this.config.extra_params ?? {}) };
+  private buildGenerationConfig(tools?: Array<Record<string, unknown>>): Record<string, unknown> {
+    const extraParams = { ...(this.config.extraParams ?? {}) };
     const thinkingLevel = extraParams.thinking_level ?? 'minimal';
     const includeThoughts = Boolean(extraParams.include_thoughts ?? false);
     delete extraParams.thinking_level;
     delete extraParams.include_thoughts;
 
-    const config: Record<string, any> = {
+    const config: Record<string, unknown> = {
       responseMimeType: 'text/plain',
       systemInstruction: this.systemMessage,
       temperature: this.config.temperature,
-      topP: this.config.top_p ?? undefined,
-      maxOutputTokens: this.config.max_tokens ?? undefined,
-      stopSequences: this.config.stop_sequences ?? undefined,
-      presencePenalty: this.config.presence_penalty ?? undefined,
-      frequencyPenalty: this.config.frequency_penalty ?? undefined
+      topP: this.config.topP ?? undefined,
+      maxOutputTokens: this.config.maxTokens ?? undefined,
+      stopSequences: this.config.stopSequences ?? undefined,
+      presencePenalty: this.config.presencePenalty ?? undefined,
+      frequencyPenalty: this.config.frequencyPenalty ?? undefined
     };
 
     const budget = THINKING_LEVEL_BUDGETS[String(thinkingLevel)] ?? 0;
@@ -129,51 +132,56 @@ export class GeminiLLM extends BaseLLM {
     return config;
   }
 
-  private normalizeGeminiTools(tools?: any[]): any[] | undefined {
-    if (!tools || tools.length === 0) {
+  private normalizeGeminiTools(tools: unknown): Array<Record<string, unknown>> | undefined {
+    if (!tools) {
       return undefined;
     }
 
     if (!Array.isArray(tools)) {
-      const toolObj = tools as any;
-      if (toolObj?.function_declarations && !toolObj.functionDeclarations) {
-        return [{ functionDeclarations: toolObj.function_declarations }];
+      if (!isRecord(tools)) {
+        return undefined;
       }
-      if (toolObj?.functionDeclarations) {
-        return [toolObj];
+      if ('function_declarations' in tools && !('functionDeclarations' in tools)) {
+        return [{ functionDeclarations: tools.function_declarations as unknown }];
       }
-      return [{ functionDeclarations: [toolObj] }];
+      if ('functionDeclarations' in tools) {
+        return [tools as Record<string, unknown>];
+      }
+      return [{ functionDeclarations: [tools] }];
     }
 
     const first = tools[0];
-    if (first && typeof first === 'object') {
+    if (isRecord(first)) {
       if ('functionDeclarations' in first) {
         return tools;
       }
       if ('function_declarations' in first) {
-        return tools.map((tool: any) => {
-          if (tool?.function_declarations && !tool.functionDeclarations) {
-            return { functionDeclarations: tool.function_declarations };
+        return tools.map((tool) => {
+          if (isRecord(tool) && 'function_declarations' in tool && !('functionDeclarations' in tool)) {
+            return { functionDeclarations: tool.function_declarations as unknown };
           }
-          return tool;
+          return tool as Record<string, unknown>;
         });
       }
     }
 
-    if (first && typeof first === 'object' && 'name' in first && 'description' in first) {
-      return [{ functionDeclarations: tools }];
+    if (isRecord(first) && 'name' in first && 'description' in first) {
+      return [{ functionDeclarations: tools as Array<Record<string, unknown>> }];
     }
 
-    return tools;
+    return tools as Array<Record<string, unknown>>;
   }
 
-  private toTokenUsage(usage: any): TokenUsage | null {
-    if (!usage) {
+  private toTokenUsage(usage: unknown): TokenUsage | null {
+    if (!isRecord(usage)) {
       return null;
     }
-    const prompt = usage.promptTokenCount ?? 0;
-    const completion = usage.candidatesTokenCount ?? 0;
-    const total = usage.totalTokenCount ?? prompt + completion;
+    const prompt = typeof usage.promptTokenCount === 'number' ? usage.promptTokenCount : 0;
+    const completion = typeof usage.candidatesTokenCount === 'number' ? usage.candidatesTokenCount : 0;
+    const total =
+      typeof usage.totalTokenCount === 'number'
+        ? usage.totalTokenCount
+        : prompt + completion;
     return {
       prompt_tokens: prompt,
       completion_tokens: completion,
@@ -181,7 +189,7 @@ export class GeminiLLM extends BaseLLM {
     };
   }
 
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse> {
+  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
     const history = await this.formatGeminiHistory(this.messages);
@@ -205,7 +213,7 @@ export class GeminiLLM extends BaseLLM {
 
     const parts = response.candidates?.[0]?.content?.parts ?? [];
     if (parts.length) {
-      const split = splitGeminiParts(parts as Array<Record<string, any>>);
+      const split = splitGeminiParts(parts as Array<Record<string, unknown>>);
       content = split.content || content;
       reasoning = split.reasoning || null;
     }
@@ -219,7 +227,7 @@ export class GeminiLLM extends BaseLLM {
     });
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown> {
+  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
 
     const history = await this.formatGeminiHistory(this.messages);

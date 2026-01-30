@@ -4,11 +4,11 @@ import { SegmentEvent, SegmentEventType, SegmentType } from './events.js';
 
 export class StreamingParser {
   private context: ParserContext;
-  private isFinalized = false;
+  private isFinalizedFlag = false;
 
   constructor(config?: ParserConfig) {
     this.context = new ParserContext(config);
-    this.context.current_state = new TextState(this.context);
+    this.context.currentState = new TextState(this.context);
   }
 
   get config(): ParserConfig {
@@ -16,7 +16,7 @@ export class StreamingParser {
   }
 
   feed(chunk: string): SegmentEvent[] {
-    if (this.isFinalized) {
+    if (this.isFinalizedFlag) {
       throw new Error('Cannot feed chunks after finalize() has been called');
     }
 
@@ -26,58 +26,58 @@ export class StreamingParser {
 
     this.context.append(chunk);
 
-    while (this.context.has_more_chars()) {
-      this.context.current_state.run();
+    while (this.context.hasMoreChars()) {
+      this.context.currentState.run();
     }
 
     this.context.compact();
 
-    return this.context.get_and_clear_events();
+    return this.context.getAndClearEvents();
   }
 
   finalize(): SegmentEvent[] {
-    if (this.isFinalized) {
+    if (this.isFinalizedFlag) {
       throw new Error('finalize() has already been called');
     }
 
-    this.isFinalized = true;
+    this.isFinalizedFlag = true;
 
-    this.context.current_state.finalize();
+    this.context.currentState.finalize();
 
-    if (this.context.get_current_segment_type() === SegmentType.TEXT) {
-      this.context.emit_segment_end();
+    if (this.context.getCurrentSegmentType() === SegmentType.TEXT) {
+      this.context.emitSegmentEnd();
     }
 
     this.context.compact();
 
-    return this.context.get_and_clear_events();
+    return this.context.getAndClearEvents();
   }
 
-  feed_and_finalize(text: string): SegmentEvent[] {
+  feedAndFinalize(text: string): SegmentEvent[] {
     const events = this.feed(text);
     events.push(...this.finalize());
     return events;
   }
 
-  get is_finalized(): boolean {
-    return this.isFinalized;
+  get isFinalized(): boolean {
+    return this.isFinalizedFlag;
   }
 
-  get_current_segment_id(): string | undefined {
-    return this.context.get_current_segment_id();
+  getCurrentSegmentId(): string | undefined {
+    return this.context.getCurrentSegmentId();
   }
 
-  get_current_segment_type(): SegmentType | undefined {
-    return this.context.get_current_segment_type();
+  getCurrentSegmentType(): SegmentType | undefined {
+    return this.context.getCurrentSegmentType();
   }
 }
 
-export function parse_complete_response(text: string, config?: ParserConfig): SegmentEvent[] {
+export function parseCompleteResponse(text: string, config?: ParserConfig): SegmentEvent[] {
   const parser = new StreamingParser(config);
-  return parser.feed_and_finalize(text);
+  return parser.feedAndFinalize(text);
 }
 
-export function extract_segments(events: SegmentEvent[]): Array<{ id: string; type: string; content: string; metadata: Record<string, any> }> {
+export function extractSegments(events: SegmentEvent[]): Array<{ id: string; type: string; content: string; metadata: Record<string, any> }> {
   const segments: Array<{ id: string; type: string; content: string; metadata: Record<string, any> }> = [];
   let current: { id: string; type: string; content: string; metadata: Record<string, any> } | null = null;
 

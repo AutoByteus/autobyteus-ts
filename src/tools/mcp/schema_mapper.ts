@@ -1,6 +1,6 @@
 import { ParameterDefinition, ParameterSchema, ParameterType } from '../../utils/parameter_schema.js';
 
-type JsonObject = Record<string, any>;
+type JsonObject = Record<string, unknown>;
 
 export class McpSchemaMapper {
   private static readonly MCP_TYPE_TO_AUTOBYTEUS_TYPE_MAP: Record<string, ParameterType> = {
@@ -18,18 +18,21 @@ export class McpSchemaMapper {
     }
 
     const autobyteusSchema = new ParameterSchema();
-    const schemaType = mcpJsonSchema.type;
+    const schemaType = (mcpJsonSchema as JsonObject).type;
 
     if (schemaType !== 'object') {
       throw new Error(`MCP JSON schema root 'type' must be 'object', got '${schemaType}'.`);
     }
 
-    const properties = mcpJsonSchema.properties;
+    const properties = (mcpJsonSchema as JsonObject).properties;
     if (!properties || typeof properties !== 'object' || Array.isArray(properties)) {
       return autobyteusSchema;
     }
 
-    const requiredParamsAtThisLevel = Array.isArray(mcpJsonSchema.required) ? mcpJsonSchema.required : [];
+    const requiredRaw = (mcpJsonSchema as JsonObject).required;
+    const requiredParamsAtThisLevel = Array.isArray(requiredRaw)
+      ? requiredRaw.filter((item): item is string => typeof item === 'string')
+      : [];
 
     for (const [paramName, paramMcpSchema] of Object.entries(properties)) {
       if (!paramMcpSchema || typeof paramMcpSchema !== 'object' || Array.isArray(paramMcpSchema)) {
@@ -37,23 +40,34 @@ export class McpSchemaMapper {
       }
 
       const paramSchema = paramMcpSchema as JsonObject;
-      const mcpParamType = paramSchema.type;
-      const description = paramSchema.description ?? `Parameter '${paramName}'.`;
+      const mcpParamType = typeof paramSchema.type === 'string' ? paramSchema.type : undefined;
+      const description =
+        typeof paramSchema.description === 'string' && paramSchema.description.trim()
+          ? paramSchema.description
+          : `Parameter '${paramName}'.`;
 
       let nestedObjectSchema: ParameterSchema | undefined;
-      let itemSchemaForArray: any;
+      let itemSchemaForArray: ParameterType | ParameterSchema | Record<string, unknown> | undefined;
 
       if (mcpParamType === 'object' && 'properties' in paramSchema) {
         nestedObjectSchema = this.mapToAutobyteusSchema(paramSchema);
       } else if (mcpParamType === 'array') {
-        itemSchemaForArray = paramSchema.items ?? true;
+        const items = paramSchema.items;
+        if (items instanceof ParameterSchema) {
+          itemSchemaForArray = items;
+        } else if (typeof items === 'string' && Object.values(ParameterType).includes(items as ParameterType)) {
+          itemSchemaForArray = items as ParameterType;
+        } else if (items && typeof items === 'object' && !Array.isArray(items)) {
+          itemSchemaForArray = items as Record<string, unknown>;
+        }
       }
 
       let autobyteusParamType =
-        McpSchemaMapper.MCP_TYPE_TO_AUTOBYTEUS_TYPE_MAP[mcpParamType] ?? ParameterType.STRING;
+        (mcpParamType ? McpSchemaMapper.MCP_TYPE_TO_AUTOBYTEUS_TYPE_MAP[mcpParamType] : undefined) ??
+        ParameterType.STRING;
 
       const enumValues = paramSchema.enum;
-      if (autobyteusParamType === ParameterType.STRING && enumValues) {
+      if (autobyteusParamType === ParameterType.STRING && Array.isArray(enumValues)) {
         autobyteusParamType = ParameterType.ENUM;
       }
 
@@ -64,10 +78,10 @@ export class McpSchemaMapper {
           description,
           required: requiredParamsAtThisLevel.includes(paramName),
           defaultValue: paramSchema.default,
-          enumValues: autobyteusParamType === ParameterType.ENUM ? enumValues : undefined,
-          minValue: paramSchema.minimum,
-          maxValue: paramSchema.maximum,
-          pattern: paramSchema.pattern,
+          enumValues: autobyteusParamType === ParameterType.ENUM && Array.isArray(enumValues) ? enumValues : undefined,
+          minValue: typeof paramSchema.minimum === 'number' ? paramSchema.minimum : undefined,
+          maxValue: typeof paramSchema.maximum === 'number' ? paramSchema.maximum : undefined,
+          pattern: typeof paramSchema.pattern === 'string' ? paramSchema.pattern : undefined,
           arrayItemSchema: mcpParamType === 'array' ? itemSchemaForArray : undefined,
           objectSchema: nestedObjectSchema
         });

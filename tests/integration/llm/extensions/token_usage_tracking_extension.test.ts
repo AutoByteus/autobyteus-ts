@@ -32,13 +32,13 @@ describe('TokenUsageTrackingExtension (integration)', () => {
     const model = new LLMModel({
       name: 'test',
       value: 'test',
-      canonical_name: 'test',
+      canonicalName: 'test',
       provider: LLMProvider.OPENAI,
-      default_config: new LLMConfig({
-        pricing_config: new TokenPricingConfig({ input_token_pricing: 10.0, output_token_pricing: 20.0 })
+      defaultConfig: new LLMConfig({
+        pricingConfig: new TokenPricingConfig({ inputTokenPricing: 10.0, outputTokenPricing: 20.0 })
       })
     });
-    const llm = new MockLLM(model, model.default_config);
+    const llm = new MockLLM(model, model.defaultConfig);
     const ext = new TokenUsageTrackingExtension(llm, mockFactory);
 
     llm.messages.push(new Message(MessageRole.USER, 'hi'));

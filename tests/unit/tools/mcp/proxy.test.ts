@@ -19,12 +19,12 @@ describe('McpServerProxy', () => {
     mocks.getInstance.mockClear();
   });
 
-  it('requires agent_id and server_id', () => {
+  it('requires agentId and serverId', () => {
     expect(() => new McpServerProxy('', 'server')).toThrowError(
-      'McpServerProxy requires both agent_id and server_id.'
+      'McpServerProxy requires both agentId and serverId.'
     );
     expect(() => new McpServerProxy('agent', '')).toThrowError(
-      'McpServerProxy requires both agent_id and server_id.'
+      'McpServerProxy requires both agentId and serverId.'
     );
   });
 

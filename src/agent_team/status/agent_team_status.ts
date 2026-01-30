@@ -8,6 +8,6 @@ export enum AgentTeamStatus {
   ERROR = 'error'
 }
 
-export function is_terminal(status: AgentTeamStatus): boolean {
+export function isTerminal(status: AgentTeamStatus): boolean {
   return status === AgentTeamStatus.SHUTDOWN_COMPLETE || status === AgentTeamStatus.ERROR;
 }

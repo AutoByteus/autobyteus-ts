@@ -60,12 +60,12 @@ describe('ToolConfig', () => {
     );
   });
 
-  it('test_get_constructor_kwargs', () => {
+  it('test_get_constructor_args', () => {
     const params = { param1: 'value1', param2: 42 };
     const config = new ToolConfig(params);
-    const kwargs = config.getConstructorKwargs();
-    expect(kwargs).toEqual(params);
-    expect(kwargs).not.toBe(config.params);
+    const args = config.getConstructorArgs();
+    expect(args).toEqual(params);
+    expect(args).not.toBe(config.params);
   });
 
   it('test_get', () => {

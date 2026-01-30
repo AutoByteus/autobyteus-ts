@@ -20,7 +20,7 @@ import {
 } from '../../../../src/agent/events/agent_events.js';
 import { ToolInvocation } from '../../../../src/agent/tool_invocation.js';
 
-const makeContext = (autoExecute: boolean) => ({ auto_execute_tools: autoExecute });
+const makeContext = (autoExecute: boolean) => ({ autoExecuteTools: autoExecute });
 
 describe('AgentStatusDeriver', () => {
   it('handles bootstrap and ready transitions', () => {
@@ -29,7 +29,7 @@ describe('AgentStatusDeriver', () => {
     let [oldStatus, newStatus] = deriver.apply(new BootstrapStartedEvent());
     expect(oldStatus).toBe(AgentStatus.UNINITIALIZED);
     expect(newStatus).toBe(AgentStatus.BOOTSTRAPPING);
-    expect(deriver.current_status).toBe(AgentStatus.BOOTSTRAPPING);
+    expect(deriver.currentStatus).toBe(AgentStatus.BOOTSTRAPPING);
 
     [oldStatus, newStatus] = deriver.apply(new BootstrapCompletedEvent(true));
     expect(oldStatus).toBe(AgentStatus.BOOTSTRAPPING);
@@ -104,7 +104,7 @@ describe('AgentStatusDeriver', () => {
     let [, newStatus] = deriver.apply(pendingEvent, context as any);
     expect(newStatus).toBe(AgentStatus.AWAITING_TOOL_APPROVAL);
 
-    context.auto_execute_tools = true;
+    context.autoExecuteTools = true;
     deriver = new AgentStatusDeriver(AgentStatus.IDLE);
     [, newStatus] = deriver.apply(pendingEvent, context as any);
     expect(newStatus).toBe(AgentStatus.EXECUTING_TOOL);

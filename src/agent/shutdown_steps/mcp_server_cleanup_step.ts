@@ -11,7 +11,7 @@ export class McpServerCleanupStep extends BaseShutdownStep {
   }
 
   async execute(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     try {
       await this.instanceManager.cleanupMcpServerInstancesForAgent(agentId);
       return true;

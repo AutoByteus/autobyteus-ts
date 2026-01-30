@@ -18,10 +18,10 @@ describe('AgentShutdownOrchestrator', () => {
   it('initializes with default steps', () => {
     const orchestrator = new AgentShutdownOrchestrator();
 
-    expect(orchestrator.shutdown_steps).toHaveLength(3);
-    expect(orchestrator.shutdown_steps[0]).toBeInstanceOf(LLMInstanceCleanupStep);
-    expect(orchestrator.shutdown_steps[1]).toBeInstanceOf(ToolCleanupStep);
-    expect(orchestrator.shutdown_steps[2]).toBeInstanceOf(McpServerCleanupStep);
+    expect(orchestrator.shutdownSteps).toHaveLength(3);
+    expect(orchestrator.shutdownSteps[0]).toBeInstanceOf(LLMInstanceCleanupStep);
+    expect(orchestrator.shutdownSteps[1]).toBeInstanceOf(ToolCleanupStep);
+    expect(orchestrator.shutdownSteps[2]).toBeInstanceOf(McpServerCleanupStep);
   });
 
   it('accepts custom steps', () => {
@@ -30,7 +30,7 @@ describe('AgentShutdownOrchestrator', () => {
 
     const orchestrator = new AgentShutdownOrchestrator([step1, step2]);
 
-    expect(orchestrator.shutdown_steps).toEqual([step1, step2]);
+    expect(orchestrator.shutdownSteps).toEqual([step1, step2]);
   });
 
   it('runs all steps when successful', async () => {

@@ -8,14 +8,14 @@ import type { ToolCallDelta } from '../../../llm/utils/tool_call_delta.js';
 import { randomUUID } from 'node:crypto';
 
 type ToolCallState = {
-  segment_id: string;
+  segmentId: string;
   name: string;
-  accumulated_args: string;
-  segment_type: SegmentType;
+  accumulatedArgs: string;
+  segmentType: SegmentType;
   streamer?: WriteFileContentStreamer | PatchFileContentStreamer | null;
   path?: string;
-  segment_started: boolean;
-  pending_content: string;
+  segmentStarted: boolean;
+  pendingContent: string;
 };
 
 export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandler {
@@ -30,14 +30,14 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
   private isFinalized = false;
 
   constructor(options?: {
-    on_segment_event?: (event: SegmentEvent) => void;
-    on_tool_invocation?: (invocation: ToolInvocation) => void;
-    segment_id_prefix?: string;
+    onSegmentEvent?: (event: SegmentEvent) => void;
+    onToolInvocation?: (invocation: ToolInvocation) => void;
+    segmentIdPrefix?: string;
   }) {
     super();
-    this.onSegmentEvent = options?.on_segment_event;
-    this.onToolInvocation = options?.on_tool_invocation;
-    this.segmentIdPrefix = options?.segment_id_prefix ?? '';
+    this.onSegmentEvent = options?.onSegmentEvent;
+    this.onToolInvocation = options?.onToolInvocation;
+    this.segmentIdPrefix = options?.segmentIdPrefix ?? '';
     this.adapter = new ToolInvocationAdapter();
   }
 
@@ -61,18 +61,18 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
       try {
         this.onSegmentEvent(event);
       } catch (error) {
-        console.error(`Error in on_segment_event callback: ${error}`);
+        console.error(`Error in onSegmentEvent callback: ${error}`);
       }
     }
 
-    const invocation = this.adapter.process_event(event);
+    const invocation = this.adapter.processEvent(event);
     if (invocation) {
       this.allInvocations.push(invocation);
       if (this.onToolInvocation) {
         try {
           this.onToolInvocation(invocation);
         } catch (error) {
-          console.error(`Error in on_tool_invocation callback: ${error}`);
+          console.error(`Error in onToolInvocation callback: ${error}`);
         }
       }
     }
@@ -105,20 +105,20 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
           const toolName = delta.name ?? '';
           const resolved = this.resolveSegmentType(toolName);
           this.activeTools.set(delta.index, {
-            segment_id: segId,
+            segmentId: segId,
             name: toolName,
-            accumulated_args: '',
-            segment_type: resolved.segmentType,
+            accumulatedArgs: '',
+            segmentType: resolved.segmentType,
             streamer: resolved.streamer,
-            segment_started: false,
-            pending_content: ''
+            segmentStarted: false,
+            pendingContent: ''
           });
 
-          if (resolved.segmentType === SegmentType.TOOL_CALL) {
+          if (resolved.segmentType === SegmentType.TOOL_CALL && toolName) {
             const startEvent = SegmentEvent.start(segId, resolved.segmentType, { tool_name: toolName });
             const state = this.activeTools.get(delta.index);
             if (state) {
-              state.segment_started = true;
+              state.segmentStarted = true;
             }
             this.emit(startEvent);
             events.push(startEvent);
@@ -128,16 +128,26 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
         const state = this.activeTools.get(delta.index)!;
 
         if (delta.arguments_delta !== undefined && delta.arguments_delta !== null) {
-          state.accumulated_args += delta.arguments_delta;
+          state.accumulatedArgs += delta.arguments_delta;
 
-          if (state.segment_type === SegmentType.TOOL_CALL) {
-            if (!state.segment_started) {
-              const startEvent = SegmentEvent.start(state.segment_id, state.segment_type, { tool_name: state.name });
-              state.segment_started = true;
+          if (state.segmentType === SegmentType.TOOL_CALL) {
+            if (!state.segmentStarted) {
+              if (!state.name) {
+                state.pendingContent += delta.arguments_delta;
+                continue;
+              }
+              const startEvent = SegmentEvent.start(state.segmentId, state.segmentType, { tool_name: state.name });
+              state.segmentStarted = true;
               this.emit(startEvent);
               events.push(startEvent);
+              if (state.pendingContent) {
+                const pendingEvent = SegmentEvent.content(state.segmentId, state.pendingContent);
+                this.emit(pendingEvent);
+                events.push(pendingEvent);
+                state.pendingContent = '';
+              }
             }
-            const contentEvent = SegmentEvent.content(state.segment_id, delta.arguments_delta);
+            const contentEvent = SegmentEvent.content(state.segmentId, delta.arguments_delta);
             this.emit(contentEvent);
             events.push(contentEvent);
           } else if (state.streamer) {
@@ -146,29 +156,29 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
               state.path = update.path;
             }
 
-            if (!state.segment_started && state.path) {
-              const startEvent = SegmentEvent.start(state.segment_id, state.segment_type, {
+            if (!state.segmentStarted && state.path) {
+              const startEvent = SegmentEvent.start(state.segmentId, state.segmentType, {
                 tool_name: state.name,
                 path: state.path
               });
-              state.segment_started = true;
+              state.segmentStarted = true;
               this.emit(startEvent);
               events.push(startEvent);
-              if (state.pending_content) {
-                const pendingEvent = SegmentEvent.content(state.segment_id, state.pending_content);
+              if (state.pendingContent) {
+                const pendingEvent = SegmentEvent.content(state.segmentId, state.pendingContent);
                 this.emit(pendingEvent);
                 events.push(pendingEvent);
-                state.pending_content = '';
+                state.pendingContent = '';
               }
             }
 
-            if (update.content_delta) {
-              if (state.segment_started) {
-                const contentEvent = SegmentEvent.content(state.segment_id, update.content_delta);
+            if (update.contentDelta) {
+              if (state.segmentStarted) {
+                const contentEvent = SegmentEvent.content(state.segmentId, update.contentDelta);
                 this.emit(contentEvent);
                 events.push(contentEvent);
               } else {
-                state.pending_content += update.content_delta;
+                state.pendingContent += update.contentDelta;
               }
             }
           }
@@ -176,6 +186,18 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
 
         if (delta.name && !state.name) {
           state.name = delta.name;
+          if (state.segmentType === SegmentType.TOOL_CALL && !state.segmentStarted) {
+            const startEvent = SegmentEvent.start(state.segmentId, state.segmentType, { tool_name: state.name });
+            state.segmentStarted = true;
+            this.emit(startEvent);
+            events.push(startEvent);
+            if (state.pendingContent) {
+              const pendingEvent = SegmentEvent.content(state.segmentId, state.pendingContent);
+              this.emit(pendingEvent);
+              events.push(pendingEvent);
+              state.pendingContent = '';
+            }
+          }
         }
       }
     }
@@ -200,31 +222,43 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
     }
 
     for (const state of this.activeTools.values()) {
-      if (state.segment_type === SegmentType.WRITE_FILE || state.segment_type === SegmentType.PATCH_FILE) {
-        if (!state.segment_started) {
+      if (state.segmentType === SegmentType.WRITE_FILE || state.segmentType === SegmentType.PATCH_FILE) {
+        if (!state.segmentStarted) {
           const metadata: Record<string, any> = { tool_name: state.name };
           if (state.path) {
             metadata.path = state.path;
           }
-          const startEvent = SegmentEvent.start(state.segment_id, state.segment_type, metadata);
-          state.segment_started = true;
+          const startEvent = SegmentEvent.start(state.segmentId, state.segmentType, metadata);
+          state.segmentStarted = true;
           this.emit(startEvent);
           events.push(startEvent);
-          if (state.pending_content) {
-            const pendingEvent = SegmentEvent.content(state.segment_id, state.pending_content);
+          if (state.pendingContent) {
+            const pendingEvent = SegmentEvent.content(state.segmentId, state.pendingContent);
             this.emit(pendingEvent);
             events.push(pendingEvent);
-            state.pending_content = '';
+            state.pendingContent = '';
           }
+        }
+      }
+      if (state.segmentType === SegmentType.TOOL_CALL && !state.segmentStarted && state.name) {
+        const startEvent = SegmentEvent.start(state.segmentId, state.segmentType, { tool_name: state.name });
+        state.segmentStarted = true;
+        this.emit(startEvent);
+        events.push(startEvent);
+        if (state.pendingContent) {
+          const pendingEvent = SegmentEvent.content(state.segmentId, state.pendingContent);
+          this.emit(pendingEvent);
+          events.push(pendingEvent);
+          state.pendingContent = '';
         }
       }
 
       let endEvent: SegmentEvent;
-      if (state.segment_type === SegmentType.TOOL_CALL) {
+      if (state.segmentType === SegmentType.TOOL_CALL) {
         let parsedArgs: Record<string, any> = {};
-        if (state.accumulated_args) {
+        if (state.accumulatedArgs) {
           try {
-            parsedArgs = JSON.parse(state.accumulated_args);
+            parsedArgs = JSON.parse(state.accumulatedArgs);
           } catch (error) {
             console.error(`Failed to parse tool arguments for ${state.name}: ${error}`);
             parsedArgs = {};
@@ -232,7 +266,7 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
         }
         endEvent = new SegmentEvent({
           event_type: SegmentEventType.END,
-          segment_id: state.segment_id,
+          segment_id: state.segmentId,
           payload: {
             metadata: {
               tool_name: state.name,
@@ -247,7 +281,7 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
         }
         endEvent = new SegmentEvent({
           event_type: SegmentEventType.END,
-          segment_id: state.segment_id,
+          segment_id: state.segmentId,
           payload: Object.keys(metadata).length ? { metadata } : {}
         });
       }
@@ -264,11 +298,11 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
     return events;
   }
 
-  get_all_events(): SegmentEvent[] {
+  getAllEvents(): SegmentEvent[] {
     return [...this.allEvents];
   }
 
-  get_all_invocations(): ToolInvocation[] {
+  getAllInvocations(): ToolInvocation[] {
     return [...this.allInvocations];
   }
 

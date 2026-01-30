@@ -1,26 +1,26 @@
 import { EventType } from '../events/event_types.js';
-import { BaseTaskPlan, TaskStatus } from './base_task_plan.js';
+import { BaseTaskPlan, TaskStatus, type TaskStatusOverview } from './base_task_plan.js';
 import type { TaskDefinition } from './schemas/task_definition.js';
 import { TaskSchema, type Task } from './task.js';
 import { TasksCreatedEventSchema, TaskStatusUpdatedEventSchema } from './events.js';
 
 export class InMemoryTaskPlan extends BaseTaskPlan {
-  task_statuses: Record<string, TaskStatus> = {};
-  _task_map: Map<string, Task> = new Map();
-  private _id_counter = 0;
+  taskStatuses: Record<string, TaskStatus> = {};
+  private taskMap: Map<string, Task> = new Map();
+  private idCounter = 0;
 
-  private generate_next_id(): string {
-    this._id_counter += 1;
-    return `task_${String(this._id_counter).padStart(4, '0')}`;
+  private generateNextId(): string {
+    this.idCounter += 1;
+    return `task_${String(this.idCounter).padStart(4, '0')}`;
   }
 
-  add_tasks(task_definitions: TaskDefinition[]): Task[] {
+  addTasks(taskDefinitions: TaskDefinition[]): Task[] {
     const newTasks: Task[] = [];
 
-    for (const taskDef of task_definitions) {
-      const task_id = this.generate_next_id();
+    for (const taskDef of taskDefinitions) {
+      const taskId = this.generateNextId();
       const task = TaskSchema.parse({
-        task_id,
+        task_id: taskId,
         task_name: taskDef.task_name,
         assignee_name: taskDef.assignee_name,
         description: taskDef.description,
@@ -29,15 +29,15 @@ export class InMemoryTaskPlan extends BaseTaskPlan {
       });
 
       this.tasks.push(task);
-      this.task_statuses[task.task_id] = TaskStatus.NOT_STARTED;
-      this._task_map.set(task.task_id, task);
+      this.taskStatuses[task.task_id] = TaskStatus.NOT_STARTED;
+      this.taskMap.set(task.task_id, task);
       newTasks.push(task);
     }
 
-    this.hydrate_all_dependencies();
+    this.hydrateAllDependencies();
 
     const eventPayload = TasksCreatedEventSchema.parse({
-      team_id: this.team_id,
+      team_id: this.teamId,
       tasks: newTasks
     });
 
@@ -45,14 +45,14 @@ export class InMemoryTaskPlan extends BaseTaskPlan {
     return newTasks;
   }
 
-  add_task(task_definition: TaskDefinition): Task | null {
-    const created = this.add_tasks([task_definition]);
+  addTask(taskDefinition: TaskDefinition): Task | null {
+    const created = this.addTasks([taskDefinition]);
     return created.length ? created[0] : null;
   }
 
-  private hydrate_all_dependencies(): void {
+  private hydrateAllDependencies(): void {
     const nameToIdMap = new Map(this.tasks.map((task) => [task.task_name, task.task_id]));
-    const allTaskIds = new Set(this._task_map.keys());
+    const allTaskIds = new Set(this.taskMap.keys());
 
     for (const task of this.tasks) {
       if (!task.dependencies || task.dependencies.length === 0) {
@@ -75,19 +75,19 @@ export class InMemoryTaskPlan extends BaseTaskPlan {
     }
   }
 
-  update_task_status(task_id: string, status: TaskStatus, agent_name: string): boolean {
-    if (!(task_id in this.task_statuses)) {
+  updateTaskStatus(taskId: string, status: TaskStatus, agentName: string): boolean {
+    if (!(taskId in this.taskStatuses)) {
       return false;
     }
 
-    this.task_statuses[task_id] = status;
-    const task = this._task_map.get(task_id);
+    this.taskStatuses[taskId] = status;
+    const task = this.taskMap.get(taskId);
 
     const eventPayload = TaskStatusUpdatedEventSchema.parse({
-      team_id: this.team_id,
-      task_id,
+      team_id: this.teamId,
+      task_id: taskId,
       new_status: status,
-      agent_name,
+      agent_name: agentName,
       deliverables: task?.file_deliverables
     });
 
@@ -95,27 +95,22 @@ export class InMemoryTaskPlan extends BaseTaskPlan {
     return true;
   }
 
-  get_status_overview(): Record<string, any> {
-    const task_statuses: Record<string, string> = {};
-    for (const [taskId, status] of Object.entries(this.task_statuses)) {
-      task_statuses[taskId] = status;
-    }
-
+  getStatusOverview(): TaskStatusOverview {
     return {
-      task_statuses,
+      taskStatuses: { ...this.taskStatuses },
       tasks: this.tasks
     };
   }
 
-  get_next_runnable_tasks(): Task[] {
+  getNextRunnableTasks(): Task[] {
     const runnable: Task[] = [];
 
-    for (const [taskId, status] of Object.entries(this.task_statuses)) {
+    for (const [taskId, status] of Object.entries(this.taskStatuses)) {
       if (status !== TaskStatus.NOT_STARTED) {
         continue;
       }
 
-      const task = this._task_map.get(taskId);
+      const task = this.taskMap.get(taskId);
       if (!task) {
         continue;
       }
@@ -127,7 +122,7 @@ export class InMemoryTaskPlan extends BaseTaskPlan {
       }
 
       const dependenciesMet = dependencies.every(
-        (depId) => this.task_statuses[depId] === TaskStatus.COMPLETED
+        (depId) => this.taskStatuses[depId] === TaskStatus.COMPLETED
       );
 
       if (dependenciesMet) {

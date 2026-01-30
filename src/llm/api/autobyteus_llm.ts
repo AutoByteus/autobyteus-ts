@@ -7,24 +7,41 @@ import { CompleteResponse, ChunkResponse } from '../utils/response_types.js';
 import { TokenUsage } from '../utils/token_usage.js';
 import { AutobyteusClient } from '../../clients/autobyteus_client.js';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const asString = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const toTokenUsage = (value: unknown): TokenUsage => {
+  const record = isRecord(value) ? value : {};
+  return {
+    prompt_tokens: typeof record.prompt_tokens === 'number' ? record.prompt_tokens : 0,
+    completion_tokens: typeof record.completion_tokens === 'number' ? record.completion_tokens : 0,
+    total_tokens: typeof record.total_tokens === 'number' ? record.total_tokens : 0
+  };
+};
+
 export class AutobyteusLLM extends BaseLLM {
   private client: AutobyteusClient;
   private conversationId: string;
 
   constructor(model: LLMModel, llmConfig: LLMConfig) {
-    if (!model.host_url) {
-      throw new Error('AutobyteusLLM requires a host_url to be set on the LLMModel.');
+    if (!model.hostUrl) {
+      throw new Error('AutobyteusLLM requires a hostUrl to be set on the LLMModel.');
     }
 
     super(model, llmConfig);
 
-    this.client = new AutobyteusClient(model.host_url);
+    this.client = new AutobyteusClient(model.hostUrl);
     this.conversationId = randomUUID();
   }
 
   protected async _sendUserMessageToLLM(
     userMessage: LLMUserMessage,
-    _kwargs: Record<string, any>
+    _kwargs: Record<string, unknown>
   ): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
@@ -37,19 +54,15 @@ export class AutobyteusLLM extends BaseLLM {
       userMessage.video_urls
     );
 
+    const responseRecord = isRecord(response) ? response : {};
     const assistantMessage =
-      response?.response ??
-      response?.content ??
-      response?.message ??
+      asString(responseRecord.response) ??
+      asString(responseRecord.content) ??
+      asString(responseRecord.message) ??
       '';
     this.addAssistantMessage({ content: assistantMessage });
 
-    const tokenUsageData = response?.token_usage ?? {};
-    const tokenUsage: TokenUsage = {
-      prompt_tokens: tokenUsageData.prompt_tokens ?? 0,
-      completion_tokens: tokenUsageData.completion_tokens ?? 0,
-      total_tokens: tokenUsageData.total_tokens ?? 0
-    };
+    const tokenUsage = toTokenUsage(responseRecord.token_usage);
 
     return new CompleteResponse({
       content: assistantMessage,
@@ -59,7 +72,7 @@ export class AutobyteusLLM extends BaseLLM {
 
   protected async *_streamUserMessageToLLM(
     userMessage: LLMUserMessage,
-    _kwargs: Record<string, any>
+    _kwargs: Record<string, unknown>
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
     let completeResponse = '';
@@ -76,30 +89,26 @@ export class AutobyteusLLM extends BaseLLM {
         throw new Error(String(chunk.error));
       }
 
-      const content = chunk?.content ?? '';
+      const chunkRecord = isRecord(chunk) ? chunk : {};
+      const content = asString(chunkRecord.content) ?? '';
       if (content) {
         completeResponse += content;
       }
 
-      const isComplete = Boolean(chunk?.is_complete ?? false);
+      const isComplete = Boolean(chunkRecord.is_complete ?? false);
       let usage: TokenUsage | null = null;
 
       if (isComplete) {
-        const tokenUsageData = chunk?.token_usage ?? {};
-        usage = {
-          prompt_tokens: tokenUsageData.prompt_tokens ?? 0,
-          completion_tokens: tokenUsageData.completion_tokens ?? 0,
-          total_tokens: tokenUsageData.total_tokens ?? 0
-        };
+        usage = toTokenUsage(chunkRecord.token_usage);
       }
 
       yield new ChunkResponse({
         content,
-        reasoning: chunk?.reasoning ?? null,
+        reasoning: asString(chunkRecord.reasoning) ?? null,
         is_complete: isComplete,
-        image_urls: chunk?.image_urls ?? [],
-        audio_urls: chunk?.audio_urls ?? [],
-        video_urls: chunk?.video_urls ?? [],
+        image_urls: asStringArray(chunkRecord.image_urls),
+        audio_urls: asStringArray(chunkRecord.audio_urls),
+        video_urls: asStringArray(chunkRecord.video_urls),
         usage
       });
     }

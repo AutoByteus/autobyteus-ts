@@ -15,30 +15,30 @@ type MessagePayload = Record<string, any>;
 type ToolInstances = Record<string, BaseTool>;
 
 export class AgentRuntimeState {
-  agent_id: string;
-  current_status: AgentStatus;
-  llm_instance: BaseLLM | null = null;
-  tool_instances: ToolInstances | null = null;
-  input_event_queues: AgentInputEventQueueManager | null = null;
-  event_store: AgentEventStore | null = null;
-  status_deriver: AgentStatusDeriver | null = null;
+  agentId: string;
+  currentStatus: AgentStatus;
+  llmInstance: BaseLLM | null = null;
+  toolInstances: ToolInstances | null = null;
+  inputEventQueues: AgentInputEventQueueManager | null = null;
+  eventStore: AgentEventStore | null = null;
+  statusDeriver: AgentStatusDeriver | null = null;
   workspace: BaseAgentWorkspace | null;
-  conversation_history: MessagePayload[];
-  pending_tool_approvals: Record<string, ToolInvocation>;
-  custom_data: Record<string, any>;
-  active_multi_tool_call_turn: ToolInvocationTurn | null = null;
-  todo_list: ToDoList | null = null;
-  processed_system_prompt: string | null = null;
-  status_manager_ref: AgentStatusManager | null = null;
+  conversationHistory: MessagePayload[];
+  pendingToolApprovals: Record<string, ToolInvocation>;
+  customData: Record<string, any>;
+  activeMultiToolCallTurn: ToolInvocationTurn | null = null;
+  todoList: ToDoList | null = null;
+  processedSystemPrompt: string | null = null;
+  statusManagerRef: AgentStatusManager | null = null;
 
   constructor(
-    agent_id: string,
+    agentId: string,
     workspace: BaseAgentWorkspace | null = null,
-    conversation_history: MessagePayload[] | null = null,
-    custom_data: Record<string, any> | null = null
+    conversationHistory: MessagePayload[] | null = null,
+    customData: Record<string, any> | null = null
   ) {
-    if (!agent_id || typeof agent_id !== 'string') {
-      throw new Error("AgentRuntimeState requires a non-empty string 'agent_id'.");
+    if (!agentId || typeof agentId !== 'string') {
+      throw new Error("AgentRuntimeState requires a non-empty string 'agentId'.");
     }
     if (workspace !== null && !(workspace instanceof BaseAgentWorkspace)) {
       throw new TypeError(
@@ -46,68 +46,68 @@ export class AgentRuntimeState {
       );
     }
 
-    this.agent_id = agent_id;
-    this.current_status = AgentStatus.UNINITIALIZED;
+    this.agentId = agentId;
+    this.currentStatus = AgentStatus.UNINITIALIZED;
     this.workspace = workspace;
-    this.conversation_history = conversation_history ?? [];
-    this.pending_tool_approvals = {};
-    this.custom_data = custom_data ?? {};
+    this.conversationHistory = conversationHistory ?? [];
+    this.pendingToolApprovals = {};
+    this.customData = customData ?? {};
 
     console.info(
-      `AgentRuntimeState initialized for agent_id '${this.agent_id}'. Initial status: ${this.current_status}. Workspace linked. InputQueues pending initialization. Output data via notifier.`
+      `AgentRuntimeState initialized for agent_id '${this.agentId}'. Initial status: ${this.currentStatus}. Workspace linked. InputQueues pending initialization. Output data via notifier.`
     );
   }
 
-  add_message_to_history(message: MessagePayload): void {
+  addMessageToHistory(message: MessagePayload): void {
     if (!message || typeof message !== 'object' || !('role' in message)) {
       console.warn(
-        `Attempted to add malformed message to history for agent '${this.agent_id}': ${JSON.stringify(message)}`
+        `Attempted to add malformed message to history for agent '${this.agentId}': ${JSON.stringify(message)}`
       );
       return;
     }
-    this.conversation_history.push(message);
-    console.debug(`Message added to history for agent '${this.agent_id}': role=${message.role}`);
+    this.conversationHistory.push(message);
+    console.debug(`Message added to history for agent '${this.agentId}': role=${message.role}`);
   }
 
-  store_pending_tool_invocation(invocation: ToolInvocation): void {
+  storePendingToolInvocation(invocation: ToolInvocation): void {
     if (!(invocation instanceof ToolInvocation) || !invocation.id) {
       console.error(
-        `Agent '${this.agent_id}': Attempted to store invalid ToolInvocation for approval: ${invocation}`
+        `Agent '${this.agentId}': Attempted to store invalid ToolInvocation for approval: ${invocation}`
       );
       return;
     }
-    this.pending_tool_approvals[invocation.id] = invocation;
+    this.pendingToolApprovals[invocation.id] = invocation;
     console.info(
-      `Agent '${this.agent_id}': Stored pending tool invocation '${invocation.id}' (${invocation.name}).`
+      `Agent '${this.agentId}': Stored pending tool invocation '${invocation.id}' (${invocation.name}).`
     );
   }
 
-  retrieve_pending_tool_invocation(invocation_id: string): ToolInvocation | undefined {
-    const invocation = this.pending_tool_approvals[invocation_id];
+  retrievePendingToolInvocation(invocationId: string): ToolInvocation | undefined {
+    const invocation = this.pendingToolApprovals[invocationId];
     if (invocation) {
-      delete this.pending_tool_approvals[invocation_id];
+      delete this.pendingToolApprovals[invocationId];
       console.info(
-        `Agent '${this.agent_id}': Retrieved pending tool invocation '${invocation_id}' (${invocation.name}).`
+        `Agent '${this.agentId}': Retrieved pending tool invocation '${invocationId}' (${invocation.name}).`
       );
       return invocation;
     }
-    console.warn(`Agent '${this.agent_id}': Pending tool invocation '${invocation_id}' not found.`);
+    console.warn(`Agent '${this.agentId}': Pending tool invocation '${invocationId}' not found.`);
     return undefined;
   }
 
   toString(): string {
-    const llm_status = this.llm_instance ? 'Initialized' : 'Not Initialized';
-    const tools_status = this.tool_instances ? `${Object.keys(this.tool_instances).length} Initialized` : 'Not Initialized';
-    const input_queues_status = this.input_event_queues ? 'Initialized' : 'Not Initialized';
-    const active_turn_status = this.active_multi_tool_call_turn ? 'Active' : 'Inactive';
+    const llmStatus = this.llmInstance ? 'Initialized' : 'Not Initialized';
+    const toolsStatus = this.toolInstances ? `${Object.keys(this.toolInstances).length} Initialized` : 'Not Initialized';
+    const inputQueuesStatus = this.inputEventQueues ? 'Initialized' : 'Not Initialized';
+    const activeTurnStatus = this.activeMultiToolCallTurn ? 'Active' : 'Inactive';
 
     return (
-      `AgentRuntimeState(agent_id='${this.agent_id}', current_status='${this.current_status}', ` +
-      `llm_status='${llm_status}', tools_status='${tools_status}', ` +
-      `input_queues_status='${input_queues_status}', ` +
-      `pending_approvals=${Object.keys(this.pending_tool_approvals).length}, ` +
-      `history_len=${this.conversation_history.length}, ` +
-      `multi_tool_call_turn='${active_turn_status}')`
+      `AgentRuntimeState(agentId='${this.agentId}', currentStatus='${this.currentStatus}', ` +
+      `llmStatus='${llmStatus}', toolsStatus='${toolsStatus}', ` +
+      `inputQueuesStatus='${inputQueuesStatus}', ` +
+      `pendingApprovals=${Object.keys(this.pendingToolApprovals).length}, ` +
+      `historyLen=${this.conversationHistory.length}, ` +
+      `multiToolCallTurn='${activeTurnStatus}')`
     );
   }
 }

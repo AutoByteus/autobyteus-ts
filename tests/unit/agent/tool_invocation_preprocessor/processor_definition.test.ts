@@ -14,7 +14,7 @@ describe('ToolInvocationPreprocessorDefinition', () => {
   it('stores name and processor class', () => {
     const definition = new ToolInvocationPreprocessorDefinition('ProcA', ProcA);
     expect(definition.name).toBe('ProcA');
-    expect(definition.processor_class).toBe(ProcA);
+    expect(definition.processorClass).toBe(ProcA);
     expect(definition.toString()).toContain("name='ProcA'");
   });
 
@@ -26,7 +26,7 @@ describe('ToolInvocationPreprocessorDefinition', () => {
 
   it('rejects invalid processor classes', () => {
     expect(() => new ToolInvocationPreprocessorDefinition('ProcA', {} as any)).toThrow(
-      /processor_class must be a class type/i
+      /processorClass must be a class type/i
     );
   });
 });

@@ -18,8 +18,8 @@ describe('Full streaming flow (integration)', () => {
     const collectedInvocations: any[] = [];
 
     const handler = new ParsingStreamingResponseHandler({
-      on_segment_event: (event) => collectedEvents.push(event),
-      on_tool_invocation: (invocation) => collectedInvocations.push(invocation)
+      onSegmentEvent: (event) => collectedEvents.push(event),
+      onToolInvocation: (invocation) => collectedInvocations.push(invocation)
     });
 
     feedAndFinalize(handler, [
@@ -58,7 +58,7 @@ Done!
     );
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(2);
     expect(invocations[0].arguments.path).toBe('/a.py');
     expect(invocations[1].arguments.path).toBe('/b.py');
@@ -68,7 +68,7 @@ Done!
   it('keeps segment IDs stable for approval flow', () => {
     const eventsById = new Map<string, any[]>();
     const handler = new ParsingStreamingResponseHandler({
-      on_segment_event: (event) => {
+      onSegmentEvent: (event) => {
         const list = eventsById.get(event.segment_id) ?? [];
         list.push(event);
         eventsById.set(event.segment_id, list);
@@ -82,7 +82,7 @@ Done!
     );
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     const invocation = invocations[0];
 
@@ -114,8 +114,8 @@ All done!
     );
     handler.finalize();
 
-    const events = handler.get_all_events();
-    const invocations = handler.get_all_invocations();
+    const events = handler.getAllEvents();
+    const invocations = handler.getAllInvocations();
     const segmentTypes = events.map((event) => event.segment_type).filter(Boolean);
 
     expect(segmentTypes).toContain(SegmentType.TEXT);
@@ -142,7 +142,7 @@ All done!
 </write_file>`));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('write_file');
     expect(invocations[0].arguments.path).toBe('/site/index.html');
@@ -164,7 +164,7 @@ All done!
     ));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('write_file');
     expect(invocations[0].arguments.path).toBe('/site/app.js');
@@ -182,7 +182,7 @@ All done!
     ));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('create_tasks');
     expect(invocations[0].arguments).toEqual({ description: 'Handle n <= 0 case' });
@@ -203,7 +203,7 @@ All done!
     handler.feed(asChunk(`<write_file path="/output.xml">${nestedXmlContent}</write_file>`));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('write_file');
     expect(invocations[0].arguments.path).toBe('/output.xml');
@@ -214,7 +214,7 @@ All done!
     const handler = new ParsingStreamingResponseHandler();
     feedAndFinalize(handler, ['<tool name="te', 'st"><arg>val', 'ue</arg></to', 'ol>']);
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('test');
     expect(invocations[0].arguments).toEqual({ arg: 'value' });
@@ -228,7 +228,7 @@ All done!
     }
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('x');
   });
@@ -240,13 +240,13 @@ All done!
       '= 0 case</arg></tool>'
     ]);
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].arguments).toEqual({ description: 'Handle n <= 0 case' });
   });
 
   it('handles sentinel tool calls in a single chunk', () => {
-    const handler = new ParsingStreamingResponseHandler({ parser_name: 'sentinel' });
+    const handler = new ParsingStreamingResponseHandler({ parserName: 'sentinel' });
     handler.feed(asChunk(
       '[[SEG_START {"type":"tool","tool_name":"create_tasks","arguments":' +
         '{"tasks":[{"task_name":"implement_fibonacci","description":"Handle n <= 0 case"}]}}]]' +
@@ -254,7 +254,7 @@ All done!
     ));
     handler.finalize();
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].name).toBe('create_tasks');
     expect(invocations[0].arguments.tasks).toEqual([
@@ -263,7 +263,7 @@ All done!
   });
 
   it('handles chunked sentinel tool calls', () => {
-    const handler = new ParsingStreamingResponseHandler({ parser_name: 'sentinel' });
+    const handler = new ParsingStreamingResponseHandler({ parserName: 'sentinel' });
     feedAndFinalize(handler, [
       '[[SEG_START {"type":"tool","tool_name":"create_tasks","arguments":',
       '{"tasks":[{"description":"Handle n <',
@@ -271,7 +271,7 @@ All done!
       '[[SEG_END]]'
     ]);
 
-    const invocations = handler.get_all_invocations();
+    const invocations = handler.getAllInvocations();
     expect(invocations).toHaveLength(1);
     expect(invocations[0].arguments.tasks).toEqual([{ description: 'Handle n <= 0 case' }]);
   });

@@ -21,7 +21,7 @@ export class ExtensionRegistry {
     }
   }
 
-  get<T extends LLMExtension>(extensionClass: { new(...args: any[]): T }): T | null {
+  get<T extends LLMExtension>(extensionClass: { new(...args: unknown[]): T }): T | null {
     const found = this.extensions.find(ext => ext instanceof extensionClass);
     return (found as T) || null;
   }

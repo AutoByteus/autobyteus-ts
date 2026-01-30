@@ -12,21 +12,20 @@ export class SystemPromptProcessingStep extends BaseBootstrapStep {
   }
 
   async execute(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     console.info(`Agent '${agentId}': Executing SystemPromptProcessingStep.`);
 
     try {
-      const llmInstance = context.llm_instance;
+      const llmInstance = context.llmInstance;
       if (!llmInstance) {
         throw new Error('LLM instance not found in agent state. It must be provided in AgentConfig.');
       }
 
-      const baseSystemPrompt =
-        context.config.system_prompt ?? llmInstance.config.system_message;
+      const baseSystemPrompt = context.config.systemPrompt ?? llmInstance.config.systemMessage;
       console.debug(`Agent '${agentId}': Retrieved base system prompt.`);
 
-      const processorInstances = context.config.system_prompt_processors as SystemPromptProcessorLike[];
-      const toolInstancesForProcessor = context.tool_instances;
+      const processorInstances = context.config.systemPromptProcessors as SystemPromptProcessorLike[];
+      const toolInstancesForProcessor = context.toolInstances;
 
       let currentSystemPrompt = baseSystemPrompt;
       if (!processorInstances || processorInstances.length === 0) {
@@ -35,16 +34,16 @@ export class SystemPromptProcessingStep extends BaseBootstrapStep {
         );
       } else {
         const sortedProcessors = processorInstances.sort(
-          (left, right) => left.get_order() - right.get_order()
+          (left, right) => left.getOrder() - right.getOrder()
         );
-        const processorNames = sortedProcessors.map((processor) => processor.get_name());
+        const processorNames = sortedProcessors.map((processor) => processor.getName());
         console.debug(
           `Agent '${agentId}': Found ${sortedProcessors.length} configured system prompt processors. ` +
             `Applying sequentially in order: ${JSON.stringify(processorNames)}`
         );
 
         for (const processor of sortedProcessors) {
-          const processorName = processor.get_name();
+          const processorName = processor.getName();
           try {
             console.debug(
               `Agent '${agentId}': Applying system prompt processor '${processorName}'.`
@@ -61,8 +60,8 @@ export class SystemPromptProcessingStep extends BaseBootstrapStep {
           } catch (error) {
             const errorMessage = `Agent '${agentId}': Error applying system prompt processor '${processorName}': ${error}`;
             console.error(errorMessage);
-            if (context.state.input_event_queues) {
-              await context.state.input_event_queues.enqueue_internal_system_event(
+            if (context.state.inputEventQueues) {
+              await context.state.inputEventQueues.enqueueInternalSystemEvent(
                 new AgentErrorEvent(errorMessage, String(error))
               );
             }
@@ -71,32 +70,22 @@ export class SystemPromptProcessingStep extends BaseBootstrapStep {
         }
       }
 
-      context.state.processed_system_prompt = currentSystemPrompt;
+      context.state.processedSystemPrompt = currentSystemPrompt;
 
-      const configurePrompt =
-        (llmInstance as any).configure_system_prompt ??
-        (llmInstance as any).configureSystemPrompt;
-      if (typeof configurePrompt === 'function') {
-        configurePrompt.call(llmInstance, currentSystemPrompt);
-        console.info(
-          `Agent '${agentId}': Final processed system prompt configured on LLM instance. Final length: ${currentSystemPrompt.length}.`
-        );
-      } else {
-        console.warn(
-          `Agent '${agentId}': LLM instance (${llmInstance.constructor.name}) does not have a 'configure_system_prompt' method. ` +
-            'The system prompt cannot be dynamically updated on the LLM instance after initialization. This may lead to incorrect agent behavior.'
-        );
-      }
+      llmInstance.configureSystemPrompt(currentSystemPrompt);
+      console.info(
+        `Agent '${agentId}': Final processed system prompt configured on LLM instance. Final length: ${currentSystemPrompt.length}.`
+      );
 
       console.info(
         `Agent '${agentId}': Final processed system prompt:\n---\n${currentSystemPrompt}\n---`
       );
       return true;
     } catch (error) {
-      const errorMessage = `Agent '${context.agent_id}': Critical failure during system prompt processing step: ${error}`;
+      const errorMessage = `Agent '${context.agentId}': Critical failure during system prompt processing step: ${error}`;
       console.error(errorMessage);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentErrorEvent(errorMessage, String(error))
         );
       }

@@ -1,9 +1,13 @@
 import mime from 'mime-types';
+import { GoogleGenAI } from '@google/genai';
 import { BaseImageClient } from '../base_image_client.js';
 import { ImageGenerationResponse } from '../../utils/response_types.js';
 import { loadImageFromUrl } from '../../utils/api_utils.js';
 import { initializeGeminiClientWithRuntime } from '../../../utils/gemini_helper.js';
+import type { GeminiRuntimeInfo } from '../../../utils/gemini_helper.js';
 import { resolveModelForRuntime } from '../../../utils/gemini_model_mapping.js';
+import type { ImageModel } from '../image_model.js';
+import type { MultimediaConfig } from '../../utils/multimedia_config.js';
 
 function guessMimeType(source: string): string {
   const mimeType = mime.lookup(source);
@@ -11,10 +15,10 @@ function guessMimeType(source: string): string {
 }
 
 export class GeminiImageClient extends BaseImageClient {
-  private client: any;
-  private runtimeInfo: { runtime: string } | null;
+  private client: GoogleGenAI;
+  private runtimeInfo: GeminiRuntimeInfo | null;
 
-  constructor(model: any, config: any) {
+  constructor(model: ImageModel, config: MultimediaConfig) {
     super(model, config);
     const { client, runtimeInfo } = initializeGeminiClientWithRuntime();
     this.client = client;
@@ -24,10 +28,10 @@ export class GeminiImageClient extends BaseImageClient {
   async generateImage(
     prompt: string,
     inputImageUrls?: string[] | null,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<ImageGenerationResponse> {
     try {
-      const contentParts: any[] = [prompt];
+      const contentParts: Array<Record<string, unknown> | string> = [prompt];
       if (inputImageUrls && inputImageUrls.length > 0) {
         for (const url of inputImageUrls) {
           try {
@@ -45,7 +49,7 @@ export class GeminiImageClient extends BaseImageClient {
         }
       }
 
-      const configDict: Record<string, any> = { ...(this.config?.params ?? {}) };
+      const configDict: Record<string, unknown> = { ...(this.config?.params ?? {}) };
       if (generationConfig) {
         Object.assign(configDict, generationConfig);
       }
@@ -73,8 +77,11 @@ export class GeminiImageClient extends BaseImageClient {
       const imageUrls: string[] = [];
       const parts = response?.candidates?.[0]?.content?.parts ?? [];
       for (const part of parts) {
-        if (part.inlineData?.mimeType && part.inlineData.mimeType.includes('image') && part.inlineData.data) {
-          const dataUri = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        const inlineData = part?.inlineData;
+        const mimeType = inlineData?.mimeType;
+        const data = inlineData?.data;
+        if (typeof mimeType === 'string' && mimeType.includes('image') && typeof data === 'string') {
+          const dataUri = `data:${mimeType};base64,${data}`;
           imageUrls.push(dataUri);
         }
       }
@@ -101,7 +108,7 @@ export class GeminiImageClient extends BaseImageClient {
     prompt: string,
     inputImageUrls: string[],
     maskUrl?: string | null,
-    generationConfig?: Record<string, any>
+    generationConfig?: Record<string, unknown>
   ): Promise<ImageGenerationResponse> {
     if (maskUrl) {
       console.warn(

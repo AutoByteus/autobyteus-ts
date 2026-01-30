@@ -5,8 +5,8 @@ import { MultimediaRuntime } from '../../../../../src/multimedia/runtimes.js';
 
 const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
 const hasKey = Boolean(process.env.AUTOBYTEUS_API_KEY);
-const allowClientTests = process.env.AUTOBYTEUS_RUN_CLIENT_TESTS === '1';
-const runIntegration = hasHosts && hasKey && allowClientTests ? describe : describe.skip;
+const forcedModelId = process.env.AUTOBYTEUS_AUDIO_MODEL_ID;
+const runIntegration = hasHosts && hasKey ? describe : describe.skip;
 
 runIntegration('AutobyteusAudioClient integration', () => {
   it(
@@ -20,7 +20,15 @@ runIntegration('AutobyteusAudioClient integration', () => {
       );
       expect(models.length).toBeGreaterThan(0);
 
-      const model = models[0];
+      const model = forcedModelId
+        ? models.find((candidate) => candidate.modelIdentifier === forcedModelId || candidate.name === forcedModelId)
+        : models[0];
+      if (!model) {
+        throw new Error(
+          `Forced AUTOBYTEUS_AUDIO_MODEL_ID not found: ${forcedModelId}. ` +
+            `Available: ${models.map((candidate) => candidate.modelIdentifier).join(', ')}`
+        );
+      }
       const client = AudioClientFactory.createAudioClient(model.modelIdentifier);
       const response = await client.generateSpeech('Hello from the Autobyteus audio integration test.');
 

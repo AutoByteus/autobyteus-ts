@@ -1,8 +1,8 @@
 import type { AgentTeamContext } from '../context/agent_team_context.js';
 import type { AgentTeamEventHandlerRegistry } from '../handlers/agent_team_event_handler_registry.js';
 import { AgentTeamStatusManager } from '../status/agent_team_status_manager.js';
-import { apply_event_and_derive_status } from '../status/status_update_utils.js';
-import { is_terminal } from '../status/agent_team_status.js';
+import { applyEventAndDeriveStatus } from '../status/status_update_utils.js';
+import { isTerminal } from '../status/agent_team_status.js';
 import {
   BaseAgentTeamEvent,
   AgentTeamErrorEvent,
@@ -17,99 +17,99 @@ import { AgentTeamWorker } from './agent_team_worker.js';
 export class AgentTeamRuntime {
   context: AgentTeamContext;
   notifier: AgentTeamExternalEventNotifier;
-  status_manager: AgentTeamStatusManager;
+  statusManager: AgentTeamStatusManager;
   multiplexer: AgentEventMultiplexer;
-  _worker: AgentTeamWorker;
+  private worker: AgentTeamWorker;
 
-  constructor(context: AgentTeamContext, event_handler_registry: AgentTeamEventHandlerRegistry) {
+  constructor(context: AgentTeamContext, eventHandlerRegistry: AgentTeamEventHandlerRegistry) {
     this.context = context;
-    this.notifier = new AgentTeamExternalEventNotifier(this.context.team_id, this);
+    this.notifier = new AgentTeamExternalEventNotifier(this.context.teamId, this);
 
-    this.status_manager = new AgentTeamStatusManager(this.context, this.notifier);
-    this.context.state.status_manager_ref = this.status_manager;
+    this.statusManager = new AgentTeamStatusManager(this.context, this.notifier);
+    this.context.state.statusManagerRef = this.statusManager;
 
-    this._worker = new AgentTeamWorker(this.context, event_handler_registry);
-    this._worker.add_done_callback((result) => this._handle_worker_completion(result));
+    this.worker = new AgentTeamWorker(this.context, eventHandlerRegistry);
+    this.worker.addDoneCallback((result) => this.handleWorkerCompletion(result));
 
-    this.multiplexer = new AgentEventMultiplexer(this.context.team_id, this.notifier, this._worker);
-    this.context.state.multiplexer_ref = this.multiplexer;
+    this.multiplexer = new AgentEventMultiplexer(this.context.teamId, this.notifier, this.worker);
+    this.context.state.multiplexerRef = this.multiplexer;
 
-    console.info(`AgentTeamRuntime initialized for team '${this.context.team_id}'.`);
+    console.info(`AgentTeamRuntime initialized for team '${this.context.teamId}'.`);
   }
 
-  get_worker_loop(): Promise<void> | null {
-    return this._worker.get_worker_loop();
+  getWorkerLoop(): Promise<void> | null {
+    return this.worker.getWorkerLoop();
   }
 
   start(): void {
-    const team_id = this.context.team_id;
-    if (this._worker.is_alive()) {
-      console.warn(`AgentTeamRuntime for '${team_id}' is already running. Ignoring start request.`);
+    const teamId = this.context.teamId;
+    if (this.worker.isAlive()) {
+      console.warn(`AgentTeamRuntime for '${teamId}' is already running. Ignoring start request.`);
       return;
     }
 
-    console.info(`AgentTeamRuntime for '${team_id}': Starting worker.`);
-    this._worker.start();
+    console.info(`AgentTeamRuntime for '${teamId}': Starting worker.`);
+    this.worker.start();
   }
 
   async stop(timeout: number = 10.0): Promise<void> {
-    if (!this._worker.is_alive()) {
-      if (!is_terminal(this.context.current_status)) {
-        await this._apply_event_and_derive_status(new AgentTeamStoppedEvent());
+    if (!this.worker.isAlive()) {
+      if (!isTerminal(this.context.currentStatus)) {
+        await this.applyEventAndDeriveStatus(new AgentTeamStoppedEvent());
       }
       return;
     }
 
-    await this._apply_event_and_derive_status(new AgentTeamShutdownRequestedEvent());
-    await this._worker.stop(timeout);
-    await this._apply_event_and_derive_status(new AgentTeamStoppedEvent());
+    await this.applyEventAndDeriveStatus(new AgentTeamShutdownRequestedEvent());
+    await this.worker.stop(timeout);
+    await this.applyEventAndDeriveStatus(new AgentTeamStoppedEvent());
   }
 
-  async submit_event(event: BaseAgentTeamEvent): Promise<void> {
-    const team_id = this.context.team_id;
-    if (!this._worker.is_alive()) {
-      throw new Error(`Agent team worker for '${team_id}' is not active.`);
+  async submitEvent(event: BaseAgentTeamEvent): Promise<void> {
+    const teamId = this.context.teamId;
+    if (!this.worker.isAlive()) {
+      throw new Error(`Agent team worker for '${teamId}' is not active.`);
     }
 
-    if (!this.context.state.input_event_queues) {
+    if (!this.context.state.inputEventQueues) {
       console.error(
-        `AgentTeamRuntime '${team_id}': Input event queues not initialized for event ${event.constructor.name}.`
+        `AgentTeamRuntime '${teamId}': Input event queues not initialized for event ${event.constructor.name}.`
       );
       return;
     }
 
     if (event instanceof ProcessUserMessageEvent) {
-      await this.context.state.input_event_queues.enqueue_user_message(event);
+      await this.context.state.inputEventQueues.enqueueUserMessage(event);
     } else {
-      await this.context.state.input_event_queues.enqueue_internal_system_event(event);
+      await this.context.state.inputEventQueues.enqueueInternalSystemEvent(event);
     }
   }
 
-  private _handle_worker_completion(result: PromiseSettledResult<void>): void {
-    const team_id = this.context.team_id;
+  private handleWorkerCompletion(result: PromiseSettledResult<void>): void {
+    const teamId = this.context.teamId;
     if (result.status === 'rejected') {
-      console.error(`AgentTeamRuntime '${team_id}': Worker loop terminated with an exception: ${result.reason}`);
-      if (!is_terminal(this.context.current_status)) {
-        this._apply_event_and_derive_status(
+      console.error(`AgentTeamRuntime '${teamId}': Worker loop terminated with an exception: ${result.reason}`);
+      if (!isTerminal(this.context.currentStatus)) {
+        this.applyEventAndDeriveStatus(
           new AgentTeamErrorEvent('Worker loop exited unexpectedly.', String(result.reason))
         ).catch((error) =>
-          console.error(`AgentTeamRuntime '${team_id}': Failed to emit derived error: ${error}`)
+          console.error(`AgentTeamRuntime '${teamId}': Failed to emit derived error: ${error}`)
         );
       }
     }
 
-    if (!is_terminal(this.context.current_status)) {
-      this._apply_event_and_derive_status(new AgentTeamStoppedEvent()).catch((error) =>
-        console.error(`AgentTeamRuntime '${team_id}': Failed to emit derived shutdown complete: ${error}`)
+    if (!isTerminal(this.context.currentStatus)) {
+      this.applyEventAndDeriveStatus(new AgentTeamStoppedEvent()).catch((error) =>
+        console.error(`AgentTeamRuntime '${teamId}': Failed to emit derived shutdown complete: ${error}`)
       );
     }
   }
 
-  async _apply_event_and_derive_status(event: BaseAgentTeamEvent): Promise<void> {
-    await apply_event_and_derive_status(event, this.context);
+  async applyEventAndDeriveStatus(event: BaseAgentTeamEvent): Promise<void> {
+    await applyEventAndDeriveStatus(event, this.context);
   }
 
-  get is_running(): boolean {
-    return this._worker.is_alive();
+  get isRunning(): boolean {
+    return this.worker.isAlive();
   }
 }

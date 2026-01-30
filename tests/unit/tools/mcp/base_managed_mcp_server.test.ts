@@ -30,7 +30,7 @@ describe('BaseManagedMcpServer', () => {
     server.createSessionMock.mockResolvedValue({ listTools, callTool });
 
     await server.connect();
-    expect(server.connection_state).toBe(ServerState.CONNECTED);
+    expect(server.connectionState).toBe(ServerState.CONNECTED);
     expect(server.createSessionMock).toHaveBeenCalledTimes(1);
 
     await server.connect();
@@ -68,13 +68,13 @@ describe('BaseManagedMcpServer', () => {
 
     expect(server.cleanupCount).toBe(1);
     expect(close).toHaveBeenCalledTimes(1);
-    expect(server.connection_state).toBe(ServerState.CLOSED);
+    expect(server.connectionState).toBe(ServerState.CLOSED);
   });
 
   it('marks failed state on connect error', async () => {
     server.createSessionMock.mockRejectedValue(new Error('boom'));
 
     await expect(server.connect()).rejects.toThrowError('boom');
-    expect(server.connection_state).toBe(ServerState.FAILED);
+    expect(server.connectionState).toBe(ServerState.FAILED);
   });
 });

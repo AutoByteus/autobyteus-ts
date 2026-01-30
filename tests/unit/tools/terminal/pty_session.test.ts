@@ -42,14 +42,14 @@ describe('PtySession', () => {
     mockPty.kill.mockClear();
   });
 
-  it('exposes session_id', async () => {
+  it('exposes sessionId', async () => {
     const session = new PtySession('test-123');
-    expect(session.session_id).toBe('test-123');
+    expect(session.sessionId).toBe('test-123');
   });
 
   it('is not alive before start', async () => {
     const session = new PtySession('test');
-    expect(session.is_alive).toBe(false);
+    expect(session.isAlive).toBe(false);
   });
 
   it('write before start throws', async () => {
@@ -114,6 +114,6 @@ describe('PtySession', () => {
     await session.start('/tmp');
 
     mockState.onExit?.();
-    expect(session.is_alive).toBe(false);
+    expect(session.isAlive).toBe(false);
   });
 });

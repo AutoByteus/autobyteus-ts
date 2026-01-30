@@ -8,7 +8,7 @@ export class WorkspaceContextInitializationStep extends BaseBootstrapStep {
   }
 
   async execute(context: AgentContext): Promise<boolean> {
-    const agentId = context.agent_id;
+    const agentId = context.agentId;
     console.info(`Agent '${agentId}': Executing WorkspaceContextInitializationStep.`);
 
     const workspace = context.workspace;
@@ -18,15 +18,14 @@ export class WorkspaceContextInitializationStep extends BaseBootstrapStep {
     }
 
     try {
-      const maybeSetContext = (workspace as any).set_context ?? (workspace as any).setContext;
-      if (typeof maybeSetContext === 'function') {
-        maybeSetContext.call(workspace, context);
+      if (typeof (workspace as any).setContext === 'function') {
+        (workspace as any).setContext(context);
         console.info(
           `Agent '${agentId}': AgentContext successfully injected into workspace instance of type '${workspace.constructor.name}'.`
         );
       } else {
         console.warn(
-          `Agent '${agentId}': Configured workspace of type '${workspace.constructor.name}' does not have a 'set_context' method. ` +
+          `Agent '${agentId}': Configured workspace of type '${workspace.constructor.name}' does not have a 'setContext' method. ` +
             "Workspace will not have access to the agent's context."
         );
       }

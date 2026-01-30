@@ -2,7 +2,7 @@ import { BaseSchemaFormatter } from './base_formatter.js';
 import { ToolDefinition } from '../../registry/tool_definition.js';
 
 export class AnthropicJsonSchemaFormatter implements BaseSchemaFormatter {
-  provide(tool: ToolDefinition): Record<string, any> {
+  provide(tool: ToolDefinition): Record<string, unknown> {
     const inputSchema = tool.argumentSchema
       ? tool.argumentSchema.toJsonSchema()
       : { type: 'object', properties: {}, required: [] };

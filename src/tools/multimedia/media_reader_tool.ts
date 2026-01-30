@@ -5,7 +5,7 @@ import { ToolCategory } from '../tool_category.js';
 import { ParameterSchema, ParameterDefinition, ParameterType } from '../../utils/parameter_schema.js';
 import { ContextFile } from '../../agent/message/context_file.js';
 
-type WorkspaceLike = { getBasePath?: () => string; get_base_path?: () => string };
+type WorkspaceLike = { getBasePath?: () => string };
 type AgentContextLike = { agentId?: string; workspace?: WorkspaceLike | null };
 
 type ReadMediaArgs = {
@@ -16,9 +16,6 @@ function resolveWorkspaceRoot(workspace: WorkspaceLike | null | undefined): stri
   if (!workspace) return null;
   if (typeof workspace.getBasePath === 'function') {
     return path.resolve(workspace.getBasePath());
-  }
-  if (typeof workspace.get_base_path === 'function') {
-    return path.resolve(workspace.get_base_path());
   }
   return null;
 }

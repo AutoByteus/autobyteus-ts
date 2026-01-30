@@ -35,16 +35,16 @@ runIntegration('BackgroundProcessManager Integration', () => {
     await withTempDir(async (tempDir) => {
       const manager = new BackgroundProcessManagerClass();
       try {
-        const processId = await manager.start_process(
+        const processId = await manager.startProcess(
           'for i in 1 2 3; do echo line$i; sleep 0.1; done',
           tempDir
         );
 
         await new Promise((resolve) => setTimeout(resolve, 500));
-        const result = manager.get_output(processId);
+        const result = manager.getOutput(processId);
         expect(result.output).toContain('line');
       } finally {
-        await manager.stop_all();
+        await manager.stopAll();
       }
     });
   });
@@ -53,15 +53,15 @@ runIntegration('BackgroundProcessManager Integration', () => {
     await withTempDir(async (tempDir) => {
       const manager = new BackgroundProcessManagerClass();
       try {
-        const processId = await manager.start_process('sleep 100', tempDir);
+        const processId = await manager.startProcess('sleep 100', tempDir);
         await new Promise((resolve) => setTimeout(resolve, 200));
-        expect(manager.process_count).toBe(1);
+        expect(manager.processCount).toBe(1);
 
-        const success = await manager.stop_process(processId);
+        const success = await manager.stopProcess(processId);
         expect(success).toBe(true);
-        expect(manager.process_count).toBe(0);
+        expect(manager.processCount).toBe(0);
       } finally {
-        await manager.stop_all();
+        await manager.stopAll();
       }
     });
   });

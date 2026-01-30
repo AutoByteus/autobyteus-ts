@@ -5,16 +5,16 @@ export enum McpTransportType {
 }
 
 export class McpServerInstanceKey {
-  readonly agent_id: string;
-  readonly server_id: string;
+  readonly agentId: string;
+  readonly serverId: string;
 
-  constructor(agent_id: string, server_id: string) {
-    this.agent_id = agent_id;
-    this.server_id = server_id;
+  constructor(agentId: string, serverId: string) {
+    this.agentId = agentId;
+    this.serverId = serverId;
   }
 
   toKey(): string {
-    return `${this.agent_id}:${this.server_id}`;
+    return `${this.agentId}:${this.serverId}`;
   }
 
   toString(): string {

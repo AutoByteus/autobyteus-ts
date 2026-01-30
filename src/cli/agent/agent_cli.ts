@@ -95,7 +95,7 @@ export async function run(
 
   const eventTask = (async () => {
     try {
-      for await (const event of streamer.all_events()) {
+      for await (const event of streamer.allEvents()) {
         await display.handleStreamEvent(event);
       }
     } catch (error) {
@@ -106,7 +106,7 @@ export async function run(
   })();
 
   try {
-    if (!agent.is_running) {
+    if (!agent.isRunning) {
       agent.start();
     }
 
@@ -122,7 +122,7 @@ export async function run(
       promptWriter.write(`You: ${initialPrompt}\n`);
       turnSignal.reset();
       display.resetTurnState();
-      await agent.post_user_message(new AgentInputUserMessage(initialPrompt));
+      await agent.postUserMessage(new AgentInputUserMessage(initialPrompt));
       await turnSignal.wait();
     }
 
@@ -146,7 +146,7 @@ export async function run(
             reason = reasonInput.trim() || 'User denied via CLI';
           }
 
-          await agent.post_tool_execution_approval(pendingApproval.invocation_id, isApproved, reason);
+          await agent.postToolExecutionApproval(pendingApproval.invocation_id, isApproved, reason);
         }
       } else {
         const userInputRaw = await inputReader.readLine('You: ');
@@ -161,7 +161,7 @@ export async function run(
         }
 
         display.resetTurnState();
-        await agent.post_user_message(new AgentInputUserMessage(userInput));
+        await agent.postUserMessage(new AgentInputUserMessage(userInput));
       }
 
       await turnSignal.wait();
@@ -173,7 +173,7 @@ export async function run(
       inputReader.close();
     }
 
-    if (agent.is_running) {
+    if (agent.isRunning) {
       await agent.stop();
     }
 

@@ -2,15 +2,15 @@ import type { AgentTeam } from './agent_team.js';
 
 export abstract class BaseAgentTeam {
   name: string;
-  protected _wrapped_team: AgentTeam | null;
+  protected _wrappedTeam: AgentTeam | null;
 
-  constructor(name: string, wrapped_team_instance: AgentTeam | null = null) {
+  constructor(name: string, wrappedTeamInstance: AgentTeam | null = null) {
     this.name = name;
-    this._wrapped_team = wrapped_team_instance;
+    this._wrappedTeam = wrappedTeamInstance;
 
-    if (this._wrapped_team) {
+    if (this._wrappedTeam) {
       console.info(
-        `BaseAgentTeam '${this.name}' initialized, wrapping an instance of '${this._wrapped_team.constructor.name}'.`
+        `BaseAgentTeam '${this.name}' initialized, wrapping an instance of '${this._wrappedTeam.constructor.name}'.`
       );
     } else {
       console.info(
@@ -19,23 +19,23 @@ export abstract class BaseAgentTeam {
     }
   }
 
-  get wrapped_team(): AgentTeam | null {
-    return this._wrapped_team;
+  get wrappedTeam(): AgentTeam | null {
+    return this._wrappedTeam;
   }
 
   abstract start(): Promise<void> | void;
   abstract stop(timeout?: number): Promise<void> | void;
-  abstract get is_running(): boolean;
+  abstract get isRunning(): boolean;
 
   toString(): string {
-    let running_status = 'N/A (not implemented by subclass)';
+    let runningStatus = 'N/A (not implemented by subclass)';
     try {
-      running_status = String(this.is_running);
+      runningStatus = String(this.isRunning);
     } catch {
-      running_status = 'N/A (not implemented by subclass)';
+      runningStatus = 'N/A (not implemented by subclass)';
     }
 
-    const wrappedName = this._wrapped_team ? this._wrapped_team.constructor.name : 'NoneInternal';
-    return `<${this.constructor.name} name='${this.name}', wraps='${wrappedName}', is_running=${running_status}>`;
+    const wrappedName = this._wrappedTeam ? this._wrappedTeam.constructor.name : 'NoneInternal';
+    return `<${this.constructor.name} name='${this.name}', wraps='${wrappedName}', isRunning=${runningStatus}>`;
   }
 }

@@ -26,26 +26,26 @@ const makeContext = (): AgentTeamContext => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const agent = new AgentConfig('Coordinator', 'Coordinator', 'desc', llm);
-  const node = new TeamNodeConfig({ node_definition: agent });
+  const node = new TeamNodeConfig({ nodeDefinition: agent });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
   return new AgentTeamContext('team-1', config, state);
 };
 
 describe('BridgeCleanupStep', () => {
   it('succeeds with no multiplexer', async () => {
     const context = makeContext();
-    context.state.multiplexer_ref = null;
+    context.state.multiplexerRef = null;
     const step = new BridgeCleanupStep();
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
@@ -59,7 +59,7 @@ describe('BridgeCleanupStep', () => {
   it('shuts down multiplexer successfully', async () => {
     const context = makeContext();
     const multiplexer = { shutdown: vi.fn(async () => undefined) };
-    context.state.multiplexer_ref = multiplexer as any;
+    context.state.multiplexerRef = multiplexer as any;
     const step = new BridgeCleanupStep();
 
     const success = await step.execute(context);
@@ -71,7 +71,7 @@ describe('BridgeCleanupStep', () => {
   it('returns false on shutdown failure', async () => {
     const context = makeContext();
     const multiplexer = { shutdown: vi.fn(async () => { throw new Error('boom'); }) };
-    context.state.multiplexer_ref = multiplexer as any;
+    context.state.multiplexerRef = multiplexer as any;
     const step = new BridgeCleanupStep();
 
     const success = await step.execute(context);

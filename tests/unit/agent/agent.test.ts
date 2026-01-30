@@ -33,7 +33,7 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -47,10 +47,10 @@ const makeRuntimeStub = (context: AgentContext, isRunning: boolean) => {
   runtime.context = context;
   runtime.start = vi.fn();
   runtime.stop = vi.fn(async () => undefined);
-  runtime.submit_event = vi.fn(async () => undefined);
-  Object.defineProperty(runtime, 'is_running', { get: () => isRunning });
-  Object.defineProperty(runtime, 'current_status_property', { get: () => AgentStatus.IDLE, configurable: true });
-  return runtime as AgentRuntime & { start: any; stop: any; submit_event: any };
+  runtime.submitEvent = vi.fn(async () => undefined);
+  Object.defineProperty(runtime, 'isRunning', { get: () => isRunning });
+  Object.defineProperty(runtime, 'currentStatus', { get: () => AgentStatus.IDLE, configurable: true });
+  return runtime as AgentRuntime & { start: any; stop: any; submitEvent: any };
 };
 
 describe('Agent', () => {
@@ -70,11 +70,11 @@ describe('Agent', () => {
     const runtime = makeRuntimeStub(context, false);
     const agent = new Agent(runtime as any);
     const message = new AgentInputUserMessage('hi');
-    await agent.post_user_message(message);
+    await agent.postUserMessage(message);
 
     expect(runtime.start).toHaveBeenCalledOnce();
-    expect(runtime.submit_event).toHaveBeenCalledOnce();
-    const event = runtime.submit_event.mock.calls[0][0];
+    expect(runtime.submitEvent).toHaveBeenCalledOnce();
+    const event = runtime.submitEvent.mock.calls[0][0];
     expect(event).toBeInstanceOf(UserMessageReceivedEvent);
   });
 
@@ -89,9 +89,9 @@ describe('Agent', () => {
       InterAgentMessageType.CLARIFICATION,
       'from'
     );
-    await agent.post_inter_agent_message(message);
+    await agent.postInterAgentMessage(message);
 
-    const event = runtime.submit_event.mock.calls[0][0];
+    const event = runtime.submitEvent.mock.calls[0][0];
     expect(event).toBeInstanceOf(InterAgentMessageReceivedEvent);
   });
 
@@ -99,18 +99,18 @@ describe('Agent', () => {
     const context = makeContext();
     const runtime = makeRuntimeStub(context, true);
     const agent = new Agent(runtime as any);
-    await agent.post_tool_execution_approval('tid-1', true, 'ok');
+    await agent.postToolExecutionApproval('tid-1', true, 'ok');
 
-    const event = runtime.submit_event.mock.calls[0][0];
+    const event = runtime.submitEvent.mock.calls[0][0];
     expect(event).toBeInstanceOf(ToolExecutionApprovalEvent);
   });
 
   it('exposes status and running state', () => {
     const context = makeContext();
     const runtime = makeRuntimeStub(context, true);
-    Object.defineProperty(runtime, 'current_status_property', { get: () => AgentStatus.ANALYZING_LLM_RESPONSE });
+    Object.defineProperty(runtime, 'currentStatus', { get: () => AgentStatus.ANALYZING_LLM_RESPONSE });
     const agent = new Agent(runtime as any);
-    expect(agent.get_current_status()).toBe(AgentStatus.ANALYZING_LLM_RESPONSE);
-    expect(agent.is_running).toBe(true);
+    expect(agent.currentStatus).toBe(AgentStatus.ANALYZING_LLM_RESPONSE);
+    expect(agent.isRunning).toBe(true);
   });
 });

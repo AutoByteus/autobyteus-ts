@@ -30,10 +30,6 @@ export class PromptTemplate {
     return { template: this.template };
   }
 
-  to_dict(): Record<string, string> {
-    return this.toDict();
-  }
-
   fill(values: Record<string, string>): string {
     return this.template.replace(TEMPLATE_VAR_REGEX, (_, varName: string) => {
       if (Object.prototype.hasOwnProperty.call(values, varName)) {

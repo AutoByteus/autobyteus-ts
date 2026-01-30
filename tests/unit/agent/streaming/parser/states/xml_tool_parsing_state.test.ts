@@ -11,16 +11,16 @@ describe('XmlToolParsingState basics', () => {
     ctx.append(signature + '<arguments><city>NYC</city></arguments></tool>after');
 
     const state = new XmlToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
     expect(startEvents[0].segment_type).toBe(SegmentType.TOOL_CALL);
     expect(startEvents[0].payload.metadata?.tool_name).toBe('weather');
 
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
   });
 
   it('extracts tool name with double quotes', () => {
@@ -29,10 +29,10 @@ describe('XmlToolParsingState basics', () => {
     ctx.append(signature + '<arguments><location>Paris</location></arguments></tool>');
 
     const state = new XmlToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents[0].payload.metadata?.tool_name).toBe('get_weather');
   });
@@ -43,10 +43,10 @@ describe('XmlToolParsingState basics', () => {
     ctx.append(signature + 'content</tool>');
 
     const state = new XmlToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const toolStarts = events.filter((e) => e.event_type === SegmentEventType.START && e.segment_type === SegmentType.TOOL_CALL);
     expect(toolStarts).toHaveLength(0);
   });
@@ -59,13 +59,13 @@ describe('XmlToolParsingState streaming', () => {
     ctx.append(signature + '<arguments><query>testing</query></arguments></tool>done');
 
     const state = new XmlToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const endEvents = events.filter((e) => e.event_type === SegmentEventType.END);
     expect(endEvents.length).toBeGreaterThanOrEqual(1);
-    expect(ctx.current_state).toBeInstanceOf(TextState);
+    expect(ctx.currentState).toBeInstanceOf(TextState);
   });
 
   it('streams raw XML content', () => {
@@ -83,10 +83,10 @@ describe('XmlToolParsingState streaming', () => {
     ctx.append(signature + content);
 
     const state = new XmlToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
     const fullContent = contentEvents.map((e) => e.payload.delta).join('');
     expect(fullContent).toContain('<arguments>');
@@ -104,11 +104,11 @@ describe('XmlToolParsingState finalize', () => {
     ctx.append(signature + '<arguments><arg>val');
 
     const state = new XmlToolParsingState(ctx, signature);
-    ctx.current_state = state;
+    ctx.currentState = state;
     state.run();
     state.finalize();
 
-    const events = ctx.get_and_clear_events();
+    const events = ctx.getAndClearEvents();
     const endEvents = events.filter((e) => e.event_type === SegmentEventType.END);
     expect(endEvents.length).toBeGreaterThanOrEqual(1);
   });

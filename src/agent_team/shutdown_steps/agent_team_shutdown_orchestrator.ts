@@ -5,10 +5,10 @@ import { AgentTeamShutdownStep } from './agent_team_shutdown_step.js';
 import type { AgentTeamContext } from '../context/agent_team_context.js';
 
 export class AgentTeamShutdownOrchestrator {
-  shutdown_steps: BaseAgentTeamShutdownStep[];
+  shutdownSteps: BaseAgentTeamShutdownStep[];
 
   constructor(steps?: BaseAgentTeamShutdownStep[]) {
-    this.shutdown_steps = steps ?? [
+    this.shutdownSteps = steps ?? [
       new BridgeCleanupStep(),
       new SubTeamShutdownStep(),
       new AgentTeamShutdownStep()
@@ -16,19 +16,19 @@ export class AgentTeamShutdownOrchestrator {
   }
 
   async run(context: AgentTeamContext): Promise<boolean> {
-    const team_id = context.team_id;
-    console.info(`Team '${team_id}': Shutdown orchestrator starting.`);
+    const teamId = context.teamId;
+    console.info(`Team '${teamId}': Shutdown orchestrator starting.`);
 
-    let all_successful = true;
-    for (const step of this.shutdown_steps) {
+    let allSuccessful = true;
+    for (const step of this.shutdownSteps) {
       const success = await step.execute(context);
       if (!success) {
-        console.error(`Team '${team_id}': Shutdown step ${step.constructor.name} failed.`);
-        all_successful = false;
+        console.error(`Team '${teamId}': Shutdown step ${step.constructor.name} failed.`);
+        allSuccessful = false;
       }
     }
 
-    console.info(`Team '${team_id}': Shutdown orchestration completed.`);
-    return all_successful;
+    console.info(`Team '${teamId}': Shutdown orchestration completed.`);
+    return allSuccessful;
   }
 }

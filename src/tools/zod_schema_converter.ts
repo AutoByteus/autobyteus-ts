@@ -4,7 +4,7 @@ import { ParameterSchema, ParameterDefinition, ParameterType } from '../utils/pa
 type UnwrapResult = {
   schema: ZodTypeAny;
   optional: boolean;
-  defaultValue?: any;
+  defaultValue?: unknown;
   description?: string;
 };
 
@@ -19,7 +19,7 @@ function getTypeName(schema: ZodTypeAny): string | undefined {
 function unwrapSchema(schema: ZodTypeAny): UnwrapResult {
   let current: ZodTypeAny = schema;
   let optional = false;
-  let defaultValue: any = undefined;
+  let defaultValue: unknown = undefined;
   let description = extractDescription(current);
 
   while (true) {
@@ -77,7 +77,7 @@ function paramTypeToJsonType(paramType: ParameterType): string {
 function enumValuesFromSchema(schema: ZodTypeAny): string[] | undefined {
   const options = (schema as any).options;
   if (Array.isArray(options)) {
-    return options.map((value: any) => String(value));
+    return options.map((value: unknown) => String(value));
   }
   const values = (schema as any)._def?.values;
   if (values && typeof values === 'object') {
@@ -86,7 +86,7 @@ function enumValuesFromSchema(schema: ZodTypeAny): string[] | undefined {
   return undefined;
 }
 
-function buildArrayItemSchema(schema: ZodTypeAny): ParameterSchema | Record<string, any> {
+function buildArrayItemSchema(schema: ZodTypeAny): ParameterSchema | Record<string, unknown> {
   const unwrapped = unwrapSchema(schema);
   const base = unwrapped.schema;
 
@@ -95,7 +95,7 @@ function buildArrayItemSchema(schema: ZodTypeAny): ParameterSchema | Record<stri
   }
 
   const typeInfo = mapSchemaToParameterType(base);
-  const item: Record<string, any> = { type: paramTypeToJsonType(typeInfo.type) };
+  const item: Record<string, unknown> = { type: paramTypeToJsonType(typeInfo.type) };
   if (typeInfo.enumValues) {
     item.enum = typeInfo.enumValues;
   }
@@ -180,7 +180,7 @@ function convertObjectSchema(schema: ZodTypeAny): ParameterSchema {
     const mapped = mapSchemaToParameterType(baseSchema);
 
     let objectSchema: ParameterSchema | undefined;
-    let arrayItemSchema: ParameterSchema | Record<string, any> | undefined;
+    let arrayItemSchema: ParameterSchema | Record<string, unknown> | undefined;
 
     if (getTypeName(baseSchema) === 'ZodObject') {
       objectSchema = convertObjectSchema(baseSchema);

@@ -4,51 +4,51 @@ import {
   AgentTeamIdleEvent,
   OperationalAgentTeamEvent
 } from './agent_team_events.js';
-import { apply_event_and_derive_status } from '../status/status_update_utils.js';
+import { applyEventAndDeriveStatus } from '../status/status_update_utils.js';
 import type { AgentTeamContext } from '../context/agent_team_context.js';
 import type { AgentTeamEventHandlerRegistry } from '../handlers/agent_team_event_handler_registry.js';
 
 export class AgentTeamEventDispatcher {
   private registry: AgentTeamEventHandlerRegistry;
 
-  constructor(event_handler_registry: AgentTeamEventHandlerRegistry) {
-    this.registry = event_handler_registry;
+  constructor(eventHandlerRegistry: AgentTeamEventHandlerRegistry) {
+    this.registry = eventHandlerRegistry;
     console.debug('AgentTeamEventDispatcher initialized.');
   }
 
   async dispatch(event: BaseAgentTeamEvent, context: AgentTeamContext): Promise<void> {
-    const team_id = context.team_id;
-    const event_class = event.constructor as typeof BaseAgentTeamEvent;
-    const event_class_name = event_class?.name ?? 'UnknownEvent';
+    const teamId = context.teamId;
+    const eventClass = event.constructor as typeof BaseAgentTeamEvent;
+    const eventClassName = eventClass?.name ?? 'UnknownEvent';
 
     try {
-      await apply_event_and_derive_status(event, context);
+      await applyEventAndDeriveStatus(event, context);
     } catch (error) {
-      console.error(`Team '${team_id}': Status derivation failed for '${event_class_name}': ${error}`);
+      console.error(`Team '${teamId}': Status derivation failed for '${eventClassName}': ${error}`);
     }
 
-    const handler = this.registry.get_handler(event_class as any);
+    const handler = this.registry.getHandler(eventClass as any);
     if (!handler) {
-      console.warn(`Team '${team_id}': No handler for event '${event_class_name}'.`);
+      console.warn(`Team '${teamId}': No handler for event '${eventClassName}'.`);
       return;
     }
 
     try {
       await handler.handle(event as any, context as any);
     } catch (error) {
-      const error_message = `Error handling '${event_class_name}' in team '${team_id}': ${error}`;
-      console.error(error_message);
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(
-          new AgentTeamErrorEvent(error_message, String(error))
+      const errorMessage = `Error handling '${eventClassName}' in team '${teamId}': ${error}`;
+      console.error(errorMessage);
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(
+          new AgentTeamErrorEvent(errorMessage, String(error))
         );
       }
       return;
     }
 
     if (event instanceof OperationalAgentTeamEvent) {
-      if (context.state.input_event_queues) {
-        await context.state.input_event_queues.enqueue_internal_system_event(new AgentTeamIdleEvent());
+      if (context.state.inputEventQueues) {
+        await context.state.inputEventQueues.enqueueInternalSystemEvent(new AgentTeamIdleEvent());
       }
     }
   }

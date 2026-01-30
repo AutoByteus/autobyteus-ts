@@ -3,7 +3,7 @@ import {
   OpenAiJsonToolParsingStrategy,
   GeminiJsonToolParsingStrategy,
   DefaultJsonToolParsingStrategy,
-  get_json_tool_parsing_profile
+  getJsonToolParsingProfile
 } from '../../../../../src/agent/streaming/parser/json_parsing_strategies/index.js';
 import { LLMProvider } from '../../../../../src/llm/providers.js';
 
@@ -39,17 +39,17 @@ describe('JSON tool parsing strategies', () => {
 
 describe('JSON parsing profiles', () => {
   it('selects gemini profile', () => {
-    const profile = get_json_tool_parsing_profile(LLMProvider.GEMINI);
+    const profile = getJsonToolParsingProfile(LLMProvider.GEMINI);
     expect(profile.parser).toBeInstanceOf(GeminiJsonToolParsingStrategy);
   });
 
   it('selects openai profile', () => {
-    const profile = get_json_tool_parsing_profile(LLMProvider.OPENAI);
+    const profile = getJsonToolParsingProfile(LLMProvider.OPENAI);
     expect(profile.parser).toBeInstanceOf(OpenAiJsonToolParsingStrategy);
   });
 
   it('defaults to default profile', () => {
-    const profile = get_json_tool_parsing_profile(LLMProvider.KIMI);
+    const profile = getJsonToolParsingProfile(LLMProvider.KIMI);
     expect(profile.parser).toBeInstanceOf(DefaultJsonToolParsingStrategy);
   });
 });

@@ -10,7 +10,7 @@ import { AgentStatus } from '../../../../src/agent/status/status_enum.js';
 
 const makeTeam = () => {
   const notifier = new EventEmitter();
-  const team = { team_id: 'team-stream-test', _runtime: { notifier } } as any;
+  const team = { teamId: 'team-stream-test', notifier } as any;
   return { team, notifier };
 };
 
@@ -20,7 +20,7 @@ describe('AgentTeamEventStream', () => {
     const subscribeSpy = vi.spyOn(notifier, 'subscribe');
     const stream = new AgentTeamEventStream(team);
 
-    expect(subscribeSpy).toHaveBeenCalledWith(EventType.TEAM_STREAM_EVENT, (stream as any)._handle_event);
+    expect(subscribeSpy).toHaveBeenCalledWith(EventType.TEAM_STREAM_EVENT, (stream as any).handleEvent);
   });
 
   it('queues only matching team events', () => {
@@ -28,7 +28,7 @@ describe('AgentTeamEventStream', () => {
     const stream = new AgentTeamEventStream(team);
 
     const correct_event = new AgentTeamStreamEvent({
-      team_id: stream.team_id,
+      team_id: stream.teamId,
       event_source_type: 'TEAM',
       data: new AgentTeamStatusUpdateData({ new_status: AgentTeamStatus.IDLE })
     });
@@ -38,8 +38,8 @@ describe('AgentTeamEventStream', () => {
       data: new AgentTeamStatusUpdateData({ new_status: AgentTeamStatus.IDLE })
     });
 
-    (stream as any)._handle_event(correct_event);
-    (stream as any)._handle_event(wrong_event);
+    (stream as any).handleEvent(correct_event);
+    (stream as any).handleEvent(wrong_event);
 
     const queue = (stream as any).internalQueue;
     expect(queue.getNowait()).toBe(correct_event);
@@ -50,7 +50,7 @@ describe('AgentTeamEventStream', () => {
     const stream = new AgentTeamEventStream(team);
 
     const event1 = new AgentTeamStreamEvent({
-      team_id: stream.team_id,
+      team_id: stream.teamId,
       event_source_type: 'TEAM',
       data: new AgentTeamStatusUpdateData({ new_status: AgentTeamStatus.IDLE })
     });
@@ -60,7 +60,7 @@ describe('AgentTeamEventStream', () => {
       data: { new_status: AgentStatus.IDLE }
     });
     const event2 = new AgentTeamStreamEvent({
-      team_id: stream.team_id,
+      team_id: stream.teamId,
       event_source_type: 'AGENT',
       data: new AgentEventRebroadcastPayload({ agent_name: 'a', agent_event })
     });
@@ -76,7 +76,7 @@ describe('AgentTeamEventStream', () => {
 
     const producer = produceEvents();
     const results: AgentTeamStreamEvent[] = [];
-    for await (const event of stream.all_events()) {
+    for await (const event of stream.allEvents()) {
       results.push(event);
     }
 

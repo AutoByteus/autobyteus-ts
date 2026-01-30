@@ -12,118 +12,118 @@ import {
   InterAgentMessageReceivedEvent,
   ToolExecutionApprovalEvent
 } from '../events/agent_events.js';
-import { apply_event_and_derive_status } from '../status/status_update_utils.js';
+import { applyEventAndDeriveStatus } from '../status/status_update_utils.js';
 import { AgentWorker } from './agent_worker.js';
 import type { EventHandlerRegistry } from '../handlers/event_handler_registry.js';
 
 export class AgentRuntime {
   context: AgentContext;
-  event_handler_registry: EventHandlerRegistry;
-  external_event_notifier: AgentExternalEventNotifier;
-  status_manager: AgentStatusManager;
-  _worker: AgentWorker;
-  private _context_registry: AgentContextRegistry;
+  eventHandlerRegistry: EventHandlerRegistry;
+  externalEventNotifier: AgentExternalEventNotifier;
+  statusManager: AgentStatusManager;
+  private worker: AgentWorker;
+  private contextRegistry: AgentContextRegistry;
 
-  constructor(context: AgentContext, event_handler_registry: EventHandlerRegistry) {
+  constructor(context: AgentContext, eventHandlerRegistry: EventHandlerRegistry) {
     this.context = context;
-    this.event_handler_registry = event_handler_registry;
+    this.eventHandlerRegistry = eventHandlerRegistry;
 
-    this.external_event_notifier = new AgentExternalEventNotifier(this.context.agent_id);
-    this.status_manager = new AgentStatusManager(this.context, this.external_event_notifier);
-    this.context.state.status_manager_ref = this.status_manager;
+    this.externalEventNotifier = new AgentExternalEventNotifier(this.context.agentId);
+    this.statusManager = new AgentStatusManager(this.context, this.externalEventNotifier);
+    this.context.state.statusManagerRef = this.statusManager;
 
-    this._worker = new AgentWorker(this.context, this.event_handler_registry);
-    this._worker.add_done_callback((result) => this._handle_worker_completion(result));
+    this.worker = new AgentWorker(this.context, this.eventHandlerRegistry);
+    this.worker.addDoneCallback((result) => this.handleWorkerCompletion(result));
 
-    this._context_registry = new AgentContextRegistry();
-    this._context_registry.registerContext(this.context);
+    this.contextRegistry = new AgentContextRegistry();
+    this.contextRegistry.registerContext(this.context);
 
-    console.info(`AgentRuntime initialized for agent_id '${this.context.agent_id}'. Context registered.`);
+    console.info(`AgentRuntime initialized for agent_id '${this.context.agentId}'. Context registered.`);
   }
 
-  async submit_event(event: BaseEvent): Promise<void> {
-    const agent_id = this.context.agent_id;
-    if (!this._worker || !this._worker.is_alive()) {
-      throw new Error(`Agent '${agent_id}' worker is not active.`);
+  async submitEvent(event: BaseEvent): Promise<void> {
+    const agentId = this.context.agentId;
+    if (!this.worker || !this.worker.isAlive()) {
+      throw new Error(`Agent '${agentId}' worker is not active.`);
     }
 
-    if (!this.context.state.input_event_queues) {
+    if (!this.context.state.inputEventQueues) {
       console.error(
-        `AgentRuntime '${agent_id}': Input event queues not initialized for event ${event.constructor.name}.`
+        `AgentRuntime '${agentId}': Input event queues not initialized for event ${event.constructor.name}.`
       );
       return;
     }
 
     if (event instanceof UserMessageReceivedEvent) {
-      await this.context.state.input_event_queues.enqueue_user_message(event);
+      await this.context.state.inputEventQueues.enqueueUserMessage(event);
     } else if (event instanceof InterAgentMessageReceivedEvent) {
-      await this.context.state.input_event_queues.enqueue_inter_agent_message(event);
+      await this.context.state.inputEventQueues.enqueueInterAgentMessage(event);
     } else if (event instanceof ToolExecutionApprovalEvent) {
-      await this.context.state.input_event_queues.enqueue_tool_approval_event(event);
+      await this.context.state.inputEventQueues.enqueueToolApprovalEvent(event);
     } else {
-      await this.context.state.input_event_queues.enqueue_internal_system_event(event);
+      await this.context.state.inputEventQueues.enqueueInternalSystemEvent(event);
     }
   }
 
   start(): void {
-    const agent_id = this.context.agent_id;
-    if (this._worker.is_alive()) {
-      console.warn(`AgentRuntime for '${agent_id}' is already running. Ignoring start request.`);
+    const agentId = this.context.agentId;
+    if (this.worker.isAlive()) {
+      console.warn(`AgentRuntime for '${agentId}' is already running. Ignoring start request.`);
       return;
     }
 
-    console.info(`AgentRuntime for '${agent_id}': Starting worker.`);
-    this._worker.start();
+    console.info(`AgentRuntime for '${agentId}': Starting worker.`);
+    this.worker.start();
   }
 
-  private _handle_worker_completion(result: PromiseSettledResult<void>): void {
-    const agent_id = this.context.agent_id;
+  private handleWorkerCompletion(result: PromiseSettledResult<void>): void {
+    const agentId = this.context.agentId;
     if (result.status === 'rejected') {
-      console.error(`AgentRuntime '${agent_id}': Worker loop terminated with an exception: ${result.reason}`);
-      if (!AgentStatus.isTerminal(this.context.current_status)) {
-        this._apply_event_and_derive_status(
+      console.error(`AgentRuntime '${agentId}': Worker loop terminated with an exception: ${result.reason}`);
+      if (!AgentStatus.isTerminal(this.context.currentStatus)) {
+        this.applyEventAndDeriveStatus(
           new AgentErrorEvent('Worker loop exited unexpectedly.', String(result.reason))
         ).catch((error) =>
-          console.error(`AgentRuntime '${agent_id}': Failed to emit derived error: ${error}`)
+          console.error(`AgentRuntime '${agentId}': Failed to emit derived error: ${error}`)
         );
       }
     }
 
-    if (!AgentStatus.isTerminal(this.context.current_status)) {
-      this._apply_event_and_derive_status(new AgentStoppedEvent()).catch((error) =>
-        console.error(`AgentRuntime '${agent_id}': Failed to emit derived shutdown complete: ${error}`)
+    if (!AgentStatus.isTerminal(this.context.currentStatus)) {
+      this.applyEventAndDeriveStatus(new AgentStoppedEvent()).catch((error) =>
+        console.error(`AgentRuntime '${agentId}': Failed to emit derived shutdown complete: ${error}`)
       );
     }
   }
 
   async stop(timeout: number = 10.0): Promise<void> {
-    const agent_id = this.context.agent_id;
-    if (!this._worker.is_alive()) {
-      if (!AgentStatus.isTerminal(this.context.current_status)) {
-        await this._apply_event_and_derive_status(new AgentStoppedEvent());
+    const agentId = this.context.agentId;
+    if (!this.worker.isAlive()) {
+      if (!AgentStatus.isTerminal(this.context.currentStatus)) {
+        await this.applyEventAndDeriveStatus(new AgentStoppedEvent());
       }
       return;
     }
 
-    await this._apply_event_and_derive_status(new ShutdownRequestedEvent());
-    await this._worker.stop(timeout);
+    await this.applyEventAndDeriveStatus(new ShutdownRequestedEvent());
+    await this.worker.stop(timeout);
 
-    this._context_registry.unregisterContext(agent_id);
-    console.info(`AgentRuntime for '${agent_id}': Context unregistered.`);
+    this.contextRegistry.unregisterContext(agentId);
+    console.info(`AgentRuntime for '${agentId}': Context unregistered.`);
 
-    await this._apply_event_and_derive_status(new AgentStoppedEvent());
-    console.info(`AgentRuntime for '${agent_id}' stop() method completed.`);
+    await this.applyEventAndDeriveStatus(new AgentStoppedEvent());
+    console.info(`AgentRuntime for '${agentId}' stop() method completed.`);
   }
 
-  async _apply_event_and_derive_status(event: BaseEvent): Promise<void> {
-    await apply_event_and_derive_status(event, this.context);
+  async applyEventAndDeriveStatus(event: BaseEvent): Promise<void> {
+    await applyEventAndDeriveStatus(event, this.context);
   }
 
-  get current_status_property(): AgentStatus {
-    return this.context.current_status;
+  get currentStatus(): AgentStatus {
+    return this.context.currentStatus;
   }
 
-  get is_running(): boolean {
-    return this._worker.is_alive();
+  get isRunning(): boolean {
+    return this.worker.isAlive();
   }
 }

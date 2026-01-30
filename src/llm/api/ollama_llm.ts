@@ -18,12 +18,12 @@ export class OllamaLLM extends BaseLLM {
   private client: Ollama;
 
   constructor(model: LLMModel, llmConfig: LLMConfig) {
-    if (!model.host_url) {
-      throw new Error('OllamaLLM requires a host_url to be set on the LLMModel.');
+    if (!model.hostUrl) {
+      throw new Error('OllamaLLM requires a hostUrl to be set on the LLMModel.');
     }
 
     super(model, llmConfig);
-    this.client = new Ollama({ host: model.host_url });
+    this.client = new Ollama({ host: model.hostUrl });
   }
 
   private async formatOllamaMessages(messages: Message[]): Promise<OllamaMessage[]> {
@@ -54,7 +54,7 @@ export class OllamaLLM extends BaseLLM {
 
   protected async _sendUserMessageToLLM(
     userMessage: LLMUserMessage,
-    _kwargs: Record<string, any>
+    _kwargs: Record<string, unknown>
   ): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
@@ -96,7 +96,7 @@ export class OllamaLLM extends BaseLLM {
 
   protected async *_streamUserMessageToLLM(
     userMessage: LLMUserMessage,
-    _kwargs: Record<string, any>
+    _kwargs: Record<string, unknown>
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
     const formattedMessages = await this.formatOllamaMessages(this.messages);

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -13,9 +14,27 @@ const IMAGE_BYTES = Buffer.from(
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../../../..');
+const repoRoot = path.resolve(__dirname, '../../../..');
 const mcpsRoot = path.resolve(repoRoot, '..', 'autobyteus_mcps');
 const pdfMcpDir = path.join(mcpsRoot, 'pdf_mcp');
+
+const resolveUvCommand = (): string => {
+  const envOverride = process.env.UV_BIN;
+  if (envOverride && envOverride.trim()) {
+    return envOverride;
+  }
+  const candidates = [
+    path.join(os.homedir(), '.local', 'bin', 'uv'),
+    '/usr/local/bin/uv',
+    '/opt/homebrew/bin/uv'
+  ];
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return 'uv';
+};
 
 describe('StdioManagedMcpServer integration (pdf_mcp)', () => {
   it('lists tools and executes image_to_pdf_page', async () => {
@@ -26,7 +45,7 @@ describe('StdioManagedMcpServer integration (pdf_mcp)', () => {
 
     const config = new StdioMcpServerConfig({
       server_id: 'pdf-mcp',
-      command: 'uv',
+      command: resolveUvCommand(),
       args: ['run', 'python', '-m', 'pdf_mcp.server'],
       cwd: pdfMcpDir
     });

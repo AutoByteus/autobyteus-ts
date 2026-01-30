@@ -49,7 +49,7 @@ const makeAgentConfig = (name: string): AgentConfig => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
@@ -57,15 +57,15 @@ const makeAgentConfig = (name: string): AgentConfig => {
 };
 
 const makeContext = (): AgentTeamContext => {
-  const node = new TeamNodeConfig({ node_definition: makeAgentConfig('Coordinator') });
+  const node = new TeamNodeConfig({ nodeDefinition: makeAgentConfig('Coordinator') });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
-  state.input_event_queues = {} as any;
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
+  state.inputEventQueues = {} as any;
   return new AgentTeamContext('team-1', config, state);
 };
 
@@ -90,7 +90,7 @@ describe('AgentTeamBootstrapper', () => {
     expect(TeamManifestInjectionStep).toHaveBeenCalledTimes(1);
     expect(AgentConfigurationPreparationStep).toHaveBeenCalledTimes(1);
     expect(CoordinatorInitializationStep).toHaveBeenCalledTimes(1);
-    expect(bootstrapper.bootstrap_steps.length).toBe(5);
+    expect(bootstrapper.bootstrapSteps.length).toBe(5);
   });
 
   it('initializes with custom steps', () => {
@@ -98,8 +98,8 @@ describe('AgentTeamBootstrapper', () => {
     const step2 = new MockStep2();
     const bootstrapper = new AgentTeamBootstrapper([step1, step2]);
 
-    expect(bootstrapper.bootstrap_steps).toEqual([step1, step2]);
-    expect(bootstrapper.bootstrap_steps.length).toBe(2);
+    expect(bootstrapper.bootstrapSteps).toEqual([step1, step2]);
+    expect(bootstrapper.bootstrapSteps.length).toBe(2);
   });
 
   it('runs all steps successfully', async () => {
@@ -132,7 +132,7 @@ describe('AgentTeamBootstrapper', () => {
     const step1 = { execute: vi.fn(async () => true) } as any;
     const bootstrapper = new AgentTeamBootstrapper([step1]);
     const context = makeContext();
-    context.state.input_event_queues = null;
+    context.state.inputEventQueues = null;
 
     const success = await bootstrapper.run(context);
 

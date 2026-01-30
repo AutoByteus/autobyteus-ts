@@ -8,11 +8,9 @@ export enum ServerState {
   CLOSED = 'closed'
 }
 
-type ToolListResult = { tools: any[] } | any[];
-
 type ClientSessionLike = {
-  listTools: () => Promise<ToolListResult>;
-  callTool: (...args: any[]) => Promise<any>;
+  listTools: () => Promise<unknown>;
+  callTool: (...args: unknown[]) => Promise<unknown>;
   close?: () => Promise<void> | void;
 };
 
@@ -30,15 +28,15 @@ export abstract class BaseManagedMcpServer {
     this.config = config;
   }
 
-  get server_id(): string {
+  get serverId(): string {
     return this.config.server_id;
   }
 
-  get config_object(): BaseMcpConfig {
+  get configObject(): BaseMcpConfig {
     return this.config;
   }
 
-  get connection_state(): ServerState {
+  get connectionState(): ServerState {
     return this.state;
   }
 
@@ -94,32 +92,32 @@ export abstract class BaseManagedMcpServer {
     this.clientSession = null;
   }
 
-  async listRemoteTools(): Promise<any[]> {
+  async listRemoteTools(): Promise<unknown[]> {
     if (this.state !== ServerState.CONNECTED) {
       await this.connect();
     }
 
     if (!this.clientSession) {
-      throw new Error(`Cannot list tools: client session not available for server '${this.server_id}'.`);
+      throw new Error(`Cannot list tools: client session not available for server '${this.serverId}'.`);
     }
 
     const result = await this.clientSession.listTools();
     if (Array.isArray(result)) {
       return result;
     }
-    if (result && Array.isArray((result as { tools: any[] }).tools)) {
-      return (result as { tools: any[] }).tools;
+    if (result && Array.isArray((result as { tools: unknown[] }).tools)) {
+      return (result as { tools: unknown[] }).tools;
     }
     return [];
   }
 
-  async callTool(toolName: string, argumentsPayload: Record<string, any>): Promise<any> {
+  async callTool(toolName: string, argumentsPayload: Record<string, unknown>): Promise<unknown> {
     if (this.state !== ServerState.CONNECTED) {
       await this.connect();
     }
 
     if (!this.clientSession) {
-      throw new Error(`Cannot call tool: client session not available for server '${this.server_id}'.`);
+      throw new Error(`Cannot call tool: client session not available for server '${this.serverId}'.`);
     }
 
     const callTool = this.clientSession.callTool.bind(this.clientSession);

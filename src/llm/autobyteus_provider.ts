@@ -5,7 +5,8 @@ import { LLMProvider } from './providers.js';
 import { LLMRuntime } from './runtimes.js';
 import { AutobyteusLLM } from './api/autobyteus_llm.js';
 
-type ModelInfoPayload = Record<string, any>;
+type ModelInfoPayload = Record<string, unknown>;
+type ServerResponse = { models?: unknown };
 
 export class AutobyteusModelProvider {
   static readonly DEFAULT_SERVER_URL = 'https://localhost:8000';
@@ -59,7 +60,10 @@ export class AutobyteusModelProvider {
           continue;
         }
 
-        const models: ModelInfoPayload[] = response.models ?? [];
+        const responseRecord = response as ServerResponse;
+        const models = Array.isArray(responseRecord.models)
+          ? (responseRecord.models as ModelInfoPayload[])
+          : [];
         for (const modelInfo of models) {
           const validation = AutobyteusModelProvider.validateModelInfo(modelInfo);
           if (!validation.valid) {
@@ -67,22 +71,27 @@ export class AutobyteusModelProvider {
             continue;
           }
 
-          const llmConfig = AutobyteusModelProvider.parseLLMConfig(modelInfo.config);
+          const configData = modelInfo.config;
+          if (!configData || typeof configData !== 'object' || Array.isArray(configData)) {
+            console.warn('Config must be a dictionary');
+            continue;
+          }
+          const llmConfig = AutobyteusModelProvider.parseLLMConfig(configData as Record<string, unknown>);
           if (!llmConfig) {
             continue;
           }
 
           try {
-            const provider = AutobyteusModelProvider.parseProvider(modelInfo.provider);
+            const provider = AutobyteusModelProvider.parseProvider(String(modelInfo.provider));
             const llmModel = new LLMModel({
-              name: modelInfo.name,
-              value: modelInfo.value,
+              name: String(modelInfo.name),
+              value: String(modelInfo.value),
               provider,
-              llm_class: AutobyteusLLM,
-              canonical_name: modelInfo.canonical_name ?? modelInfo.name,
+              llmClass: AutobyteusLLM,
+              canonicalName: (modelInfo.canonical_name as string | undefined) ?? String(modelInfo.name),
               runtime: LLMRuntime.AUTOBYTEUS,
-              host_url: hostUrl,
-              default_config: llmConfig
+              hostUrl: hostUrl,
+              defaultConfig: llmConfig
             });
             allModels.push(llmModel);
           } catch (error: any) {
@@ -129,18 +138,18 @@ export class AutobyteusModelProvider {
     }
   }
 
-  private static validateServerResponse(response: any): boolean {
+  private static validateServerResponse(response: unknown): boolean {
     if (typeof response !== 'object' || response === null) {
       console.error('Invalid server response format');
       return false;
     }
 
-    if (!('models' in response)) {
+    if (!('models' in (response as ServerResponse))) {
       console.error("Missing 'models' field in response");
       return false;
     }
 
-    if (!Array.isArray(response.models)) {
+    if (!Array.isArray((response as ServerResponse).models)) {
       console.error("Models field must be a list");
       return false;
     }
@@ -171,18 +180,18 @@ export class AutobyteusModelProvider {
     return { valid: true, message: '' };
   }
 
-  private static parseLLMConfig(configData: Record<string, any>): LLMConfig | null {
+  private static parseLLMConfig(configData: Record<string, unknown>): LLMConfig | null {
     try {
-      const pricingData = configData?.pricing_config ?? {};
+      const pricingData = (configData as { pricing_config?: Record<string, unknown> }).pricing_config ?? {};
       if (!AutobyteusModelProvider.validatePricingConfig(pricingData)) {
         throw new Error('Invalid pricing configuration');
       }
 
       const llmConfig = LLMConfig.fromDict(configData);
 
-      if (!llmConfig.token_limit || llmConfig.token_limit < 1) {
+      if (!llmConfig.tokenLimit || llmConfig.tokenLimit < 1) {
         console.warn('Setting default token limit (8192)');
-        llmConfig.token_limit = 8192;
+        llmConfig.tokenLimit = 8192;
       }
 
       if (llmConfig.temperature < 0 || llmConfig.temperature > 2) {
@@ -191,13 +200,13 @@ export class AutobyteusModelProvider {
       }
 
       return llmConfig;
-    } catch (error: any) {
-      console.error(`Config parsing failed: ${error?.message ?? error}`);
+    } catch (error: unknown) {
+      console.error(`Config parsing failed: ${error instanceof Error ? error.message : String(error)}`);
       return null;
     }
   }
 
-  private static validatePricingConfig(pricingData: Record<string, any>): boolean {
+  private static validatePricingConfig(pricingData: Record<string, unknown>): boolean {
     const requiredKeys = ['input_token_pricing', 'output_token_pricing'];
 
     for (const key of requiredKeys) {
@@ -205,11 +214,12 @@ export class AutobyteusModelProvider {
         console.error(`Missing pricing key: ${key}`);
         return false;
       }
-      if (typeof pricingData[key] !== 'number') {
+      const value = pricingData[key];
+      if (typeof value !== 'number') {
         console.error(`Invalid pricing type for ${key}`);
         return false;
       }
-      if (pricingData[key] < 0) {
+      if (value < 0) {
         console.error(`Negative pricing for ${key}`);
         return false;
       }

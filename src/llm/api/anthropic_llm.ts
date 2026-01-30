@@ -26,7 +26,7 @@ export class AnthropicLLM extends BaseLLM {
     }
 
     this.client = new Anthropic({ apiKey });
-    this.maxTokens = llmConfig.max_tokens ?? 8192;
+    this.maxTokens = llmConfig.maxTokens ?? 8192;
   }
 
   private async formatAnthropicMessages(): Promise<Anthropic.MessageParam[]> {
@@ -83,7 +83,7 @@ export class AnthropicLLM extends BaseLLM {
     return formattedMessages;
   }
 
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): Promise<CompleteResponse> {
+  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
     this.addUserMessage(userMessage);
 
     const messages = await this.formatAnthropicMessages();
@@ -96,8 +96,8 @@ export class AnthropicLLM extends BaseLLM {
       ...kwargs
     };
 
-    if (this.config.extra_params) {
-       Object.assign(params, this.config.extra_params);
+    if (this.config.extraParams) {
+       Object.assign(params, this.config.extraParams);
        // Handle thinking/budget if ported
     }
 
@@ -128,7 +128,7 @@ export class AnthropicLLM extends BaseLLM {
     }
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, any>): AsyncGenerator<ChunkResponse, void, unknown> {
+  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
     this.addUserMessage(userMessage);
 
     const messages = await this.formatAnthropicMessages();

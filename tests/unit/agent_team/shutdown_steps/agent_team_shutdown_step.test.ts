@@ -26,26 +26,26 @@ const makeContext = (): AgentTeamContext => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const agent = new AgentConfig('Coordinator', 'Coordinator', 'desc', llm);
-  const node = new TeamNodeConfig({ node_definition: agent });
+  const node = new TeamNodeConfig({ nodeDefinition: agent });
   const config = new AgentTeamConfig({
     name: 'Team',
     description: 'desc',
     nodes: [node],
-    coordinator_node: node
+    coordinatorNode: node
   });
-  const state = new AgentTeamRuntimeState({ team_id: 'team-1' });
+  const state = new AgentTeamRuntimeState({ teamId: 'team-1' });
   return new AgentTeamContext('team-1', config, state);
 };
 
 describe('AgentTeamShutdownStep', () => {
   it('succeeds with no team manager', async () => {
     const context = makeContext();
-    context.state.team_manager = null;
+    context.state.teamManager = null;
     const step = new AgentTeamShutdownStep();
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 
@@ -58,25 +58,25 @@ describe('AgentTeamShutdownStep', () => {
 
   it('succeeds when there are no running agents', async () => {
     const context = makeContext();
-    const teamManager = { get_all_agents: vi.fn(() => []) };
-    context.state.team_manager = teamManager as any;
+    const teamManager = { getAllAgents: vi.fn(() => []) };
+    context.state.teamManager = teamManager as any;
     const step = new AgentTeamShutdownStep();
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => undefined);
 
     const success = await step.execute(context);
 
     expect(success).toBe(true);
-    expect(teamManager.get_all_agents).toHaveBeenCalledTimes(1);
+    expect(teamManager.getAllAgents).toHaveBeenCalledTimes(1);
     expect(infoSpy.mock.calls.some((call) => String(call[0]).includes('No running agents'))).toBe(true);
     infoSpy.mockRestore();
   });
 
   it('stops running agents', async () => {
     const context = makeContext();
-    const runningAgent = { agent_id: 'running', is_running: true, stop: vi.fn(async () => undefined) };
-    const stoppedAgent = { agent_id: 'stopped', is_running: false, stop: vi.fn(async () => undefined) };
-    const teamManager = { get_all_agents: vi.fn(() => [runningAgent, stoppedAgent]) };
-    context.state.team_manager = teamManager as any;
+    const runningAgent = { agentId: 'running', isRunning: true, stop: vi.fn(async () => undefined) };
+    const stoppedAgent = { agentId: 'stopped', isRunning: false, stop: vi.fn(async () => undefined) };
+    const teamManager = { getAllAgents: vi.fn(() => [runningAgent, stoppedAgent]) };
+    context.state.teamManager = teamManager as any;
     const step = new AgentTeamShutdownStep();
 
     const success = await step.execute(context);
@@ -88,16 +88,16 @@ describe('AgentTeamShutdownStep', () => {
 
   it('reports failure when an agent stop rejects', async () => {
     const context = makeContext();
-    const agentOk = { agent_id: 'agent_ok', is_running: true, stop: vi.fn(async () => undefined) };
+    const agentOk = { agentId: 'agent_ok', isRunning: true, stop: vi.fn(async () => undefined) };
     const agentFail = {
-      agent_id: 'agent_fail',
-      is_running: true,
+      agentId: 'agent_fail',
+      isRunning: true,
       stop: vi.fn(async () => {
         throw new Error('Stop failed');
       })
     };
-    const teamManager = { get_all_agents: vi.fn(() => [agentOk, agentFail]) };
-    context.state.team_manager = teamManager as any;
+    const teamManager = { getAllAgents: vi.fn(() => [agentOk, agentFail]) };
+    context.state.teamManager = teamManager as any;
     const step = new AgentTeamShutdownStep();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 

@@ -6,8 +6,8 @@ import type { DetectionStrategy } from './base.js';
 export class JsonToolStrategy implements DetectionStrategy {
   name = 'json_tool';
 
-  next_marker(context: ParserContext, startPos: number): number {
-    if (!context.parse_tool_calls) {
+  nextMarker(context: ParserContext, startPos: number): number {
+    if (!context.parseToolCalls) {
       return -1;
     }
     const nextCurly = context.find('{', startPos);
@@ -16,7 +16,7 @@ export class JsonToolStrategy implements DetectionStrategy {
     return candidates.length ? Math.min(...candidates) : -1;
   }
 
-  create_state(context: ParserContext): BaseState {
+  createState(context: ParserContext): BaseState {
     return new JsonInitializationState(context);
   }
 }

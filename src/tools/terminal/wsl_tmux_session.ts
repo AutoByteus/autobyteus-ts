@@ -1,9 +1,9 @@
 import type { IPty } from 'node-pty';
 import {
-  ensure_wsl_available,
-  ensure_wsl_distro_available,
-  select_wsl_distro,
-  windows_path_to_wsl
+  ensureWslAvailable,
+  ensureWslDistroAvailable,
+  selectWslDistro,
+  windowsPathToWsl
 } from './wsl_utils.js';
 
 const DEFAULT_COLS = 80;
@@ -20,7 +20,7 @@ function escapeSingleQuotes(value: string): string {
 
 let isWindowsImpl = () => process.platform === 'win32';
 
-export function _set_is_windows_for_tests(fn: () => boolean): void {
+export function setIsWindowsForTests(fn: () => boolean): void {
   isWindowsImpl = fn;
 }
 
@@ -30,7 +30,7 @@ type PendingRead = {
 };
 
 export class WslTmuxSession {
-  private sessionId: string;
+  private sessionIdValue: string;
   private pty?: IPty;
   private closed = false;
   private alive = false;
@@ -39,15 +39,15 @@ export class WslTmuxSession {
   private wslExe?: string;
   private distro?: string;
 
-  constructor(session_id: string) {
-    this.sessionId = session_id;
+  constructor(sessionId: string) {
+    this.sessionIdValue = sessionId;
   }
 
-  get session_id(): string {
-    return this.sessionId;
+  get sessionId(): string {
+    return this.sessionIdValue;
   }
 
-  get is_alive(): boolean {
+  get isAlive(): boolean {
     return this.alive && !this.closed;
   }
 
@@ -59,11 +59,11 @@ export class WslTmuxSession {
       throw new Error('Session already started');
     }
 
-    this.wslExe = ensure_wsl_available();
-    ensure_wsl_distro_available(this.wslExe);
-    this.distro = select_wsl_distro(this.wslExe);
+    this.wslExe = ensureWslAvailable();
+    ensureWslDistroAvailable(this.wslExe);
+    this.distro = selectWslDistro(this.wslExe);
 
-    const wslCwd = windows_path_to_wsl(cwd, this.wslExe);
+    const wslCwd = windowsPathToWsl(cwd, this.wslExe);
     const { spawn } = await import('node-pty');
 
     this.pty = spawn(this.wslExe, ['-d', this.distro, '--exec', 'bash', '--noprofile', '--norc', '-i'], {

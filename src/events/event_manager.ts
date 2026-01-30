@@ -1,24 +1,24 @@
 import { Singleton } from '../utils/singleton.js';
 import { EventType } from './event_types.js';
 
-export type Listener = (payload?: any, metadata?: Record<string, any>) => void | Promise<void>;
+export type Listener = (payload?: unknown, metadata?: Record<string, unknown>) => void | Promise<void>;
 
 export class Topic {
-  event_type: EventType;
-  sender_id: string | null;
+  eventType: EventType;
+  senderId: string | null;
 
-  constructor(event_type: EventType, sender_id: string | null = null) {
-    this.event_type = event_type;
-    this.sender_id = sender_id;
+  constructor(eventType: EventType, senderId: string | null = null) {
+    this.eventType = eventType;
+    this.senderId = senderId;
   }
 }
 
 export class Subscription {
-  subscriber_id: string;
+  subscriberId: string;
   listener: Listener;
 
-  constructor(subscriber_id: string, listener: Listener) {
-    this.subscriber_id = subscriber_id;
+  constructor(subscriberId: string, listener: Listener) {
+    this.subscriberId = subscriberId;
     this.listener = listener;
   }
 }
@@ -27,9 +27,9 @@ class SubscriberList {
   private subscriptions: Map<string, Set<Listener>> = new Map();
 
   add(subscription: Subscription): void {
-    const existing = this.subscriptions.get(subscription.subscriber_id);
+    const existing = this.subscriptions.get(subscription.subscriberId);
     if (!existing) {
-      this.subscriptions.set(subscription.subscriber_id, new Set([subscription.listener]));
+      this.subscriptions.set(subscription.subscriberId, new Set([subscription.listener]));
       return;
     }
 
@@ -38,18 +38,18 @@ class SubscriberList {
     }
   }
 
-  removeSubscriber(subscriber_id: string): void {
-    this.subscriptions.delete(subscriber_id);
+  removeSubscriber(subscriberId: string): void {
+    this.subscriptions.delete(subscriberId);
   }
 
-  removeSpecific(subscriber_id: string, listener: Listener): void {
-    const existing = this.subscriptions.get(subscriber_id);
+  removeSpecific(subscriberId: string, listener: Listener): void {
+    const existing = this.subscriptions.get(subscriberId);
     if (!existing) {
       return;
     }
     existing.delete(listener);
     if (existing.size === 0) {
-      this.subscriptions.delete(subscriber_id);
+      this.subscriptions.delete(subscriberId);
     }
   }
 
@@ -69,8 +69,8 @@ class SubscriberList {
 }
 
 function topicKey(topic: Topic): string {
-  const senderKey = topic.sender_id ?? '*';
-  return `${topic.event_type}::${senderKey}`;
+  const senderKey = topic.senderId ?? '*';
+  return `${topic.eventType}::${senderKey}`;
 }
 
 export class EventManager extends Singleton {
@@ -89,25 +89,29 @@ export class EventManager extends Singleton {
     if (!list) {
       return;
     }
-    list.removeSpecific(subscription.subscriber_id, subscription.listener);
+    list.removeSpecific(subscription.subscriberId, subscription.listener);
     if (list.isEmpty()) {
       this.topics.delete(key);
     }
   }
 
-  unsubscribe_all_for_subscriber(subscriber_id: string): void {
+  unsubscribeAllForSubscriber(subscriberId: string): void {
     for (const [key, list] of this.topics.entries()) {
-      list.removeSubscriber(subscriber_id);
+      list.removeSubscriber(subscriberId);
       if (list.isEmpty()) {
         this.topics.delete(key);
       }
     }
   }
 
-  emit(event_type: EventType, origin_object_id: string | null = null, kwargs: Record<string, any> = {}): void {
-    const available_kwargs: Record<string, any> = { event_type, object_id: origin_object_id, ...kwargs };
-    const targetedKey = topicKey(new Topic(event_type, origin_object_id));
-    const globalKey = topicKey(new Topic(event_type, null));
+  emit(eventType: EventType, originObjectId: string | null = null, kwargs: Record<string, unknown> = {}): void {
+    const availableKwargs: Record<string, unknown> = {
+      event_type: eventType,
+      object_id: originObjectId,
+      ...kwargs
+    };
+    const targetedKey = topicKey(new Topic(eventType, originObjectId));
+    const globalKey = topicKey(new Topic(eventType, null));
 
     const listeners: Listener[] = [];
     const targetedList = this.topics.get(targetedKey);
@@ -119,14 +123,14 @@ export class EventManager extends Singleton {
       listeners.push(...globalList.getAllListeners());
     }
 
-    const payload = Object.prototype.hasOwnProperty.call(available_kwargs, 'payload')
-      ? available_kwargs.payload
+    const payload = Object.prototype.hasOwnProperty.call(availableKwargs, 'payload')
+      ? (availableKwargs as { payload?: unknown }).payload
       : undefined;
-    const primaryArg = payload === undefined ? available_kwargs : payload;
+    const primaryArg = payload === undefined ? availableKwargs : payload;
 
     for (const listener of listeners) {
       try {
-        const result = listener(primaryArg, available_kwargs);
+        const result = listener(primaryArg, availableKwargs);
         if (result && typeof (result as Promise<void>).catch === 'function') {
           (result as Promise<void>).catch(() => undefined);
         }

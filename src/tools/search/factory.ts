@@ -6,15 +6,16 @@ import { SerpApiSearchStrategy } from './serpapi_strategy.js';
 import { GoogleCSESearchStrategy } from './google_cse_strategy.js';
 
 export class SearchClientFactory extends Singleton {
+  protected static instance?: SearchClientFactory;
+
   private client: SearchClient | null = null;
 
   constructor() {
     super();
-    const existing = (SearchClientFactory as any).instance as SearchClientFactory | undefined;
-    if (existing) {
-      return existing;
+    if (SearchClientFactory.instance) {
+      return SearchClientFactory.instance;
     }
-    (SearchClientFactory as any).instance = this;
+    SearchClientFactory.instance = this;
   }
 
   createSearchClient(): SearchClient {

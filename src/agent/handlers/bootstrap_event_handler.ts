@@ -45,23 +45,23 @@ export class BootstrapEventHandler extends AgentEventHandler {
   }
 
   private async handleBootstrapStarted(context: AgentContext): Promise<void> {
-    const steps = [...this.bootstrapper.bootstrap_steps];
-    context.state.custom_data[BOOTSTRAP_STEPS_KEY] = steps;
+    const steps = [...this.bootstrapper.bootstrapSteps];
+    context.state.customData[BOOTSTRAP_STEPS_KEY] = steps;
 
     if (steps.length === 0) {
       console.info(
-        `Agent '${context.agent_id}': No bootstrap steps configured. Marking bootstrap complete.`
+        `Agent '${context.agentId}': No bootstrap steps configured. Marking bootstrap complete.`
       );
-      await context.input_event_queues.enqueue_internal_system_event(
+      await context.inputEventQueues.enqueueInternalSystemEvent(
         new BootstrapCompletedEvent(true)
       );
       return;
     }
 
     console.info(
-      `Agent '${context.agent_id}': Bootstrap started with ${steps.length} steps.`
+      `Agent '${context.agentId}': Bootstrap started with ${steps.length} steps.`
     );
-    await context.input_event_queues.enqueue_internal_system_event(
+    await context.inputEventQueues.enqueueInternalSystemEvent(
       new BootstrapStepRequestedEvent(0)
     );
   }
@@ -70,23 +70,23 @@ export class BootstrapEventHandler extends AgentEventHandler {
     event: BootstrapStepRequestedEvent,
     context: AgentContext
   ): Promise<void> {
-    const steps = context.state.custom_data[BOOTSTRAP_STEPS_KEY] as BaseBootstrapStep[] | undefined;
+    const steps = context.state.customData[BOOTSTRAP_STEPS_KEY] as BaseBootstrapStep[] | undefined;
     if (!steps || steps.length === 0) {
       const errorMessage = 'Bootstrap steps list missing from context during step request.';
-      console.error(`Agent '${context.agent_id}': ${errorMessage}`);
+      console.error(`Agent '${context.agentId}': ${errorMessage}`);
       await this.notifyBootstrapError(context, errorMessage);
-      await context.input_event_queues.enqueue_internal_system_event(
+      await context.inputEventQueues.enqueueInternalSystemEvent(
         new BootstrapCompletedEvent(false, errorMessage)
       );
       return;
     }
 
-    const stepIndex = event.step_index;
+    const stepIndex = event.stepIndex;
     if (stepIndex < 0 || stepIndex >= steps.length) {
       const errorMessage = `Invalid bootstrap step index ${stepIndex}.`;
-      console.error(`Agent '${context.agent_id}': ${errorMessage}`);
+      console.error(`Agent '${context.agentId}': ${errorMessage}`);
       await this.notifyBootstrapError(context, errorMessage);
-      await context.input_event_queues.enqueue_internal_system_event(
+      await context.inputEventQueues.enqueueInternalSystemEvent(
         new BootstrapCompletedEvent(false, errorMessage)
       );
       return;
@@ -95,7 +95,7 @@ export class BootstrapEventHandler extends AgentEventHandler {
     const step = steps[stepIndex];
     const stepName = step.constructor.name;
     console.debug(
-      `Agent '${context.agent_id}': Executing bootstrap step ${stepIndex + 1}/${steps.length}: ${stepName}`
+      `Agent '${context.agentId}': Executing bootstrap step ${stepIndex + 1}/${steps.length}: ${stepName}`
     );
 
     let success = false;
@@ -103,7 +103,7 @@ export class BootstrapEventHandler extends AgentEventHandler {
       success = await step.execute(context);
     } catch (error) {
       const errorMessage = `Exception during bootstrap step '${stepName}': ${error}`;
-      console.error(`Agent '${context.agent_id}': ${errorMessage}`);
+      console.error(`Agent '${context.agentId}': ${errorMessage}`);
       success = false;
     }
 
@@ -112,7 +112,7 @@ export class BootstrapEventHandler extends AgentEventHandler {
       await this.notifyBootstrapError(context, errorMessage);
     }
 
-    await context.input_event_queues.enqueue_internal_system_event(
+    await context.inputEventQueues.enqueueInternalSystemEvent(
       new BootstrapStepCompletedEvent(
         stepIndex,
         stepName,
@@ -127,32 +127,32 @@ export class BootstrapEventHandler extends AgentEventHandler {
     context: AgentContext
   ): Promise<void> {
     if (!event.success) {
-      await context.input_event_queues.enqueue_internal_system_event(
-        new BootstrapCompletedEvent(false, event.error_message)
+      await context.inputEventQueues.enqueueInternalSystemEvent(
+        new BootstrapCompletedEvent(false, event.errorMessage)
       );
       return;
     }
 
-    const steps = context.state.custom_data[BOOTSTRAP_STEPS_KEY] as BaseBootstrapStep[] | undefined;
+    const steps = context.state.customData[BOOTSTRAP_STEPS_KEY] as BaseBootstrapStep[] | undefined;
     if (!steps || steps.length === 0) {
       const errorMessage = 'Bootstrap steps list missing during step completion.';
-      console.error(`Agent '${context.agent_id}': ${errorMessage}`);
+      console.error(`Agent '${context.agentId}': ${errorMessage}`);
       await this.notifyBootstrapError(context, errorMessage);
-      await context.input_event_queues.enqueue_internal_system_event(
+      await context.inputEventQueues.enqueueInternalSystemEvent(
         new BootstrapCompletedEvent(false, errorMessage)
       );
       return;
     }
 
-    const nextIndex = event.step_index + 1;
+    const nextIndex = event.stepIndex + 1;
     if (nextIndex < steps.length) {
-      await context.input_event_queues.enqueue_internal_system_event(
+      await context.inputEventQueues.enqueueInternalSystemEvent(
         new BootstrapStepRequestedEvent(nextIndex)
       );
       return;
     }
 
-    await context.input_event_queues.enqueue_internal_system_event(
+    await context.inputEventQueues.enqueueInternalSystemEvent(
       new BootstrapCompletedEvent(true)
     );
   }
@@ -163,20 +163,20 @@ export class BootstrapEventHandler extends AgentEventHandler {
   ): Promise<void> {
     if (!event.success) {
       console.error(
-        `Agent '${context.agent_id}': Bootstrap completed with failure. Error: ${event.error_message}`
+        `Agent '${context.agentId}': Bootstrap completed with failure. Error: ${event.errorMessage}`
       );
-      await this.notifyBootstrapError(context, event.error_message ?? 'Bootstrap failed.');
+      await this.notifyBootstrapError(context, event.errorMessage ?? 'Bootstrap failed.');
       return;
     }
 
     console.info(
-      `Agent '${context.agent_id}': Bootstrap completed successfully. Emitting AgentReadyEvent.`
+      `Agent '${context.agentId}': Bootstrap completed successfully. Emitting AgentReadyEvent.`
     );
-    await context.input_event_queues.enqueue_internal_system_event(new AgentReadyEvent());
+    await context.inputEventQueues.enqueueInternalSystemEvent(new AgentReadyEvent());
   }
 
   private async notifyBootstrapError(context: AgentContext, errorMessage: string): Promise<void> {
-    await context.input_event_queues.enqueue_internal_system_event(
+    await context.inputEventQueues.enqueueInternalSystemEvent(
       new AgentErrorEvent(errorMessage, errorMessage)
     );
   }

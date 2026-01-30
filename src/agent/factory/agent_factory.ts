@@ -44,21 +44,22 @@ import { registerTools } from '../../tools/register_tools.js';
 import { initializeLogging } from '../../utils/logger.js';
 
 export class AgentFactory extends Singleton {
-  private _active_agents: Map<string, Agent> = new Map();
+  protected static instance?: AgentFactory;
+
+  private activeAgents: Map<string, Agent> = new Map();
 
   constructor() {
     super();
-    const existing = (AgentFactory as any).instance as AgentFactory | undefined;
-    if (existing) {
-      return existing;
+    if (AgentFactory.instance) {
+      return AgentFactory.instance;
     }
-    (AgentFactory as any).instance = this;
+    AgentFactory.instance = this;
     initializeLogging();
     registerTools();
     console.info('AgentFactory (Singleton) initialized.');
   }
 
-  private _get_default_event_handler_registry(): EventHandlerRegistry {
+  private getDefaultEventHandlerRegistry(): EventHandlerRegistry {
     const registry = new EventHandlerRegistry();
     registry.register(UserMessageReceivedEvent, new UserInputMessageEventHandler());
     registry.register(InterAgentMessageReceivedEvent, new InterAgentMessageReceivedEventHandler());
@@ -85,10 +86,10 @@ export class AgentFactory extends Singleton {
     return registry;
   }
 
-  private _prepare_tool_instances(agent_id: string, config: AgentConfig): Record<string, BaseTool> {
+  private prepareToolInstances(agentId: string, config: AgentConfig): Record<string, BaseTool> {
     const toolInstances: Record<string, BaseTool> = {};
     if (!config.tools || config.tools.length === 0) {
-      console.info(`Agent '${agent_id}': No tools provided in config.`);
+      console.info(`Agent '${agentId}': No tools provided in config.`);
       return toolInstances;
     }
 
@@ -101,7 +102,7 @@ export class AgentFactory extends Singleton {
 
       if (toolInstances[instanceName]) {
         console.warn(
-          `Agent '${agent_id}': Duplicate tool name '${instanceName}' encountered. The last one will be used.`
+          `Agent '${agentId}': Duplicate tool name '${instanceName}' encountered. The last one will be used.`
         );
       }
 
@@ -111,7 +112,7 @@ export class AgentFactory extends Singleton {
     return toolInstances;
   }
 
-  private _prepare_skills(agent_id: string, config: AgentConfig): void {
+  private prepareSkills(agentId: string, config: AgentConfig): void {
     const registry = new SkillRegistry();
     const updatedSkills: string[] = [];
 
@@ -123,7 +124,7 @@ export class AgentFactory extends Singleton {
           updatedSkills.push(skill.name);
         } catch (error) {
           console.error(
-            `Agent '${agent_id}': Failed to register skill from path '${skillItem}': ${String(error)}`
+            `Agent '${agentId}': Failed to register skill from path '${skillItem}': ${String(error)}`
           );
         }
       } else {
@@ -134,62 +135,66 @@ export class AgentFactory extends Singleton {
     config.skills = updatedSkills;
   }
 
-  private _create_runtime(agent_id: string, config: AgentConfig): AgentRuntime {
-    this._prepare_skills(agent_id, config);
+  private createRuntime(agentId: string, config: AgentConfig): AgentRuntime {
+    this.prepareSkills(agentId, config);
 
     const runtimeState = new AgentRuntimeState(
-      agent_id,
+      agentId,
       config.workspace ?? null,
       null,
-      config.initial_custom_data ?? null
+      config.initialCustomData ?? null
     );
 
-    runtimeState.llm_instance = config.llm_instance;
-    runtimeState.tool_instances = this._prepare_tool_instances(agent_id, config);
+    runtimeState.llmInstance = config.llmInstance;
+    runtimeState.toolInstances = this.prepareToolInstances(agentId, config);
 
     console.info(
-      `Agent '${agent_id}': LLM instance '${config.llm_instance.constructor.name}' and ${Object.keys(runtimeState.tool_instances).length} tools prepared and stored in state.`
+      `Agent '${agentId}': LLM instance '${config.llmInstance.constructor.name}' and ${Object.keys(runtimeState.toolInstances).length} tools prepared and stored in state.`
     );
 
-    const context = new AgentContext(agent_id, config, runtimeState);
-    const eventHandlerRegistry = this._get_default_event_handler_registry();
+    const context = new AgentContext(agentId, config, runtimeState);
+    const eventHandlerRegistry = this.getDefaultEventHandlerRegistry();
 
-    console.info(`Instantiating AgentRuntime for agent_id: '${agent_id}' with config: '${config.name}'.`);
+    console.info(`Instantiating AgentRuntime for agent_id: '${agentId}' with config: '${config.name}'.`);
     return new AgentRuntime(context, eventHandlerRegistry);
   }
 
-  create_agent(config: AgentConfig): Agent {
-    let agent_id = `${config.name}_${config.role}_${Math.floor(Math.random() * 9000) + 1000}`;
-    while (this._active_agents.has(agent_id)) {
-      agent_id = `${config.name}_${config.role}_${Math.floor(Math.random() * 9000) + 1000}`;
+  createAgent(config: AgentConfig): Agent {
+    if (!(config instanceof AgentConfig)) {
+      throw new TypeError(`Expected AgentConfig instance, got ${String(config)}`);
     }
 
-    const runtime = this._create_runtime(agent_id, config);
+    let agentId = `${config.name}_${config.role}_${Math.floor(Math.random() * 9000) + 1000}`;
+    while (this.activeAgents.has(agentId)) {
+      agentId = `${config.name}_${config.role}_${Math.floor(Math.random() * 9000) + 1000}`;
+    }
+
+    const runtime = this.createRuntime(agentId, config);
     const agent = new Agent(runtime);
-    this._active_agents.set(agent_id, agent);
-    console.info(`Agent '${agent_id}' created and stored successfully.`);
+    this.activeAgents.set(agentId, agent);
+    console.info(`Agent '${agentId}' created and stored successfully.`);
     return agent;
   }
 
-  get_agent(agent_id: string): Agent | undefined {
-    return this._active_agents.get(agent_id);
+  getAgent(agentId: string): Agent | undefined {
+    return this.activeAgents.get(agentId);
   }
 
-  async remove_agent(agent_id: string, shutdown_timeout: number = 10.0): Promise<boolean> {
-    const agent = this._active_agents.get(agent_id);
+  async removeAgent(agentId: string, shutdownTimeout: number = 10.0): Promise<boolean> {
+    const agent = this.activeAgents.get(agentId);
     if (!agent) {
-      console.warn(`Agent with ID '${agent_id}' not found for removal.`);
+      console.warn(`Agent with ID '${agentId}' not found for removal.`);
       return false;
     }
 
-    this._active_agents.delete(agent_id);
-    console.info(`Removing agent '${agent_id}'. Attempting graceful shutdown.`);
-    await agent.stop(shutdown_timeout);
+    this.activeAgents.delete(agentId);
+    console.info(`Removing agent '${agentId}'. Attempting graceful shutdown.`);
+    await agent.stop(shutdownTimeout);
     return true;
   }
 
-  list_active_agent_ids(): string[] {
-    return Array.from(this._active_agents.keys());
+  listActiveAgentIds(): string[] {
+    return Array.from(this.activeAgents.keys());
   }
 }
 

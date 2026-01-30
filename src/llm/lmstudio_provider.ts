@@ -63,12 +63,12 @@ export class LMStudioModelProvider {
             name: modelId,
             value: modelId,
             provider: LLMProvider.LMSTUDIO,
-            llm_class: LMStudioLLM,
-            canonical_name: modelId,
+            llmClass: LMStudioLLM,
+            canonicalName: modelId,
             runtime: LLMRuntime.LMSTUDIO,
-            host_url: hostUrl,
-            default_config: new LLMConfig({
-              pricing_config: new TokenPricingConfig({ input_token_pricing: 0.0, output_token_pricing: 0.0 })
+            hostUrl: hostUrl,
+            defaultConfig: new LLMConfig({
+              pricingConfig: new TokenPricingConfig({ inputTokenPricing: 0.0, outputTokenPricing: 0.0 })
             })
           });
           allModels.push(llmModel);

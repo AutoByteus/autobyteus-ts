@@ -22,7 +22,7 @@ runIntegration('OpenAILLM Integration', () => {
     new LLMModel({
       name: 'gpt-5.2',
       value: 'gpt-5.2',
-      canonical_name: 'gpt-5.2',
+      canonicalName: 'gpt-5.2',
       provider: LLMProvider.OPENAI
     });
 

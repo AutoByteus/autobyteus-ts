@@ -5,7 +5,7 @@ import type { LLMCompleteResponseReceivedEvent } from '../../../../src/agent/eve
 import type { CompleteResponse } from '../../../../src/llm/utils/response_types.js';
 
 class MyTestProcessor extends BaseLLMResponseProcessor {
-  async process_response(
+  async processResponse(
     response: CompleteResponse,
     _context: AgentContext,
     _event: LLMCompleteResponseReceivedEvent
@@ -15,11 +15,11 @@ class MyTestProcessor extends BaseLLMResponseProcessor {
 }
 
 class MyRenamedProcessor extends BaseLLMResponseProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'CustomProcessorName';
   }
 
-  async process_response(
+  async processResponse(
     _response: CompleteResponse,
     _context: AgentContext,
     _event: LLMCompleteResponseReceivedEvent
@@ -31,12 +31,12 @@ class MyRenamedProcessor extends BaseLLMResponseProcessor {
 describe('BaseLLMResponseProcessor', () => {
   it('returns default name based on class name', () => {
     const processor = new MyTestProcessor();
-    expect(processor.get_name()).toBe('MyTestProcessor');
+    expect(processor.getName()).toBe('MyTestProcessor');
   });
 
   it('returns overridden name', () => {
     const processor = new MyRenamedProcessor();
-    expect(processor.get_name()).toBe('CustomProcessorName');
+    expect(processor.getName()).toBe('CustomProcessorName');
   });
 
   it('throws when instantiated directly', () => {
@@ -45,10 +45,10 @@ describe('BaseLLMResponseProcessor', () => {
     );
   });
 
-  it('throws when subclass does not implement process_response', () => {
+  it('throws when subclass does not implement processResponse', () => {
     class IncompleteProcessor extends BaseLLMResponseProcessor {}
 
-    expect(() => new IncompleteProcessor()).toThrow(/implement the 'process_response' method/);
+    expect(() => new IncompleteProcessor()).toThrow(/implement the 'processResponse' method/);
   });
 
   it('renders a readable string representation', () => {

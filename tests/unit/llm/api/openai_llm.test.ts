@@ -18,7 +18,7 @@ describe('OpenAILLM', () => {
     const model = new LLMModel({
       name: 'gpt-4o',
       value: 'gpt-4o',
-      canonical_name: 'gpt-4o',
+      canonicalName: 'gpt-4o',
       provider: LLMProvider.OPENAI
     });
 

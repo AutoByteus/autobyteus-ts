@@ -5,6 +5,9 @@ import { ImageModel } from './image_model.js';
 import { AutobyteusImageClient } from './api/autobyteus_image_client.js';
 import { ImageClientFactory } from './image_client_factory.js';
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
 function parseHosts(): string[] {
   const hosts = process.env.AUTOBYTEUS_LLM_SERVER_HOSTS;
   if (hosts) {
@@ -54,7 +57,7 @@ export class AutobyteusImageModelProvider {
       const client = new AutobyteusClient(hostUrl);
       try {
         const response = await client.getAvailableImageModelsSync();
-        const models = response?.models ?? [];
+        const models = isRecord(response) ? response.models : null;
 
         if (!Array.isArray(models) || models.length === 0) {
           console.info(`No image models found on host ${hostUrl}.`);
@@ -63,32 +66,41 @@ export class AutobyteusImageModelProvider {
 
         let hostRegistered = 0;
         for (const modelInfo of models) {
-          if (!modelInfo || !modelInfo.name || !modelInfo.value || !modelInfo.provider) {
+          if (!isRecord(modelInfo)) {
+            console.warn(`Skipping malformed image model from ${hostUrl}: ${JSON.stringify(modelInfo)}`);
+            continue;
+          }
+
+          const name = typeof modelInfo.name === 'string' ? modelInfo.name : null;
+          const value = typeof modelInfo.value === 'string' ? modelInfo.value : null;
+          const providerValue = typeof modelInfo.provider === 'string' ? modelInfo.provider : null;
+
+          if (!name || !value || !providerValue) {
             console.warn(`Skipping malformed image model from ${hostUrl}: ${JSON.stringify(modelInfo)}`);
             continue;
           }
 
           if (!('parameter_schema' in modelInfo)) {
             console.debug(
-              `Skipping model from ${hostUrl} as it lacks a parameter schema: ${modelInfo.name}`
+              `Skipping model from ${hostUrl} as it lacks a parameter schema: ${name}`
             );
             continue;
           }
 
-          const provider = resolveProvider(modelInfo.provider);
+          const provider = resolveProvider(providerValue);
           if (!provider) {
-            console.error(`Cannot register image model '${modelInfo.name}' with unknown provider '${modelInfo.provider}'.`);
+            console.error(`Cannot register image model '${name}' with unknown provider '${providerValue}'.`);
             continue;
           }
 
           const imageModel = new ImageModel({
-            name: modelInfo.name,
-            value: modelInfo.value,
+            name,
+            value,
             provider,
             clientClass: AutobyteusImageClient,
             runtime: MultimediaRuntime.AUTOBYTEUS,
             hostUrl: hostUrl,
-            parameterSchema: modelInfo.parameter_schema
+            parameterSchema: modelInfo.parameter_schema as Record<string, unknown>
           });
 
           ImageClientFactory.registerModel(imageModel);

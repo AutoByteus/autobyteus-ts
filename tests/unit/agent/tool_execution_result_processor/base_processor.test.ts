@@ -10,7 +10,7 @@ class MyTestProcessor extends BaseToolExecutionResultProcessor {
 }
 
 class MyRenamedProcessor extends BaseToolExecutionResultProcessor {
-  static get_name(): string {
+  static getName(): string {
     return 'CustomProcessorName';
   }
 
@@ -22,12 +22,12 @@ class MyRenamedProcessor extends BaseToolExecutionResultProcessor {
 describe('BaseToolExecutionResultProcessor', () => {
   it('returns default name based on class name', () => {
     const processor = new MyTestProcessor();
-    expect(processor.get_name()).toBe('MyTestProcessor');
+    expect(processor.getName()).toBe('MyTestProcessor');
   });
 
   it('returns overridden name', () => {
     const processor = new MyRenamedProcessor();
-    expect(processor.get_name()).toBe('CustomProcessorName');
+    expect(processor.getName()).toBe('CustomProcessorName');
   });
 
   it('throws when instantiated directly', () => {

@@ -5,7 +5,7 @@ import { AgentConfig } from '../src/agent/context/agent_config.js';
 import { AgentFactory } from '../src/agent/factory/agent_factory.js';
 import { BaseAgentWorkspace } from '../src/agent/workspace/base_workspace.js';
 import { WorkspaceConfig } from '../src/agent/workspace/workspace_config.js';
-import { run_agent_cli } from '../src/cli/index.js';
+import { runAgentCli } from '../src/cli/index.js';
 import { registerWriteFileTool } from '../src/tools/file/write_file.js';
 import { loadEnv } from './shared/example_paths.js';
 import { createLlmOrThrow, printAvailableModels } from './shared/llm_helpers.js';
@@ -17,10 +17,6 @@ class SimpleWorkspace extends BaseAgentWorkspace {
   constructor(rootPath: string) {
     super(new WorkspaceConfig({ root_path: rootPath }));
     this.rootPath = rootPath;
-  }
-
-  get_base_path(): string {
-    return this.rootPath;
   }
 
   getBasePath(): string {
@@ -84,14 +80,14 @@ async function main(): Promise<void> {
     workspace
   );
 
-  const agent = new AgentFactory().create_agent(agentConfig);
+  const agent = new AgentFactory().createAgent(agentConfig);
 
   const initialPrompt = values.topic
     ? `Write a poem about "${values.topic}" and save it to "${poemFilename}".`
     : undefined;
 
   try {
-    await run_agent_cli(agent, {
+    await runAgentCli(agent, {
       showToolLogs: !values['no-tool-logs'],
       showTokenUsage: values['show-token-usage'],
       initialPrompt

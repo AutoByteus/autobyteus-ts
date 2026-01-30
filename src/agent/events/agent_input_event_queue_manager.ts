@@ -42,12 +42,12 @@ class AsyncQueue<T> {
 }
 
 export class AgentInputEventQueueManager {
-  user_message_input_queue: AsyncQueue<UserMessageReceivedEvent>;
-  inter_agent_message_input_queue: AsyncQueue<InterAgentMessageReceivedEvent>;
-  tool_invocation_request_queue: AsyncQueue<PendingToolInvocationEvent>;
-  tool_result_input_queue: AsyncQueue<ToolResultEvent>;
-  tool_execution_approval_queue: AsyncQueue<ToolExecutionApprovalEvent>;
-  internal_system_event_queue: AsyncQueue<BaseEvent>;
+  userMessageInputQueue: AsyncQueue<UserMessageReceivedEvent>;
+  interAgentMessageInputQueue: AsyncQueue<InterAgentMessageReceivedEvent>;
+  toolInvocationRequestQueue: AsyncQueue<PendingToolInvocationEvent>;
+  toolResultInputQueue: AsyncQueue<ToolResultEvent>;
+  toolExecutionApprovalQueue: AsyncQueue<ToolExecutionApprovalEvent>;
+  internalSystemEventQueue: AsyncQueue<BaseEvent>;
 
   private inputQueues: Array<[string, AsyncQueue<BaseEvent>]>;
   private readyBuffers: Map<string, BaseEvent[]>;
@@ -55,30 +55,30 @@ export class AgentInputEventQueueManager {
   private availabilityWaiters: Array<() => void> = [];
 
   constructor() {
-    this.user_message_input_queue = new AsyncQueue();
-    this.inter_agent_message_input_queue = new AsyncQueue();
-    this.tool_invocation_request_queue = new AsyncQueue();
-    this.tool_result_input_queue = new AsyncQueue();
-    this.tool_execution_approval_queue = new AsyncQueue();
-    this.internal_system_event_queue = new AsyncQueue();
+    this.userMessageInputQueue = new AsyncQueue();
+    this.interAgentMessageInputQueue = new AsyncQueue();
+    this.toolInvocationRequestQueue = new AsyncQueue();
+    this.toolResultInputQueue = new AsyncQueue();
+    this.toolExecutionApprovalQueue = new AsyncQueue();
+    this.internalSystemEventQueue = new AsyncQueue();
 
     this.inputQueues = [
-      ['user_message_input_queue', this.user_message_input_queue as unknown as AsyncQueue<BaseEvent>],
-      ['inter_agent_message_input_queue', this.inter_agent_message_input_queue as unknown as AsyncQueue<BaseEvent>],
-      ['tool_invocation_request_queue', this.tool_invocation_request_queue as unknown as AsyncQueue<BaseEvent>],
-      ['tool_result_input_queue', this.tool_result_input_queue as unknown as AsyncQueue<BaseEvent>],
-      ['tool_execution_approval_queue', this.tool_execution_approval_queue as unknown as AsyncQueue<BaseEvent>],
-      ['internal_system_event_queue', this.internal_system_event_queue]
+      ['userMessageInputQueue', this.userMessageInputQueue as unknown as AsyncQueue<BaseEvent>],
+      ['interAgentMessageInputQueue', this.interAgentMessageInputQueue as unknown as AsyncQueue<BaseEvent>],
+      ['toolInvocationRequestQueue', this.toolInvocationRequestQueue as unknown as AsyncQueue<BaseEvent>],
+      ['toolResultInputQueue', this.toolResultInputQueue as unknown as AsyncQueue<BaseEvent>],
+      ['toolExecutionApprovalQueue', this.toolExecutionApprovalQueue as unknown as AsyncQueue<BaseEvent>],
+      ['internalSystemEventQueue', this.internalSystemEventQueue]
     ];
 
     this.readyBuffers = new Map(this.inputQueues.map(([name]) => [name, []]));
     this.queuePriority = [
-      'user_message_input_queue',
-      'inter_agent_message_input_queue',
-      'tool_invocation_request_queue',
-      'tool_result_input_queue',
-      'tool_execution_approval_queue',
-      'internal_system_event_queue'
+      'userMessageInputQueue',
+      'interAgentMessageInputQueue',
+      'toolInvocationRequestQueue',
+      'toolResultInputQueue',
+      'toolExecutionApprovalQueue',
+      'internalSystemEventQueue'
     ];
   }
 
@@ -89,37 +89,37 @@ export class AgentInputEventQueueManager {
     }
   }
 
-  async enqueue_user_message(event: UserMessageReceivedEvent): Promise<void> {
-    await this.user_message_input_queue.put(event);
+  async enqueueUserMessage(event: UserMessageReceivedEvent): Promise<void> {
+    await this.userMessageInputQueue.put(event);
     this.notifyAvailability();
   }
 
-  async enqueue_inter_agent_message(event: InterAgentMessageReceivedEvent): Promise<void> {
-    await this.inter_agent_message_input_queue.put(event);
+  async enqueueInterAgentMessage(event: InterAgentMessageReceivedEvent): Promise<void> {
+    await this.interAgentMessageInputQueue.put(event);
     this.notifyAvailability();
   }
 
-  async enqueue_tool_invocation_request(event: PendingToolInvocationEvent): Promise<void> {
-    await this.tool_invocation_request_queue.put(event);
+  async enqueueToolInvocationRequest(event: PendingToolInvocationEvent): Promise<void> {
+    await this.toolInvocationRequestQueue.put(event);
     this.notifyAvailability();
   }
 
-  async enqueue_tool_result(event: ToolResultEvent): Promise<void> {
-    await this.tool_result_input_queue.put(event);
+  async enqueueToolResult(event: ToolResultEvent): Promise<void> {
+    await this.toolResultInputQueue.put(event);
     this.notifyAvailability();
   }
 
-  async enqueue_tool_approval_event(event: ToolExecutionApprovalEvent): Promise<void> {
-    await this.tool_execution_approval_queue.put(event);
+  async enqueueToolApprovalEvent(event: ToolExecutionApprovalEvent): Promise<void> {
+    await this.toolExecutionApprovalQueue.put(event);
     this.notifyAvailability();
   }
 
-  async enqueue_internal_system_event(event: BaseEvent): Promise<void> {
-    await this.internal_system_event_queue.put(event);
+  async enqueueInternalSystemEvent(event: BaseEvent): Promise<void> {
+    await this.internalSystemEventQueue.put(event);
     this.notifyAvailability();
   }
 
-  async get_next_input_event(): Promise<[string, BaseEvent] | null> {
+  async getNextInputEvent(): Promise<[string, BaseEvent] | null> {
     while (true) {
       for (const qname of this.queuePriority) {
         const buffer = this.readyBuffers.get(qname);
@@ -145,20 +145,20 @@ export class AgentInputEventQueueManager {
     }
   }
 
-  async get_next_internal_event(): Promise<[string, BaseEvent] | null> {
-    const qname = 'internal_system_event_queue';
+  async getNextInternalEvent(): Promise<[string, BaseEvent] | null> {
+    const qname = 'internalSystemEventQueue';
     const buffer = this.readyBuffers.get(qname);
     if (buffer && buffer.length > 0) {
       return [qname, buffer.shift()!];
     }
 
-    const item = this.internal_system_event_queue.tryGet();
+    const item = this.internalSystemEventQueue.tryGet();
     if (item !== undefined) {
       return [qname, item];
     }
 
     await new Promise<void>((resolve) => this.availabilityWaiters.push(resolve));
-    const nextItem = await this.internal_system_event_queue.get();
+    const nextItem = await this.internalSystemEventQueue.get();
     return [qname, nextItem];
   }
 }

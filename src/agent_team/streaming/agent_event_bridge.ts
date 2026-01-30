@@ -1,7 +1,7 @@
 import { AgentEventStream } from '../../agent/streaming/streams/agent_event_stream.js';
 import type { AgentTeamExternalEventNotifier } from './agent_team_event_notifier.js';
 
-type AgentLike = { agent_id: string } | Record<string, any>;
+type AgentLike = { agentId: string } | Record<string, any>;
 
 type BridgeOptions = { stream?: AgentEventStream };
 
@@ -13,53 +13,53 @@ const resolveOptions = (loopOrOptions?: unknown, maybeOptions?: BridgeOptions): 
 };
 
 export class AgentEventBridge {
-  private agent_name: string;
+  private agentName: string;
   private notifier: AgentTeamExternalEventNotifier;
   private stream: AgentEventStream;
   private cancelled = false;
-  _task: Promise<void>;
+  private task: Promise<void>;
 
   constructor(
     agent: AgentLike,
-    agent_name: string,
+    agentName: string,
     notifier: AgentTeamExternalEventNotifier,
     loopOrOptions?: unknown,
     maybeOptions?: BridgeOptions
   ) {
-    this.agent_name = agent_name;
+    this.agentName = agentName;
     this.notifier = notifier;
 
     const options = resolveOptions(loopOrOptions, maybeOptions);
     this.stream = options?.stream ?? new AgentEventStream(agent as any);
 
-    this._task = this.run();
-    console.info(`AgentEventBridge created and task started for agent '${agent_name}'.`);
+    this.task = this.run();
+    console.info(`AgentEventBridge created and task started for agent '${agentName}'.`);
   }
 
   private async run(): Promise<void> {
     try {
-      for await (const event of this.stream.all_events()) {
+      for await (const event of this.stream.allEvents()) {
         if (this.cancelled) {
           break;
         }
-        this.notifier.publish_agent_event(this.agent_name, event);
+        this.notifier.publishAgentEvent(this.agentName, event);
       }
     } catch (error) {
       if (this.cancelled) {
-        console.info(`AgentEventBridge task for '${this.agent_name}' was cancelled.`);
+        console.info(`AgentEventBridge task for '${this.agentName}' was cancelled.`);
       } else {
-        console.error(`Error in AgentEventBridge for '${this.agent_name}': ${error}`);
+        console.error(`Error in AgentEventBridge for '${this.agentName}': ${error}`);
       }
     } finally {
-      console.debug(`AgentEventBridge task for '${this.agent_name}' is finishing.`);
+      console.debug(`AgentEventBridge task for '${this.agentName}' is finishing.`);
     }
   }
 
   async cancel(): Promise<void> {
-    console.info(`Cancelling AgentEventBridge for '${this.agent_name}'.`);
+    console.info(`Cancelling AgentEventBridge for '${this.agentName}'.`);
     this.cancelled = true;
     await this.stream.close();
-    await this._task;
-    console.info(`AgentEventBridge for '${this.agent_name}' cancelled successfully.`);
+    await this.task;
+    console.info(`AgentEventBridge for '${this.agentName}' cancelled successfully.`);
   }
 }

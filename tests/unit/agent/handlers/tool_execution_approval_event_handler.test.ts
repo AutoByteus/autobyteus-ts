@@ -33,14 +33,14 @@ const makeContext = () => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
-    canonical_name: 'dummy',
+    canonicalName: 'dummy',
     provider: LLMProvider.OPENAI
   });
   const llm = new DummyLLM(model, new LLMConfig());
   const config = new AgentConfig('name', 'role', 'desc', llm);
   const state = new AgentRuntimeState('agent-1');
-  const inputQueues = { enqueue_internal_system_event: vi.fn(async () => undefined) } as any;
-  state.input_event_queues = inputQueues;
+  const inputQueues = { enqueueInternalSystemEvent: vi.fn(async () => undefined) } as any;
+  state.inputEventQueues = inputQueues;
   const context = new AgentContext('agent-1', config, state);
   return { context, inputQueues };
 };
@@ -66,7 +66,7 @@ describe('ToolExecutionApprovalEventHandler', () => {
     const handler = new ToolExecutionApprovalEventHandler();
     const { context, inputQueues } = makeContext();
     const invocation = new ToolInvocation('mock_tool', { arg1: 'value1' }, 'test_tool_invocation_id');
-    vi.spyOn(context.state, 'retrieve_pending_tool_invocation').mockReturnValue(invocation);
+    vi.spyOn(context.state, 'retrievePendingToolInvocation').mockReturnValue(invocation);
 
     const event = new ToolExecutionApprovalEvent('test_tool_invocation_id', true, 'User approved');
     await handler.handle(event, context);
@@ -86,19 +86,19 @@ describe('ToolExecutionApprovalEventHandler', () => {
       )
     ).toBe(true);
 
-    expect(context.state.retrieve_pending_tool_invocation).toHaveBeenCalledWith('test_tool_invocation_id');
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(context.state.retrievePendingToolInvocation).toHaveBeenCalledWith('test_tool_invocation_id');
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(ApprovedToolInvocationEvent);
-    expect(enqueued.tool_invocation).toBe(invocation);
+    expect(enqueued.toolInvocation).toBe(invocation);
   });
 
   it('handles tool denial with reason', async () => {
     const handler = new ToolExecutionApprovalEventHandler();
     const { context, inputQueues } = makeContext();
     const invocation = new ToolInvocation('mock_tool', { arg1: 'value1' }, 'test_tool_invocation_id');
-    vi.spyOn(context.state, 'retrieve_pending_tool_invocation').mockReturnValue(invocation);
-    const historySpy = vi.spyOn(context.state, 'add_message_to_history');
+    vi.spyOn(context.state, 'retrievePendingToolInvocation').mockReturnValue(invocation);
+    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     const denialReason = 'User denied due to cost.';
     const event = new ToolExecutionApprovalEvent('test_tool_invocation_id', false, denialReason);
@@ -110,7 +110,7 @@ describe('ToolExecutionApprovalEventHandler', () => {
       )
     ).toBe(true);
 
-    expect(context.state.retrieve_pending_tool_invocation).toHaveBeenCalledWith('test_tool_invocation_id');
+    expect(context.state.retrievePendingToolInvocation).toHaveBeenCalledWith('test_tool_invocation_id');
     expect(historySpy).toHaveBeenCalledWith({
       role: 'tool',
       tool_call_id: 'test_tool_invocation_id',
@@ -118,22 +118,22 @@ describe('ToolExecutionApprovalEventHandler', () => {
       content: `Tool execution denied by user/system. Reason: ${denialReason}`
     });
 
-    expect(inputQueues.enqueue_internal_system_event).toHaveBeenCalledTimes(1);
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(LLMUserMessageReadyEvent);
-    expect(enqueued.llm_user_message).toBeInstanceOf(LLMUserMessage);
-    expect(enqueued.llm_user_message.content).toContain(
+    expect(enqueued.llmUserMessage).toBeInstanceOf(LLMUserMessage);
+    expect(enqueued.llmUserMessage.content).toContain(
       "The request to use the tool 'mock_tool' (with arguments: {\"arg1\":\"value1\"}) was denied."
     );
-    expect(enqueued.llm_user_message.content).toContain(`Denial reason: '${denialReason}'.`);
+    expect(enqueued.llmUserMessage.content).toContain(`Denial reason: '${denialReason}'.`);
   });
 
   it('handles tool denial with no reason', async () => {
     const handler = new ToolExecutionApprovalEventHandler();
     const { context, inputQueues } = makeContext();
     const invocation = new ToolInvocation('mock_tool', { arg1: 'value1' }, 'test_tool_invocation_id');
-    vi.spyOn(context.state, 'retrieve_pending_tool_invocation').mockReturnValue(invocation);
-    const historySpy = vi.spyOn(context.state, 'add_message_to_history');
+    vi.spyOn(context.state, 'retrievePendingToolInvocation').mockReturnValue(invocation);
+    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     const event = new ToolExecutionApprovalEvent('test_tool_invocation_id', false);
     await handler.handle(event, context);
@@ -145,14 +145,14 @@ describe('ToolExecutionApprovalEventHandler', () => {
       content: 'Tool execution denied by user/system. Reason: No specific reason provided.'
     });
 
-    const enqueued = inputQueues.enqueue_internal_system_event.mock.calls[0][0];
-    expect(enqueued.llm_user_message.content).toContain("Denial reason: 'No specific reason provided.'.");
+    const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
+    expect(enqueued.llmUserMessage.content).toContain("Denial reason: 'No specific reason provided.'.");
   });
 
   it('handles missing pending invocation', async () => {
     const handler = new ToolExecutionApprovalEventHandler();
     const { context, inputQueues } = makeContext();
-    vi.spyOn(context.state, 'retrieve_pending_tool_invocation').mockReturnValue(undefined);
+    vi.spyOn(context.state, 'retrievePendingToolInvocation').mockReturnValue(undefined);
 
     const event = new ToolExecutionApprovalEvent('unknown-id-000', true);
     await handler.handle(event, context);
@@ -162,7 +162,7 @@ describe('ToolExecutionApprovalEventHandler', () => {
         String(msg).includes("No pending tool invocation found for ID 'unknown-id-000'")
       )
     ).toBe(true);
-    expect(inputQueues.enqueue_internal_system_event).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueInternalSystemEvent).not.toHaveBeenCalled();
   });
 
   it('skips invalid event type', async () => {
@@ -179,7 +179,7 @@ describe('ToolExecutionApprovalEventHandler', () => {
         )
       )
     ).toBe(true);
-    expect(inputQueues.enqueue_internal_system_event).not.toHaveBeenCalled();
+    expect(inputQueues.enqueueInternalSystemEvent).not.toHaveBeenCalled();
   });
 
   it('logs initialization', () => {

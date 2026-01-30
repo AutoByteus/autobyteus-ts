@@ -4,11 +4,11 @@ import { LLMConfig } from '../utils/llm_config.js';
 
 export class LMStudioLLM extends OpenAICompatibleLLM {
   constructor(model: LLMModel, llmConfig?: LLMConfig) {
-    if (!model.host_url) {
-      throw new Error('LMStudioLLM requires a host_url to be set on the LLMModel.');
+    if (!model.hostUrl) {
+      throw new Error('LMStudioLLM requires a hostUrl to be set on the LLMModel.');
     }
 
-    const hostUrl = model.host_url.replace(/\/+$/, '');
+    const hostUrl = model.hostUrl.replace(/\/+$/, '');
     const baseUrl = `${hostUrl}/v1`;
 
     super(model, 'LMSTUDIO_API_KEY', baseUrl, llmConfig, 'lm-studio');

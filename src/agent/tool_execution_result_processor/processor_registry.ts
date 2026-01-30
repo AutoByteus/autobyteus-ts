@@ -1,21 +1,27 @@
 import { Singleton } from '../../utils/singleton.js';
 import { ProcessorOption } from '../processor_option.js';
 import { ToolExecutionResultProcessorDefinition } from './processor_definition.js';
+import { BaseToolExecutionResultProcessor } from './base_processor.js';
+
+type ProcessorClass = (new () => BaseToolExecutionResultProcessor) & {
+  getOrder?: () => number;
+  isMandatory?: () => boolean;
+};
 
 export class ToolExecutionResultProcessorRegistry extends Singleton {
+  protected static instance?: ToolExecutionResultProcessorRegistry;
+
   private definitions: Map<string, ToolExecutionResultProcessorDefinition> = new Map();
 
   constructor() {
     super();
-    const existing = (ToolExecutionResultProcessorRegistry as any)
-      .instance as ToolExecutionResultProcessorRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (ToolExecutionResultProcessorRegistry.instance) {
+      return ToolExecutionResultProcessorRegistry.instance;
     }
-    (ToolExecutionResultProcessorRegistry as any).instance = this;
+    ToolExecutionResultProcessorRegistry.instance = this;
   }
 
-  register_processor(definition: ToolExecutionResultProcessorDefinition): void {
+  registerProcessor(definition: ToolExecutionResultProcessorDefinition): void {
     if (!(definition instanceof ToolExecutionResultProcessorDefinition)) {
       throw new TypeError(
         `Expected ToolExecutionResultProcessorDefinition instance, got ${typeof definition}.`
@@ -31,21 +37,21 @@ export class ToolExecutionResultProcessorRegistry extends Singleton {
     console.info(`Tool execution result processor definition '${name}' registered successfully.`);
   }
 
-  get_processor_definition(name: string): ToolExecutionResultProcessorDefinition | undefined {
+  getProcessorDefinition(name: string): ToolExecutionResultProcessorDefinition | undefined {
     if (typeof name !== 'string') {
       return undefined;
     }
     return this.definitions.get(name);
   }
 
-  get_processor(name: string): any | undefined {
-    const definition = this.get_processor_definition(name);
+  getProcessor(name: string): BaseToolExecutionResultProcessor | undefined {
+    const definition = this.getProcessorDefinition(name);
     if (!definition) {
       return undefined;
     }
 
     try {
-      return new definition.processor_class();
+      return new definition.processorClass();
     } catch (error) {
       console.error(
         `Failed to instantiate tool execution result processor '${name}': ${error}`
@@ -54,36 +60,29 @@ export class ToolExecutionResultProcessorRegistry extends Singleton {
     }
   }
 
-  list_processor_names(): string[] {
+  listProcessorNames(): string[] {
     return Array.from(this.definitions.keys());
   }
 
-  get_ordered_processor_options(): ProcessorOption[] {
+  getOrderedProcessorOptions(): ProcessorOption[] {
     const definitions = Array.from(this.definitions.values());
     const sortedDefinitions = definitions.sort((a, b) => {
-      const orderA =
-        typeof (a.processor_class as any).get_order === 'function'
-          ? (a.processor_class as any).get_order()
-          : 500;
-      const orderB =
-        typeof (b.processor_class as any).get_order === 'function'
-          ? (b.processor_class as any).get_order()
-          : 500;
+      const processorA = a.processorClass as ProcessorClass;
+      const processorB = b.processorClass as ProcessorClass;
+      const orderA = typeof processorA.getOrder === 'function' ? processorA.getOrder() : 500;
+      const orderB = typeof processorB.getOrder === 'function' ? processorB.getOrder() : 500;
       return orderA - orderB;
     });
 
-    return sortedDefinitions.map(
-      (definition) =>
-        new ProcessorOption(
-          definition.name,
-          typeof (definition.processor_class as any).is_mandatory === 'function'
-            ? (definition.processor_class as any).is_mandatory()
-            : false
-        )
-    );
+    return sortedDefinitions.map((definition) => {
+      const processorClass = definition.processorClass as ProcessorClass;
+      const isMandatory =
+        typeof processorClass.isMandatory === 'function' ? processorClass.isMandatory() : false;
+      return new ProcessorOption(definition.name, isMandatory);
+    });
   }
 
-  get_all_definitions(): Record<string, ToolExecutionResultProcessorDefinition> {
+  getAllDefinitions(): Record<string, ToolExecutionResultProcessorDefinition> {
     return Object.fromEntries(this.definitions.entries());
   }
 

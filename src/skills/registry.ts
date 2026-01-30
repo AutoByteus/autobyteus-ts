@@ -5,15 +5,16 @@ import { Skill } from './model.js';
 import { SkillLoader } from './loader.js';
 
 export class SkillRegistry extends Singleton {
+  protected static instance?: SkillRegistry;
+
   private skills: Map<string, Skill> = new Map();
 
   constructor() {
     super();
-    const existing = (SkillRegistry as any).instance as SkillRegistry | undefined;
-    if (existing) {
-      return existing;
+    if (SkillRegistry.instance) {
+      return SkillRegistry.instance;
     }
-    (SkillRegistry as any).instance = this;
+    SkillRegistry.instance = this;
   }
 
   registerSkillFromPath(skillPath: string): Skill {

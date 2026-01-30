@@ -5,75 +5,75 @@ import type { AgentInputUserMessage } from '../agent/message/agent_input_user_me
 import { AgentTeamStatus } from './status/agent_team_status.js';
 
 export class AgentTeam {
-  private _runtime: AgentTeamRuntime;
-  team_id: string;
+  private runtime: AgentTeamRuntime;
+  teamId: string;
 
   constructor(runtime: AgentTeamRuntime) {
     if (!runtime) {
       throw new TypeError('AgentTeam requires a valid AgentTeamRuntime instance.');
     }
 
-    this._runtime = runtime;
-    this.team_id = this._runtime.context.team_id;
-    console.info(`AgentTeam facade created for team ID '${this.team_id}'.`);
+    this.runtime = runtime;
+    this.teamId = this.runtime.context.teamId;
+    console.info(`AgentTeam facade created for team ID '${this.teamId}'.`);
   }
 
   get name(): string {
-    return this._runtime.context.config.name;
+    return this.runtime.context.config.name;
   }
 
   get role(): string | null | undefined {
-    return this._runtime.context.config.role ?? null;
+    return this.runtime.context.config.role ?? null;
   }
 
-  async post_message(message: AgentInputUserMessage, target_agent_name?: string | null): Promise<void> {
-    const final_target = target_agent_name || this._runtime.context.config.coordinator_node.name;
-    console.info(`Agent Team '${this.team_id}': post_message called. Target: '${final_target}'.`);
+  async postMessage(message: AgentInputUserMessage, targetAgentName?: string | null): Promise<void> {
+    const finalTarget = targetAgentName || this.runtime.context.config.coordinatorNode.name;
+    console.info(`Agent Team '${this.teamId}': postMessage called. Target: '${finalTarget}'.`);
 
-    if (!this._runtime.is_running) {
+    if (!this.runtime.isRunning) {
       this.start();
     }
 
-    const event = new ProcessUserMessageEvent(message, final_target);
-    await this._runtime.submit_event(event);
+    const event = new ProcessUserMessageEvent(message, finalTarget);
+    await this.runtime.submitEvent(event);
   }
 
-  async post_tool_execution_approval(
-    agent_name: string,
-    tool_invocation_id: string,
-    is_approved: boolean,
+  async postToolExecutionApproval(
+    agentName: string,
+    toolInvocationId: string,
+    isApproved: boolean,
     reason?: string | null
   ): Promise<void> {
     console.info(
-      `Agent Team '${this.team_id}': post_tool_execution_approval called for agent '${agent_name}'. Approved: ${is_approved}.`
+      `Agent Team '${this.teamId}': postToolExecutionApproval called for agent '${agentName}'. Approved: ${isApproved}.`
     );
 
-    if (!this._runtime.is_running) {
-      console.warn(`Agent Team '${this.team_id}' is not running. Cannot post approval.`);
+    if (!this.runtime.isRunning) {
+      console.warn(`Agent Team '${this.teamId}' is not running. Cannot post approval.`);
       return;
     }
 
-    const event = new ToolApprovalTeamEvent(agent_name, tool_invocation_id, is_approved, reason ?? undefined);
-    await this._runtime.submit_event(event);
+    const event = new ToolApprovalTeamEvent(agentName, toolInvocationId, isApproved, reason ?? undefined);
+    await this.runtime.submitEvent(event);
   }
 
   start(): void {
-    this._runtime.start();
+    this.runtime.start();
   }
 
   async stop(timeout: number = 10.0): Promise<void> {
-    await this._runtime.stop(timeout);
+    await this.runtime.stop(timeout);
   }
 
-  get is_running(): boolean {
-    return this._runtime.is_running;
+  get isRunning(): boolean {
+    return this.runtime.isRunning;
   }
 
-  get_current_status(): AgentTeamStatus {
-    return this._runtime.context.state.current_status;
+  get currentStatus(): AgentTeamStatus {
+    return this.runtime.context.state.currentStatus;
   }
 
   get notifier(): AgentTeamExternalEventNotifier {
-    return this._runtime.notifier;
+    return this.runtime.notifier;
   }
 }

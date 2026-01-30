@@ -7,18 +7,18 @@ export class TextState extends BaseState {
   }
 
   run(): void {
-    const startPos = this.context.get_position();
+    const startPos = this.context.getPosition();
 
-    if (!this.context.has_more_chars()) {
+    if (!this.context.hasMoreChars()) {
       return;
     }
 
-    const strategies = this.context.detection_strategies;
+    const strategies = this.context.detectionStrategies;
     let bestIdx = -1;
     let bestStrategy: any = null;
 
     for (const strategy of strategies) {
-      const idx = strategy.next_marker(this.context, startPos);
+      const idx = strategy.nextMarker(this.context, startPos);
       if (idx === -1) {
         continue;
       }
@@ -31,25 +31,25 @@ export class TextState extends BaseState {
     if (bestIdx === -1) {
       const text = this.context.substring(startPos);
       if (text) {
-        this.context.append_text_segment(text);
+        this.context.appendTextSegment(text);
       }
-      this.context.set_position(this.context.get_buffer_length());
+      this.context.setPosition(this.context.getBufferLength());
       return;
     }
 
     if (bestIdx > startPos) {
       const text = this.context.substring(startPos, bestIdx);
       if (text) {
-        this.context.append_text_segment(text);
+        this.context.appendTextSegment(text);
       }
     }
 
-    this.context.set_position(bestIdx);
+    this.context.setPosition(bestIdx);
 
     if (!bestStrategy) {
       throw new Error('No detection strategy available for marker.');
     }
-    this.context.transition_to(bestStrategy.create_state(this.context));
+    this.context.transitionTo(bestStrategy.createState(this.context));
   }
 
   finalize(): void {

@@ -23,7 +23,7 @@ describe('EventEmitter', () => {
     expect(listener).toHaveBeenCalledTimes(1);
     const [payload, meta] = listener.mock.calls[0];
     expect(payload).toBe('data');
-    expect(meta.object_id).toBe(emitter.object_id);
+    expect(meta.object_id).toBe(emitter.objectId);
   });
 
   it('subscribes to events from a specific sender', () => {
@@ -31,7 +31,7 @@ describe('EventEmitter', () => {
     const emitterB = new EventEmitter();
     const listener = vi.fn();
 
-    emitterA.subscribe_from(emitterB, EventType.TASK_PLAN_STATUS_UPDATED, listener);
+    emitterA.subscribeFrom(emitterB, EventType.TASK_PLAN_STATUS_UPDATED, listener);
 
     emitterA.emit(EventType.TASK_PLAN_STATUS_UPDATED, { payload: 'skip' });
     expect(listener).not.toHaveBeenCalled();
@@ -46,8 +46,8 @@ describe('EventEmitter', () => {
     const emitterB = new EventEmitter();
     const listener = vi.fn();
 
-    emitterA.subscribe_from(emitterB, EventType.TASK_PLAN_STATUS_UPDATED, listener);
-    emitterA.unsubscribe_from(emitterB, EventType.TASK_PLAN_STATUS_UPDATED, listener);
+    emitterA.subscribeFrom(emitterB, EventType.TASK_PLAN_STATUS_UPDATED, listener);
+    emitterA.unsubscribeFrom(emitterB, EventType.TASK_PLAN_STATUS_UPDATED, listener);
 
     emitterB.emit(EventType.TASK_PLAN_STATUS_UPDATED, { payload: 'hit' });
     expect(listener).not.toHaveBeenCalled();
@@ -58,7 +58,7 @@ describe('EventEmitter', () => {
     const listener = vi.fn();
 
     emitter.subscribe(EventType.TASK_PLAN_TASKS_CREATED, listener);
-    emitter.unsubscribe_all_listeners();
+    emitter.unsubscribeAllListeners();
     emitter.emit(EventType.TASK_PLAN_TASKS_CREATED, { payload: 'data' });
 
     expect(listener).not.toHaveBeenCalled();

@@ -52,7 +52,7 @@ describe('Search tool', () => {
     vi.spyOn(SearchClientFactory.prototype, 'createSearchClient').mockReturnValue(fakeClient);
 
     const tool = new Search();
-    const result = await (tool as any)._execute({ agentId: 'a1' }, 'query', 2);
+    const result = await (tool as any)._execute({ agentId: 'a1' }, { query: 'query', num_results: 2 });
 
     expect(fakeClient.search).toHaveBeenCalledWith('query', 2);
     expect(result).toBe('result');
