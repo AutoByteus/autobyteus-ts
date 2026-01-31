@@ -1,6 +1,6 @@
-import { AgentStatus } from './status_enum.js';
+import { AgentStatus } from './status-enum.js';
 import { LifecycleEvent } from '../lifecycle/events.js';
-import type { AgentContext } from '../context/agent_context.js';
+import type { AgentContext } from '../context/agent-context.js';
 import type { AgentExternalEventNotifier } from '../events/notifiers.js';
 
 export class AgentStatusManager {

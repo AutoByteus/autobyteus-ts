@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GenericMcpTool } from '../../../../src/tools/mcp/tool.js';
-import { ParameterSchema, ParameterDefinition, ParameterType } from '../../../../src/utils/parameter_schema.js';
+import { ParameterSchema, ParameterDefinition, ParameterType } from '../../../../src/utils/parameter-schema.js';
 
 const mocks = vi.hoisted(() => ({
   callToolMock: vi.fn(),

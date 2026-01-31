@@ -1,8 +1,8 @@
-import { BaseTool, type ToolClass } from './base_tool.js';
-import { ToolDefinition } from './registry/tool_definition.js';
-import { ToolOrigin } from './tool_origin.js';
-import { ToolCategory } from './tool_category.js';
-import { DefaultXmlSchemaFormatter } from './usage/formatters/default_xml_schema_formatter.js';
+import { BaseTool, type ToolClass } from './base-tool.js';
+import { ToolDefinition } from './registry/tool-definition.js';
+import { ToolOrigin } from './tool-origin.js';
+import { ToolCategory } from './tool-category.js';
+import { DefaultXmlSchemaFormatter } from './usage/formatters/default-xml-schema-formatter.js';
 
 export function formatToolUsageInfo(tools: BaseTool[]): string {
   const formatter = new DefaultXmlSchemaFormatter();

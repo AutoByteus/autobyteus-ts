@@ -15,18 +15,18 @@ and usage tracking.
 - **`BaseLLM`** (`src/llm/base.ts`): message history, system prompt, extensions,
   and the abstract `_sendUserMessageToLLM` / `_streamUserMessageToLLM` hooks.
 - **`LLMModel`** (`src/llm/models.ts`): model metadata + runtime/host identifier.
-- **`LLMFactory`** (`src/llm/llm_factory.ts`): registry, discovery, reload logic.
+- **`LLMFactory`** (`src/llm/llm-factory.ts`): registry, discovery, reload logic.
 
 ## 3. OpenAI Implementation (Responses API)
 
 Python uses `OpenAIResponsesLLM`, so the TS implementation does too:
 
-- **`OpenAIResponsesLLM`** (`src/llm/api/openai_responses_llm.ts`)
+- **`OpenAIResponsesLLM`** (`src/llm/api/openai-responses-llm.ts`)
   - Uses `client.responses.create(...)` (official Node SDK).
   - Supports reasoning params (`reasoning_effort`, `reasoning_summary`).
   - Normalizes tool definitions to `function` style.
   - Streams tool calls + text deltas from Responses events.
-- **`OpenAILLM`** (`src/llm/api/openai_llm.ts`) extends `OpenAIResponsesLLM`.
+- **`OpenAILLM`** (`src/llm/api/openai-llm.ts`) extends `OpenAIResponsesLLM`.
 
 **Note:** `OpenAICompatibleLLM` remains for OpenAI‑compatible providers
 (DeepSeek, Grok, Kimi, Qwen, Zhipu, Minimax).
@@ -53,10 +53,10 @@ Local runtimes:
 ## 6. Streaming & Tool Calls
 
 Tool call deltas are normalized into `ToolCallDelta` objects across providers:
-- `openai_tool_call_converter`
-- `anthropic_tool_call_converter`
-- `mistral_tool_call_converter`
-- `gemini_tool_call_converter`
+- `openai-tool-call-converter`
+- `anthropic-tool-call-converter`
+- `mistral-tool-call-converter`
+- `gemini-tool-call-converter`
 
 Responses streaming (OpenAI) emits:
 - output text deltas
@@ -73,4 +73,4 @@ They mirror Python tests one‑for‑one (model names preserved).
 
 - Add new models in `LLMFactory.initializeRegistry()`.
 - Add new providers under `src/llm/api` + update `LLMProvider`.
-- Add discovery for local runtimes under `src/llm/*_provider.ts`.
+- Add discovery for local runtimes under `src/llm/*-provider.ts`.

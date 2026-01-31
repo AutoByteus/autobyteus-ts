@@ -1,8 +1,8 @@
-import type { ParameterSchema } from '../../utils/parameter_schema.js';
-import { ToolFactory } from '../factory/tool_factory.js';
+import type { ParameterSchema } from '../../utils/parameter-schema.js';
+import { ToolFactory } from '../factory/tool-factory.js';
 import { GenericMcpTool } from './tool.js';
-import type { ToolConfig } from '../tool_config.js';
-import type { BaseTool } from '../base_tool.js';
+import type { ToolConfig } from '../tool-config.js';
+import type { BaseTool } from '../base-tool.js';
 
 export class McpToolFactory extends ToolFactory {
   private serverId: string;

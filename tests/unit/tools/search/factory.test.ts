@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { SearchClientFactory } from '../../../../src/tools/search/factory.js';
-import { SerperSearchStrategy } from '../../../../src/tools/search/serper_strategy.js';
-import { SerpApiSearchStrategy } from '../../../../src/tools/search/serpapi_strategy.js';
-import { GoogleCSESearchStrategy } from '../../../../src/tools/search/google_cse_strategy.js';
+import { SerperSearchStrategy } from '../../../../src/tools/search/serper-strategy.js';
+import { SerpApiSearchStrategy } from '../../../../src/tools/search/serpapi-strategy.js';
+import { GoogleCSESearchStrategy } from '../../../../src/tools/search/google-cse-strategy.js';
 
 const originalEnv = { ...process.env };
 

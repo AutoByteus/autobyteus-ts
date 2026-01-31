@@ -1,7 +1,7 @@
 import { LLMProvider } from './providers.js';
 import { LLMRuntime } from './runtimes.js';
-import { LLMConfig } from './utils/llm_config.js';
-import { ParameterSchema } from '../utils/parameter_schema.js';
+import { LLMConfig } from './utils/llm-config.js';
+import { ParameterSchema } from '../utils/parameter-schema.js';
 import { BaseLLM } from './base.js';
 
 export interface LLMModelOptions {

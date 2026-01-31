@@ -5,7 +5,7 @@ const mocks = vi.hoisted(() => ({
   getInstance: vi.fn()
 }));
 
-vi.mock('../../../../src/tools/mcp/server_instance_manager.js', () => ({
+vi.mock('../../../../src/tools/mcp/server-instance-manager.js', () => ({
   McpServerInstanceManager: {
     getInstance: mocks.getInstance
   }

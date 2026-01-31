@@ -1,1 +1,1 @@
-export { AutobyteusClient, CertificateError } from './autobyteus_client.js';
+export { AutobyteusClient, CertificateError } from './autobyteus-client.js';

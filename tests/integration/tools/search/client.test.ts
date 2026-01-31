@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { SearchClient } from '../../../../src/tools/search/client.js';
-import { SearchStrategy } from '../../../../src/tools/search/base_strategy.js';
+import { SearchStrategy } from '../../../../src/tools/search/base-strategy.js';
 
 class TrackingStrategy extends SearchStrategy {
   public lastQuery: string | null = null;

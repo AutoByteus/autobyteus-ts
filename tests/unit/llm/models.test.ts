@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { LLMModel } from '../../../src/llm/models.js';
 import { LLMProvider } from '../../../src/llm/providers.js';
 import { LLMRuntime } from '../../../src/llm/runtimes.js';
-import { LLMConfig } from '../../../src/llm/utils/llm_config.js';
+import { LLMConfig } from '../../../src/llm/utils/llm-config.js';
 
 describe('LLMModel', () => {
   it('should initialize and generate API identifier', () => {

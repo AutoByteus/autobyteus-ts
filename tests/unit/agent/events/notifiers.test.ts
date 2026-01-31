@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { AgentExternalEventNotifier } from '../../../../src/agent/events/notifiers.js';
-import { EventType } from '../../../../src/events/event_types.js';
-import { AgentStatus } from '../../../../src/agent/status/status_enum.js';
-import { ChunkResponse } from '../../../../src/llm/utils/response_types.js';
+import { EventType } from '../../../../src/events/event-types.js';
+import { AgentStatus } from '../../../../src/agent/status/status-enum.js';
+import { ChunkResponse } from '../../../../src/llm/utils/response-types.js';
 
 describe('AgentExternalEventNotifier', () => {
   it('emits status updates with agent metadata', () => {

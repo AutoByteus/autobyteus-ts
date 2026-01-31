@@ -1,9 +1,9 @@
 import { Singleton } from '../../utils/singleton.js';
 import { SearchProvider } from './providers.js';
 import { SearchClient } from './client.js';
-import { SerperSearchStrategy } from './serper_strategy.js';
-import { SerpApiSearchStrategy } from './serpapi_strategy.js';
-import { GoogleCSESearchStrategy } from './google_cse_strategy.js';
+import { SerperSearchStrategy } from './serper-strategy.js';
+import { SerpApiSearchStrategy } from './serpapi-strategy.js';
+import { GoogleCSESearchStrategy } from './google-cse-strategy.js';
 
 export class SearchClientFactory extends Singleton {
   protected static instance?: SearchClientFactory;

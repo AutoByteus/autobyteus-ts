@@ -1,9 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BaseLLM } from '../../../src/llm/base.js';
 import { LLMModel } from '../../../src/llm/models.js';
-import { LLMConfig } from '../../../src/llm/utils/llm_config.js';
-import { LLMUserMessage } from '../../../src/llm/user_message.js';
-import { CompleteResponse, ChunkResponse } from '../../../src/llm/utils/response_types.js';
+import { LLMConfig } from '../../../src/llm/utils/llm-config.js';
+import { LLMUserMessage } from '../../../src/llm/user-message.js';
+import { CompleteResponse, ChunkResponse } from '../../../src/llm/utils/response-types.js';
 import { MessageRole } from '../../../src/llm/utils/messages.js';
 import { LLMProvider } from '../../../src/llm/providers.js';
 

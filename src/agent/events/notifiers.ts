@@ -1,7 +1,7 @@
-import { EventEmitter } from '../../events/event_emitter.js';
-import { EventType } from '../../events/event_types.js';
-import { AgentStatus } from '../status/status_enum.js';
-import type { ChunkResponse, CompleteResponse } from '../../llm/utils/response_types.js';
+import { EventEmitter } from '../../events/event-emitter.js';
+import { EventType } from '../../events/event-types.js';
+import { AgentStatus } from '../status/status-enum.js';
+import type { ChunkResponse, CompleteResponse } from '../../llm/utils/response-types.js';
 
 export class AgentExternalEventNotifier extends EventEmitter {
   agentId: string;

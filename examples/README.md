@@ -101,5 +101,5 @@ AUTOBYTEUS_LOG_LEVEL=debug AUTOBYTEUS_LOG_FILE=./logs/autobyteus.log \
 
 ## Agent Team Examples
 
-Agent team examples live in `examples/agent_team/`. See the README there for details
+Agent team examples live in `examples/agent-team/`. See the README there for details
 and usage patterns.

@@ -1,2 +1,2 @@
-export { AgentWorker } from './agent_worker.js';
-export { AgentRuntime } from './agent_runtime.js';
+export { AgentWorker } from './agent-worker.js';
+export { AgentRuntime } from './agent-runtime.js';

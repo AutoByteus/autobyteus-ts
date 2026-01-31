@@ -1,3 +1,3 @@
-export { OpenAIImageClient } from './openai_image_client.js';
-export { GeminiImageClient } from './gemini_image_client.js';
-export { AutobyteusImageClient } from './autobyteus_image_client.js';
+export { OpenAIImageClient } from './openai-image-client.js';
+export { GeminiImageClient } from './gemini-image-client.js';
+export { AutobyteusImageClient } from './autobyteus-image-client.js';

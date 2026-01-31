@@ -1,2 +1,2 @@
-export { PromptTemplate } from './prompt_template.js';
-export { PromptBuilder } from './prompt_builder.js';
+export { PromptTemplate } from './prompt-template.js';
+export { PromptBuilder } from './prompt-builder.js';

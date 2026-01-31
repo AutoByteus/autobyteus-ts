@@ -1,21 +1,21 @@
 import { describe, it, expect, vi } from 'vitest';
 import { Agent } from '../../../src/agent/agent.js';
-import { AgentStatus } from '../../../src/agent/status/status_enum.js';
-import { AgentInputUserMessage } from '../../../src/agent/message/agent_input_user_message.js';
-import { InterAgentMessage } from '../../../src/agent/message/inter_agent_message.js';
-import { InterAgentMessageType } from '../../../src/agent/message/inter_agent_message_type.js';
-import { UserMessageReceivedEvent, InterAgentMessageReceivedEvent, ToolExecutionApprovalEvent } from '../../../src/agent/events/agent_events.js';
-import { AgentRuntime } from '../../../src/agent/runtime/agent_runtime.js';
-import { AgentRuntimeState } from '../../../src/agent/context/agent_runtime_state.js';
-import { AgentConfig } from '../../../src/agent/context/agent_config.js';
-import { AgentContext } from '../../../src/agent/context/agent_context.js';
+import { AgentStatus } from '../../../src/agent/status/status-enum.js';
+import { AgentInputUserMessage } from '../../../src/agent/message/agent-input-user-message.js';
+import { InterAgentMessage } from '../../../src/agent/message/inter-agent-message.js';
+import { InterAgentMessageType } from '../../../src/agent/message/inter-agent-message-type.js';
+import { UserMessageReceivedEvent, InterAgentMessageReceivedEvent, ToolExecutionApprovalEvent } from '../../../src/agent/events/agent-events.js';
+import { AgentRuntime } from '../../../src/agent/runtime/agent-runtime.js';
+import { AgentRuntimeState } from '../../../src/agent/context/agent-runtime-state.js';
+import { AgentConfig } from '../../../src/agent/context/agent-config.js';
+import { AgentContext } from '../../../src/agent/context/agent-context.js';
 import { BaseLLM } from '../../../src/llm/base.js';
 import { LLMModel } from '../../../src/llm/models.js';
 import { LLMProvider } from '../../../src/llm/providers.js';
-import { LLMConfig } from '../../../src/llm/utils/llm_config.js';
-import { CompleteResponse } from '../../../src/llm/utils/response_types.js';
-import type { LLMUserMessage } from '../../../src/llm/user_message.js';
-import type { CompleteResponse as CompleteResponseType, ChunkResponse } from '../../../src/llm/utils/response_types.js';
+import { LLMConfig } from '../../../src/llm/utils/llm-config.js';
+import { CompleteResponse } from '../../../src/llm/utils/response-types.js';
+import type { LLMUserMessage } from '../../../src/llm/user-message.js';
+import type { CompleteResponse as CompleteResponseType, ChunkResponse } from '../../../src/llm/utils/response-types.js';
 
 class DummyLLM extends BaseLLM {
   protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponseType> {

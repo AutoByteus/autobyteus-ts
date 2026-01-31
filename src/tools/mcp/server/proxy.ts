@@ -1,4 +1,4 @@
-import { McpServerInstanceManager } from '../server_instance_manager.js';
+import { McpServerInstanceManager } from '../server-instance-manager.js';
 
 type ToolArguments = Record<string, unknown>;
 

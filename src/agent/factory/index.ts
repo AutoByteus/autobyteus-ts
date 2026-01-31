@@ -1,1 +1,1 @@
-export { AgentFactory, defaultAgentFactory } from './agent_factory.js';
+export { AgentFactory, defaultAgentFactory } from './agent-factory.js';

@@ -1,6 +1,6 @@
-import { XmlTagStrategy } from './xml_tag_strategy.js';
-import { JsonToolStrategy } from './json_tool_strategy.js';
-import { SentinelStrategy } from './sentinel_strategy.js';
+import { XmlTagStrategy } from './xml-tag-strategy.js';
+import { JsonToolStrategy } from './json-tool-strategy.js';
+import { SentinelStrategy } from './sentinel-strategy.js';
 import type { DetectionStrategy } from './base.js';
 
 export type { DetectionStrategy } from './base.js';

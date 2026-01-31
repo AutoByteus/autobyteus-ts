@@ -1,13 +1,13 @@
-import { AgentRuntime } from './runtime/agent_runtime.js';
-import { AgentStatus } from './status/status_enum.js';
-import { AgentInputUserMessage } from './message/agent_input_user_message.js';
-import { InterAgentMessage } from './message/inter_agent_message.js';
+import { AgentRuntime } from './runtime/agent-runtime.js';
+import { AgentStatus } from './status/status-enum.js';
+import { AgentInputUserMessage } from './message/agent-input-user-message.js';
+import { InterAgentMessage } from './message/inter-agent-message.js';
 import {
   UserMessageReceivedEvent,
   InterAgentMessageReceivedEvent,
   ToolExecutionApprovalEvent,
   BaseEvent
-} from './events/agent_events.js';
+} from './events/agent-events.js';
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

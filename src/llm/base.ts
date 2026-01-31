@@ -1,12 +1,12 @@
 import { LLMModel } from './models.js';
-import { LLMConfig } from './utils/llm_config.js';
-import { ExtensionRegistry } from './extensions/extension_registry.js';
-import { TokenUsageTrackingExtension } from './extensions/token_usage_tracking_extension.js';
-import { LLMExtension } from './extensions/base_extension.js';
+import { LLMConfig } from './utils/llm-config.js';
+import { ExtensionRegistry } from './extensions/extension-registry.js';
+import { TokenUsageTrackingExtension } from './extensions/token-usage-tracking-extension.js';
+import { LLMExtension } from './extensions/base-extension.js';
 import { Message, MessageRole } from './utils/messages.js';
-import { LLMUserMessage } from './user_message.js';
-import { CompleteResponse, ChunkResponse } from './utils/response_types.js';
-import { TokenUsage } from './utils/token_usage.js';
+import { LLMUserMessage } from './user-message.js';
+import { CompleteResponse, ChunkResponse } from './utils/response-types.js';
+import { TokenUsage } from './utils/token-usage.js';
 
 export abstract class BaseLLM {
   public static DEFAULT_SYSTEM_MESSAGE = "You are a helpful assistant";

@@ -13,7 +13,7 @@ This document captures the Node.js/TypeScript architecture patterns, conventions
 Python uses metaclasses to auto-register tools and processors at import time. In Node.js/TypeScript we keep the same "it just works" experience, but we make registration deterministic by funneling it through a single bootstrap entrypoint.
 
 ### Tools
-- Pattern: `registerTools()` (in `src/tools/register_tools.ts`) is called once at startup.
+- Pattern: `registerTools()` (in `src/tools/register-tools.ts`) is called once at startup.
 - What it does:
   - Registers functional tools via their `registerXTool()` helpers (which also return a cached instance).
   - Registers class-based tools via `registerToolClass(...)`.
@@ -84,7 +84,7 @@ The Node.js CLI uses **Ink** for the interactive TUI and a lightweight console r
 - **Single-agent CLI** (`src/cli/agent`):
   - `cli_display.ts`: stateful renderer for stream events (segment tags, thinking blocks, approvals).
   - `agent_cli.ts`: controller loop (input, approvals, lifecycle) using `AgentEventStream`.
-- **Agent team TUI** (`src/cli/agent_team`):
+- **Agent team TUI** (`src/cli/agent-team`):
   - `state_store.ts`: reducer-style state store (team/agent/task status, approvals, history).
   - `app.tsx`: Ink composition root (sidebar + focus pane + status bar).
   - `widgets/*`: pure components (sidebar, focus pane, task plan panel, status bar, logo).

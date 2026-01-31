@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { McpToolFactory } from '../../../../src/tools/mcp/factory.js';
 import { GenericMcpTool } from '../../../../src/tools/mcp/tool.js';
-import { ParameterSchema, ParameterDefinition, ParameterType } from '../../../../src/utils/parameter_schema.js';
-import { ToolConfig } from '../../../../src/tools/tool_config.js';
+import { ParameterSchema, ParameterDefinition, ParameterType } from '../../../../src/utils/parameter-schema.js';
+import { ToolConfig } from '../../../../src/tools/tool-config.js';
 
 function buildSchema(): ParameterSchema {
   const schema = new ParameterSchema();

@@ -1,1 +1,1 @@
-export { SegmentEvent, SegmentEventType, SegmentType } from '../segments/segment_events.js';
+export { SegmentEvent, SegmentEventType, SegmentType } from '../segments/segment-events.js';

@@ -1,4 +1,4 @@
-export { AgentContextRegistry, defaultAgentContextRegistry } from './agent_context_registry.js';
-export { AgentRuntimeState } from './agent_runtime_state.js';
-export { AgentConfig } from './agent_config.js';
-export { AgentContext } from './agent_context.js';
+export { AgentContextRegistry, defaultAgentContextRegistry } from './agent-context-registry.js';
+export { AgentRuntimeState } from './agent-runtime-state.js';
+export { AgentConfig } from './agent-config.js';
+export { AgentContext } from './agent-context.js';

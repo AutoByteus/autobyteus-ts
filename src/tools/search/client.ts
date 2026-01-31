@@ -1,4 +1,4 @@
-import { SearchStrategy } from './base_strategy.js';
+import { SearchStrategy } from './base-strategy.js';
 
 export class SearchClient {
   private readonly strategy: SearchStrategy;

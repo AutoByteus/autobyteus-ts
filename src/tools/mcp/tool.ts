@@ -1,5 +1,5 @@
-import type { ParameterSchema } from '../../utils/parameter_schema.js';
-import { BaseTool } from '../base_tool.js';
+import type { ParameterSchema } from '../../utils/parameter-schema.js';
+import { BaseTool } from '../base-tool.js';
 import { McpServerProxy } from './server/proxy.js';
 
 type AgentContextLike = { agentId: string };
