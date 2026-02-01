@@ -1,7 +1,6 @@
 import { BaseAgentTeamBootstrapStep } from './base-agent-team-bootstrap-step.js';
 import { TeamContextInitializationStep } from './team-context-initialization-step.js';
 import { TaskNotifierInitializationStep } from './task-notifier-initialization-step.js';
-import { TeamManifestInjectionStep } from './team-manifest-injection-step.js';
 import { AgentConfigurationPreparationStep } from './agent-configuration-preparation-step.js';
 import { CoordinatorInitializationStep } from './coordinator-initialization-step.js';
 import type { AgentTeamContext } from '../context/agent-team-context.js';
@@ -13,7 +12,6 @@ export class AgentTeamBootstrapper {
     this.bootstrapSteps = steps ?? [
       new TeamContextInitializationStep(),
       new TaskNotifierInitializationStep(),
-      new TeamManifestInjectionStep(),
       new AgentConfigurationPreparationStep(),
       new CoordinatorInitializationStep()
     ];

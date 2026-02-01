@@ -1,5 +1,6 @@
 import { BaseAgentTeamBootstrapStep } from './base-agent-team-bootstrap-step.js';
 import { AgentConfig } from '../../agent/context/agent-config.js';
+import { TeamManifestInjectorProcessor } from '../system-prompt-processor/team-manifest-injector-processor.js';
 import type { AgentTeamContext } from '../context/agent-team-context.js';
 import type { TeamManager } from '../context/team-manager.js';
 
@@ -43,10 +44,17 @@ export class AgentConfigurationPreparationStep extends BaseAgentTeamBootstrapSte
           `Team '${teamId}': Injected shared teamContext into initialCustomData for agent '${uniqueName}'.`
         );
 
-        const preparedPrompt = context.state.preparedAgentPrompts[uniqueName];
-        if (preparedPrompt) {
-          finalConfig.systemPrompt = preparedPrompt;
-          console.info(`Team '${teamId}': Applied dynamic prompt to agent '${uniqueName}'.`);
+        if (!finalConfig.systemPromptProcessors) {
+          finalConfig.systemPromptProcessors = [];
+        }
+        const hasTeamManifestProcessor = finalConfig.systemPromptProcessors.some(
+          (processor) => processor instanceof TeamManifestInjectorProcessor
+        );
+        if (!hasTeamManifestProcessor) {
+          finalConfig.systemPromptProcessors.push(new TeamManifestInjectorProcessor());
+          console.debug(
+            `Team '${teamId}': Attached TeamManifestInjectorProcessor for agent '${uniqueName}'.`
+          );
         }
 
         context.state.finalAgentConfigs[uniqueName] = finalConfig;

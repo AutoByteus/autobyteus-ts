@@ -13,6 +13,7 @@ import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/respo
 import { LLMUserMessage } from '../../../../src/llm/user-message.js';
 import { CreateTasks } from '../../../../src/task-management/tools/task-tools/create-tasks.js';
 import { SendMessageTo } from '../../../../src/agent/message/send-message-to.js';
+import { TeamManifestInjectorProcessor } from '../../../../src/agent-team/system-prompt-processor/team-manifest-injector-processor.js';
 
 class DummyLLM extends BaseLLM {
   protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
@@ -60,9 +61,11 @@ describe('AgentConfigurationPreparationStep', () => {
 
     const coordinatorDef = makeAgentConfig('Coordinator');
     coordinatorDef.tools = [new CreateTasks(), new SendMessageTo()];
+    coordinatorDef.systemPrompt = 'Coordinator prompt';
 
     const memberDef = makeAgentConfig('Member');
     memberDef.tools = [];
+    memberDef.systemPrompt = 'Member prompt';
 
     const coordinatorNode = new TeamNodeConfig({ nodeDefinition: coordinatorDef });
     const memberNode = new TeamNodeConfig({ nodeDefinition: memberDef });
@@ -85,11 +88,6 @@ describe('AgentConfigurationPreparationStep', () => {
     });
     rebuildContextWithConfig(context, newTeamConfig);
 
-    context.state.preparedAgentPrompts = {
-      [coordinatorNode.name]: 'This is the special coordinator prompt.',
-      [memberNode.name]: 'Member prompt'
-    };
-
     const success = await step.execute(context);
 
     expect(success).toBe(true);
@@ -103,14 +101,20 @@ describe('AgentConfigurationPreparationStep', () => {
     expect(coordToolNames).toContain(CreateTasks.getName());
     expect(coordToolNames).toContain(SendMessageTo.getName());
     expect(coordToolNames.length).toBe(2);
-    expect(coordConfig.systemPrompt).toBe(context.state.preparedAgentPrompts[coordinatorNode.name]);
+    expect(coordConfig.systemPrompt).toBe(coordinatorDef.systemPrompt);
     expect(coordConfig.initialCustomData?.teamContext).toBe(context);
+    expect(
+      coordConfig.systemPromptProcessors.some((processor) => processor instanceof TeamManifestInjectorProcessor)
+    ).toBe(true);
 
     const memberConfig = finalConfigs[memberNode.name];
     expect(memberConfig).toBeInstanceOf(AgentConfig);
     expect(memberConfig.tools.length).toBe(0);
-    expect(memberConfig.systemPrompt).toBe(context.state.preparedAgentPrompts[memberNode.name]);
+    expect(memberConfig.systemPrompt).toBe(memberDef.systemPrompt);
     expect(memberConfig.initialCustomData?.teamContext).toBe(context);
+    expect(
+      memberConfig.systemPromptProcessors.some((processor) => processor instanceof TeamManifestInjectorProcessor)
+    ).toBe(true);
   });
 
   it('fails if team manager missing', async () => {

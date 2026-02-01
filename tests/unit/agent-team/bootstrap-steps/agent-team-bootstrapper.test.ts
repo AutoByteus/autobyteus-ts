@@ -19,9 +19,6 @@ vi.mock('../../../../src/agent-team/bootstrap-steps/team-context-initialization-
 vi.mock('../../../../src/agent-team/bootstrap-steps/task-notifier-initialization-step.js', () => ({
   TaskNotifierInitializationStep: vi.fn().mockImplementation(function () {})
 }));
-vi.mock('../../../../src/agent-team/bootstrap-steps/team-manifest-injection-step.js', () => ({
-  TeamManifestInjectionStep: vi.fn().mockImplementation(function () {})
-}));
 vi.mock('../../../../src/agent-team/bootstrap-steps/agent-configuration-preparation-step.js', () => ({
   AgentConfigurationPreparationStep: vi.fn().mockImplementation(function () {})
 }));
@@ -31,7 +28,6 @@ vi.mock('../../../../src/agent-team/bootstrap-steps/coordinator-initialization-s
 
 import { TeamContextInitializationStep } from '../../../../src/agent-team/bootstrap-steps/team-context-initialization-step.js';
 import { TaskNotifierInitializationStep } from '../../../../src/agent-team/bootstrap-steps/task-notifier-initialization-step.js';
-import { TeamManifestInjectionStep } from '../../../../src/agent-team/bootstrap-steps/team-manifest-injection-step.js';
 import { AgentConfigurationPreparationStep } from '../../../../src/agent-team/bootstrap-steps/agent-configuration-preparation-step.js';
 import { CoordinatorInitializationStep } from '../../../../src/agent-team/bootstrap-steps/coordinator-initialization-step.js';
 
@@ -87,10 +83,9 @@ describe('AgentTeamBootstrapper', () => {
 
     expect(TeamContextInitializationStep).toHaveBeenCalledTimes(1);
     expect(TaskNotifierInitializationStep).toHaveBeenCalledTimes(1);
-    expect(TeamManifestInjectionStep).toHaveBeenCalledTimes(1);
     expect(AgentConfigurationPreparationStep).toHaveBeenCalledTimes(1);
     expect(CoordinatorInitializationStep).toHaveBeenCalledTimes(1);
-    expect(bootstrapper.bootstrapSteps.length).toBe(5);
+    expect(bootstrapper.bootstrapSteps.length).toBe(4);
   });
 
   it('initializes with custom steps', () => {

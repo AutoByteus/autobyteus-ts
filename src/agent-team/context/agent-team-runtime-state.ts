@@ -20,7 +20,6 @@ export class AgentTeamRuntimeState {
   teamId: string;
   currentStatus: AgentTeamStatus;
 
-  preparedAgentPrompts: Record<string, string> = {};
   finalAgentConfigs: Record<string, AgentConfig> = {};
 
   teamManager: TeamManagerLike | null = null;
