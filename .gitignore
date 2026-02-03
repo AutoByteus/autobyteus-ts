@@ -22,3 +22,9 @@ mcp-config-*/
 
 # Misc
 .vite/
+
+# Build artifacts accidentally emitted into src/
+src/**/*.js
+src/**/*.js.map
+src/**/*.d.ts
+src/**/*.d.ts.map
