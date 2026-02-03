@@ -3,12 +3,11 @@ import { ResponseStreamEvent } from 'openai/resources/responses/responses.mjs';
 import { BaseLLM } from '../base.js';
 import { LLMModel } from '../models.js';
 import { LLMConfig } from '../utils/llm-config.js';
-import { LLMUserMessage } from '../user-message.js';
 import { Message } from '../utils/messages.js';
 import { CompleteResponse, ChunkResponse } from '../utils/response-types.js';
 import { TokenUsage } from '../utils/token-usage.js';
-import { mediaSourceToBase64, createDataUri, getMimeType, isValidMediaPath } from '../utils/media-payload-formatter.js';
 import { ToolCallDelta } from '../utils/tool-call-delta.js';
+import { OpenAIResponsesRenderer } from '../prompt-renderers/openai-responses-renderer.js';
 
 type ResponseInputItem = Record<string, unknown>;
 type ResponseOutputItem = Record<string, unknown>;
@@ -21,68 +20,10 @@ const asArray = (value: unknown): unknown[] => (Array.isArray(value) ? value : [
 
 const asNumber = (value: unknown): number => (typeof value === 'number' ? value : 0);
 
-async function formatResponsesHistory(messages: Message[]): Promise<ResponseInputItem[]> {
-  const formattedMessages: ResponseInputItem[] = [];
-
-  for (const msg of messages) {
-    if (msg.image_urls.length || msg.audio_urls.length || msg.video_urls.length) {
-      const contentParts: Record<string, unknown>[] = [];
-
-      if (msg.content) {
-        contentParts.push({ type: 'input_text', text: msg.content });
-      }
-
-      if (msg.image_urls.length) {
-        const base64Results = await Promise.allSettled(
-          msg.image_urls.map((url) => mediaSourceToBase64(url))
-        );
-
-        for (let index = 0; index < base64Results.length; index += 1) {
-          const result = base64Results[index];
-          const source = msg.image_urls[index];
-          if (result.status !== 'fulfilled') {
-            console.error(`Error processing image ${source}: ${result.reason}`);
-            continue;
-          }
-
-          const hasLocalPath = source ? await isValidMediaPath(source) : false;
-          const mimeType = hasLocalPath ? getMimeType(source) : 'image/jpeg';
-          const dataUri = createDataUri(mimeType, result.value).image_url.url;
-          contentParts.push({
-            type: 'input_image',
-            image_url: dataUri,
-            detail: 'auto'
-          });
-        }
-      }
-
-      if (msg.audio_urls.length) {
-        console.warn('OpenAI Responses input does not yet support audio; skipping.');
-      }
-      if (msg.video_urls.length) {
-        console.warn('OpenAI Responses input does not yet support video; skipping.');
-      }
-
-      formattedMessages.push({
-        type: 'message',
-        role: msg.role,
-        content: contentParts
-      });
-    } else {
-      formattedMessages.push({
-        type: 'message',
-        role: msg.role,
-        content: msg.content ?? ''
-      });
-    }
-  }
-
-  return formattedMessages;
-}
-
 export class OpenAIResponsesLLM extends BaseLLM {
   protected client: OpenAIClient;
   protected maxTokens: number | null;
+  protected _renderer: OpenAIResponsesRenderer;
 
   constructor(
     model: LLMModel,
@@ -109,6 +50,7 @@ export class OpenAIResponsesLLM extends BaseLLM {
 
     this.client = new OpenAIClient({ apiKey, baseURL: baseUrl });
     this.maxTokens = effectiveConfig.maxTokens ?? null;
+    this._renderer = new OpenAIResponsesRenderer();
   }
 
   private createTokenUsage(usageData?: ResponseUsage | null): TokenUsage | null {
@@ -185,13 +127,11 @@ export class OpenAIResponsesLLM extends BaseLLM {
     });
   }
 
-  protected async _sendUserMessageToLLM(
-    userMessage: LLMUserMessage,
+  protected async _sendMessagesToLLM(
+    messages: Message[],
     kwargs: Record<string, unknown>
   ): Promise<CompleteResponse> {
-    this.addUserMessage(userMessage);
-
-    const formattedMessages = await formatResponsesHistory(this.messages);
+    const formattedMessages = await this._renderer.render(messages);
     const params: Record<string, unknown> = {
       model: this.model.value,
       input: formattedMessages
@@ -221,7 +161,6 @@ export class OpenAIResponsesLLM extends BaseLLM {
     try {
       const response: any = await this.client.responses.create(params as any);
       const { content, reasoning } = this.extractOutputContent(response.output ?? []);
-      this.addAssistantMessage({ content, reasoning_content: reasoning ?? null });
 
       return new CompleteResponse({
         content,
@@ -233,13 +172,11 @@ export class OpenAIResponsesLLM extends BaseLLM {
     }
   }
 
-  protected async *_streamUserMessageToLLM(
-    userMessage: LLMUserMessage,
+  protected async *_streamMessagesToLLM(
+    messages: Message[],
     kwargs: Record<string, unknown>
   ): AsyncGenerator<ChunkResponse, void, unknown> {
-    this.addUserMessage(userMessage);
-
-    const formattedMessages = await formatResponsesHistory(this.messages);
+    const formattedMessages = await this._renderer.render(messages);
     const params: Record<string, unknown> = {
       model: this.model.value,
       input: formattedMessages,
@@ -397,10 +334,6 @@ export class OpenAIResponsesLLM extends BaseLLM {
         }
       }
 
-      this.addAssistantMessage({
-        content: accumulatedContent,
-        reasoning_content: accumulatedReasoning || null
-      });
     } catch (error: any) {
       throw new Error(`Error in OPENAI Responses API streaming: ${error?.message ?? error}`);
     }

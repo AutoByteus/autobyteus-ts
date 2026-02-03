@@ -41,6 +41,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
     let toolName = toolInvocation.name;
     let arguments_ = toolInvocation.arguments;
     let invocationId = toolInvocation.id;
+    const activeTurnId = toolInvocation.turnId ?? context.state.activeTurnId ?? undefined;
     const agentId = context.agentId;
 
     const notifier = context.statusManager?.notifier;
@@ -70,7 +71,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
         } catch (error) {
           const errorMessage = `Error in tool invocation preprocessor '${processor.getName()}' for tool '${toolName}': ${error}`;
           console.error(`Agent '${agentId}': ${errorMessage}`);
-          const resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage);
+          const resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage, undefined, activeTurnId);
           await context.inputEventQueues.enqueueToolResult(resultEvent);
           return;
         }
@@ -100,13 +101,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
     if (!toolInstance) {
       const errorMessage = `Tool '${toolName}' not found or configured for agent '${agentId}'.`;
       console.error(errorMessage);
-      resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage);
-      context.addMessageToHistory({
-        role: 'tool',
-        tool_call_id: invocationId,
-        name: toolName,
-        content: `Error: Approved tool '${toolName}' execution failed. Reason: ${errorMessage}`
-      });
+      resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage, undefined, activeTurnId);
 
       const logMsgError = `[APPROVED_TOOL_ERROR] ${errorMessage}`;
       if (notifier?.notifyAgentDataToolLog) {
@@ -142,15 +137,9 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
           executionResult,
           invocationId,
           undefined,
-          arguments_
+          arguments_,
+          activeTurnId
         );
-
-        context.addMessageToHistory({
-          role: 'tool',
-          tool_call_id: invocationId,
-          name: toolName,
-          content: String(executionResult)
-        });
 
         const logMsgResult = `[APPROVED_TOOL_RESULT] ${resultJsonForLog}`;
         if (notifier?.notifyAgentDataToolLog) {
@@ -170,14 +159,7 @@ export class ApprovedToolInvocationEventHandler extends AgentEventHandler {
         const errorMessage = `Error executing approved tool '${toolName}' (ID: ${invocationId}): ${String(error)}`;
         const errorDetails = error instanceof Error ? error.stack ?? String(error) : String(error);
         console.error(`Agent '${agentId}' ${errorMessage}`);
-        resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage);
-
-        context.addMessageToHistory({
-          role: 'tool',
-          tool_call_id: invocationId,
-          name: toolName,
-          content: `Error: Approved tool '${toolName}' execution failed. Reason: ${errorMessage}`
-        });
+        resultEvent = new ToolResultEvent(toolName, null, invocationId, errorMessage, undefined, activeTurnId);
 
         const logMsgException = `[APPROVED_TOOL_EXCEPTION] ${errorMessage}\nDetails:\n${errorDetails}`;
         if (notifier?.notifyAgentDataToolLog) {

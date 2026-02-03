@@ -14,7 +14,7 @@ import { LLMModel } from '../../../src/llm/models.js';
 import { LLMProvider } from '../../../src/llm/providers.js';
 import { LLMConfig } from '../../../src/llm/utils/llm-config.js';
 import { CompleteResponse, ChunkResponse } from '../../../src/llm/utils/response-types.js';
-import type { LLMUserMessage } from '../../../src/llm/user-message.js';
+import { Message } from '../../../src/llm/utils/messages.js';
 import { defaultToolRegistry } from '../../../src/tools/registry/tool-registry.js';
 import { registerWriteFileTool } from '../../../src/tools/file/write-file.js';
 import { registerReadFileTool } from '../../../src/tools/file/read-file.js';
@@ -22,13 +22,20 @@ import { registerPatchFileTool } from '../../../src/tools/file/patch-file.js';
 import { registerRunBashTool } from '../../../src/tools/terminal/tools/run-bash.js';
 import { TerminalResult } from '../../../src/tools/terminal/types.js';
 
+let nodePtyAvailable = true;
+try {
+  await import('node-pty');
+} catch {
+  nodePtyAvailable = false;
+}
+
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: Message[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
-    _userMessage: LLMUserMessage
+  protected async *_streamMessagesToLLM(
+    _messages: Message[]
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'ok', is_complete: true });
   }
@@ -51,6 +58,7 @@ type AgentFixture = {
   agent: ReturnType<AgentFactory['createAgent']>;
   llm: DummyLLM;
   workspaceDir: string;
+  memoryDir: string;
 };
 
 const waitFor = async (
@@ -69,8 +77,24 @@ const waitFor = async (
   throw new Error(`Timed out waiting for ${description}.`);
 };
 
+const readRawTraces = async (memoryDir: string, agentId: string): Promise<Record<string, unknown>[]> => {
+  const rawPath = path.join(memoryDir, 'agents', agentId, 'raw_traces.jsonl');
+  try {
+    const content = await fs.readFile(rawPath, 'utf-8');
+    return content
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => JSON.parse(line));
+  } catch {
+    return [];
+  }
+};
+
 const createAgentFixture = async (tools: any[]): Promise<AgentFixture> => {
   const workspaceDir = await fs.mkdtemp(path.join(os.tmpdir(), 'tool-approval-'));
+  const memoryDir = await fs.mkdtemp(path.join(os.tmpdir(), 'autobyteus-memory-'));
+  process.env.AUTOBYTEUS_MEMORY_DIR = memoryDir;
   const workspace = new TestWorkspace(workspaceDir);
   const model = new LLMModel({
     name: 'dummy',
@@ -97,14 +121,23 @@ const createAgentFixture = async (tools: any[]): Promise<AgentFixture> => {
   const agent = new AgentFactory().createAgent(config);
   agent.start();
   await waitForAgentToBeIdle(agent, 10);
-  return { agent, llm, workspaceDir };
+  return { agent, llm, workspaceDir, memoryDir };
+};
+
+const assignActiveTurn = (fixture: AgentFixture): string => {
+  const memoryManager = fixture.agent.context.state.memoryManager;
+  const turnId = memoryManager?.startTurn() ?? `turn_${Date.now()}`;
+  fixture.agent.context.state.activeTurnId = turnId;
+  return turnId;
 };
 
 describe('Tool approval integration flow', () => {
   let fixture: AgentFixture | null = null;
+  let previousMemoryDir: string | undefined;
 
   beforeEach(() => {
     defaultToolRegistry.clear();
+    previousMemoryDir = process.env.AUTOBYTEUS_MEMORY_DIR;
   });
 
   afterEach(async () => {
@@ -112,18 +145,25 @@ describe('Tool approval integration flow', () => {
       await fixture.agent.stop(2);
       await fixture.llm.cleanup();
       await fs.rm(fixture.workspaceDir, { recursive: true, force: true });
+      await fs.rm(fixture.memoryDir, { recursive: true, force: true });
       fixture = null;
+    }
+    if (previousMemoryDir) {
+      process.env.AUTOBYTEUS_MEMORY_DIR = previousMemoryDir;
+    } else {
+      delete process.env.AUTOBYTEUS_MEMORY_DIR;
     }
   });
 
   it('executes write_file after approval', async () => {
     const writeTool = registerWriteFileTool();
     fixture = await createAgentFixture([writeTool]);
+    const turnId = assignActiveTurn(fixture);
 
     const relativePath = 'poem.txt';
     const content = 'hello from approval';
     const invocationId = `write-${Date.now()}`;
-    const invocation = new ToolInvocation('write_file', { path: relativePath, content }, invocationId);
+    const invocation = new ToolInvocation('write_file', { path: relativePath, content }, invocationId, turnId);
 
     await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
@@ -160,13 +200,14 @@ describe('Tool approval integration flow', () => {
   it('executes read_file after approval and records tool output', async () => {
     const readTool = registerReadFileTool();
     fixture = await createAgentFixture([readTool]);
+    const turnId = assignActiveTurn(fixture);
 
     const relativePath = 'sample.txt';
     const fileContent = 'line1\nline2\n';
     await fs.writeFile(path.join(fixture.workspaceDir, relativePath), fileContent, 'utf-8');
 
     const invocationId = `read-${Date.now()}`;
-    const invocation = new ToolInvocation('read_file', { path: relativePath }, invocationId);
+    const invocation = new ToolInvocation('read_file', { path: relativePath }, invocationId, turnId);
 
     await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
@@ -182,24 +223,34 @@ describe('Tool approval integration flow', () => {
     await fixture.agent.postToolExecutionApproval(invocationId, true, 'approved');
 
     await waitFor(
-      () =>
-        fixture!.agent.context.conversationHistory.some(
-          (entry) => entry.role === 'tool' && String(entry.content).includes('1: line1')
-        ),
+      async () => {
+        const traces = await readRawTraces(fixture!.memoryDir, fixture!.agent.agentId);
+        return traces.some(
+          (trace) =>
+            trace.trace_type === 'tool_result' &&
+            trace.tool_name === 'read_file' &&
+            String(trace.tool_result ?? '').includes('1: line1')
+        );
+      },
       5000,
       50,
       'read_file tool output'
     );
 
-    const lastToolEntry = fixture.agent.context.conversationHistory.find(
-      (entry) => entry.role === 'tool' && String(entry.content).includes('1: line1')
+    const traces = await readRawTraces(fixture.memoryDir, fixture.agent.agentId);
+    const lastToolTrace = traces.find(
+      (trace) =>
+        trace.trace_type === 'tool_result' &&
+        trace.tool_name === 'read_file' &&
+        String(trace.tool_result ?? '').includes('1: line1')
     );
-    expect(lastToolEntry).toBeDefined();
+    expect(lastToolTrace).toBeDefined();
   });
 
   it('executes patch_file after approval', async () => {
     const patchTool = registerPatchFileTool();
     fixture = await createAgentFixture([patchTool]);
+    const turnId = assignActiveTurn(fixture);
 
     const relativePath = 'patch_target.txt';
     const initialContent = 'line1\nline2\nline3\n';
@@ -214,7 +265,7 @@ describe('Tool approval integration flow', () => {
 `;
 
     const invocationId = `patch-${Date.now()}`;
-    const invocation = new ToolInvocation('patch_file', { path: relativePath, patch }, invocationId);
+    const invocation = new ToolInvocation('patch_file', { path: relativePath, patch }, invocationId, turnId);
 
     await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
@@ -247,15 +298,18 @@ describe('Tool approval integration flow', () => {
     expect(patchedContent).toBe('line1\nline2 updated\nline3\n');
   });
 
-  it('executes run_bash after approval', async () => {
+  const runBashIntegration = nodePtyAvailable ? it : it.skip;
+  runBashIntegration('executes run_bash after approval', async () => {
     const runBashTool = registerRunBashTool();
     fixture = await createAgentFixture([runBashTool]);
+    const turnId = assignActiveTurn(fixture);
 
     const invocationId = `bash-${Date.now()}`;
     const invocation = new ToolInvocation(
       'run_bash',
       { command: "printf 'approval_ok'", timeout_seconds: 5 },
-      invocationId
+      invocationId,
+      turnId
     );
 
     await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(

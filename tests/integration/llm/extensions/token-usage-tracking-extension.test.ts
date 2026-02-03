@@ -4,16 +4,15 @@ import { BaseLLM } from '../../../../src/llm/base.js';
 import { BaseTokenCounter } from '../../../../src/llm/token-counter/base-token-counter.js';
 import { Message, MessageRole } from '../../../../src/llm/utils/messages.js';
 import { CompleteResponse } from '../../../../src/llm/utils/response-types.js';
-import { LLMUserMessage } from '../../../../src/llm/user-message.js';
 import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
 import { LLMConfig, TokenPricingConfig } from '../../../../src/llm/utils/llm-config.js';
 
 class MockLLM extends BaseLLM {
-  async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: '' });
   }
-  async *_streamUserMessageToLLM(): AsyncGenerator<any, void, unknown> {
+  async *_streamMessagesToLLM(_messages: any[]): AsyncGenerator<any, void, unknown> {
     yield;
   }
 }
@@ -41,9 +40,8 @@ describe('TokenUsageTrackingExtension (integration)', () => {
     const llm = new MockLLM(model, model.defaultConfig);
     const ext = new TokenUsageTrackingExtension(llm, mockFactory);
 
-    llm.messages.push(new Message(MessageRole.USER, 'hi'));
-    ext.onUserMessageAdded(llm.messages[0]);
-    ext.onAssistantMessageAdded(new Message(MessageRole.ASSISTANT, 'ok'));
+    const messages = [new Message(MessageRole.USER, 'hi')];
+    await ext.beforeInvoke(messages);
 
     const response = new CompleteResponse({
       content: '',
@@ -54,7 +52,7 @@ describe('TokenUsageTrackingExtension (integration)', () => {
       }
     });
 
-    await ext.afterInvoke(new LLMUserMessage({ content: 'hello' }), response);
+    await ext.afterInvoke(messages, response);
     const latest = ext.getLatestUsage();
     expect(latest?.total_tokens).toBe(15);
   });

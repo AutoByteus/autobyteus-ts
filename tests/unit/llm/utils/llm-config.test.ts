@@ -73,6 +73,8 @@ describe('LLMConfig', () => {
     expect(config.presencePenalty).toBeNull();
     expect(config.stopSequences).toBeNull();
     expect(config.extraParams).toEqual({});
+    expect(config.compactionRatio).toBeNull();
+    expect(config.safetyMarginTokens).toBeNull();
     expect(config.pricingConfig.inputTokenPricing).toBe(0.0);
     expect(config.pricingConfig.outputTokenPricing).toBe(0.0);
   });
@@ -84,6 +86,8 @@ describe('LLMConfig', () => {
       systemMessage: 'Be concise.',
       temperature: 0.5,
       maxTokens: 1024,
+      compactionRatio: 0.5,
+      safetyMarginTokens: 128,
       stopSequences: ['\nUser:'],
       extraParams: { custom_key: 'custom_value' },
       pricingConfig: pricing
@@ -92,6 +96,8 @@ describe('LLMConfig', () => {
     expect(config.systemMessage).toBe('Be concise.');
     expect(config.temperature).toBe(0.5);
     expect(config.maxTokens).toBe(1024);
+    expect(config.compactionRatio).toBe(0.5);
+    expect(config.safetyMarginTokens).toBe(128);
     expect(config.stopSequences).toEqual(['\nUser:']);
     expect(config.extraParams).toEqual({ custom_key: 'custom_value' });
     expect(config.pricingConfig).toBe(pricing);
@@ -118,6 +124,8 @@ describe('LLMConfig', () => {
       systemMessage: 'Test prompt',
       temperature: 0.9,
       maxTokens: 500,
+      compactionRatio: 0.6,
+      safetyMarginTokens: 256,
       extraParams: { test: 1 },
       pricingConfig: TokenPricingConfig.fromDict({ input_token_pricing: 0.01, output_token_pricing: 0.02 })
     });
@@ -126,6 +134,8 @@ describe('LLMConfig', () => {
       system_message: 'Test prompt',
       temperature: 0.9,
       max_tokens: 500,
+      compaction_ratio: 0.6,
+      safety_margin_tokens: 256,
       extra_params: { test: 1 },
       pricing_config: { input_token_pricing: 0.01, output_token_pricing: 0.02 }
     });
@@ -149,6 +159,8 @@ describe('LLMConfig', () => {
       frequency_penalty: 0.1,
       presence_penalty: 0.2,
       stop_sequences: ['stop'],
+      compaction_ratio: 0.55,
+      safety_margin_tokens: 192,
       extra_params: { extra: 'param' },
       pricing_config: { input_token_pricing: 0.07, output_token_pricing: 0.08 }
     };
@@ -158,6 +170,8 @@ describe('LLMConfig', () => {
     expect(config.temperature).toBe(0.2);
     expect(config.maxTokens).toBe(200);
     expect(config.extraParams).toEqual({ extra: 'param' });
+    expect(config.compactionRatio).toBe(0.55);
+    expect(config.safetyMarginTokens).toBe(192);
     expect(config.pricingConfig.inputTokenPricing).toBe(0.07);
   });
 
@@ -166,6 +180,8 @@ describe('LLMConfig', () => {
     expect(config.systemMessage).toBe('Partial dict test');
     expect(config.maxTokens).toBe(150);
     expect(config.temperature).toBe(0.7);
+    expect(config.compactionRatio).toBeNull();
+    expect(config.safetyMarginTokens).toBeNull();
     expect(config.pricingConfig).toBeInstanceOf(TokenPricingConfig);
   });
 

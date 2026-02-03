@@ -3,14 +3,13 @@ import { BaseLLM } from '../base.js';
 import { LLMModel } from '../models.js';
 import { LLMProvider } from '../providers.js';
 import { LLMConfig } from '../utils/llm-config.js';
-import { LLMUserMessage } from '../user-message.js';
 import { CompleteResponse, ChunkResponse } from '../utils/response-types.js';
-import { Message, MessageRole } from '../utils/messages.js';
+import { Message } from '../utils/messages.js';
 import { TokenUsage } from '../utils/token-usage.js';
 import { initializeGeminiClientWithRuntime } from '../../utils/gemini-helper.js';
 import { resolveModelForRuntime } from '../../utils/gemini-model-mapping.js';
-import { mediaSourceToBase64, getMimeType } from '../utils/media-payload-formatter.js';
 import { convertGeminiToolCalls } from '../converters/gemini-tool-call-converter.js';
+import { GeminiPromptRenderer } from '../prompt-renderers/gemini-prompt-renderer.js';
 
 const THINKING_LEVEL_BUDGETS: Record<string, number> = {
   minimal: 0,
@@ -42,6 +41,7 @@ const splitGeminiParts = (parts: Array<Record<string, unknown>> = []): { content
 export class GeminiLLM extends BaseLLM {
   private client: GoogleGenAI;
   private runtimeInfo: { runtime: string; project: string | null; location: string | null } | null = null;
+  private _renderer: GeminiPromptRenderer;
 
   constructor(model?: LLMModel, llmConfig?: LLMConfig) {
     const effectiveModel =
@@ -59,40 +59,7 @@ export class GeminiLLM extends BaseLLM {
     const init = initializeGeminiClientWithRuntime();
     this.client = init.client;
     this.runtimeInfo = init.runtimeInfo;
-  }
-
-  private async formatGeminiHistory(messages: Message[]): Promise<Array<Record<string, unknown>>> {
-    const history: Array<Record<string, unknown>> = [];
-
-    for (const msg of messages) {
-      if (msg.role !== MessageRole.USER && msg.role !== MessageRole.ASSISTANT) {
-        continue;
-      }
-
-      const role = msg.role === MessageRole.ASSISTANT ? 'model' : 'user';
-      const parts: Array<Record<string, unknown>> = [];
-
-      if (msg.content) {
-        parts.push({ text: msg.content });
-      }
-
-      const mediaUrls = [...msg.image_urls, ...msg.audio_urls, ...msg.video_urls];
-      for (const url of mediaUrls) {
-        try {
-          const b64 = await mediaSourceToBase64(url);
-          const mimeType = getMimeType(url);
-          parts.push({ inlineData: { data: b64, mimeType } });
-        } catch (error) {
-          console.error(`Failed to process Gemini media ${url}: ${error}`);
-        }
-      }
-
-      if (parts.length) {
-        history.push({ role, parts });
-      }
-    }
-
-    return history;
+    this._renderer = new GeminiPromptRenderer();
   }
 
   private buildGenerationConfig(tools?: Array<Record<string, unknown>>): Record<string, unknown> {
@@ -189,10 +156,8 @@ export class GeminiLLM extends BaseLLM {
     };
   }
 
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
-    this.addUserMessage(userMessage);
-
-    const history = await this.formatGeminiHistory(this.messages);
+  protected async _sendMessagesToLLM(messages: Message[], kwargs: Record<string, unknown>): Promise<CompleteResponse> {
+    const history = await this._renderer.render(messages);
     const runtimeAdjustedModel = resolveModelForRuntime(
       this.model.value,
       'llm',
@@ -218,8 +183,6 @@ export class GeminiLLM extends BaseLLM {
       reasoning = split.reasoning || null;
     }
 
-    this.addAssistantMessage({ content, reasoning_content: reasoning ?? null });
-
     return new CompleteResponse({
       content,
       reasoning: reasoning ?? null,
@@ -227,10 +190,8 @@ export class GeminiLLM extends BaseLLM {
     });
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
-    this.addUserMessage(userMessage);
-
-    const history = await this.formatGeminiHistory(this.messages);
+  protected async *_streamMessagesToLLM(messages: Message[], kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
+    const history = await this._renderer.render(messages);
     const runtimeAdjustedModel = resolveModelForRuntime(
       this.model.value,
       'llm',
@@ -287,7 +248,6 @@ export class GeminiLLM extends BaseLLM {
       }
     }
 
-    this.addAssistantMessage({ content: accumulatedContent, reasoning_content: accumulatedReasoning || null });
   }
 
   async cleanup(): Promise<void> {

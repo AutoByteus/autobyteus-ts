@@ -7,10 +7,10 @@ import { CompleteResponse, ChunkResponse } from '../../../src/llm/utils/response
 import { LLMProvider } from '../../../src/llm/providers.js';
 
 class ConcreteLLM extends BaseLLM {
-  async _sendUserMessageToLLM(): Promise<CompleteResponse> {
+  async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'Mock response' });
   }
-  async *_streamUserMessageToLLM(): AsyncGenerator<ChunkResponse, void, unknown> {
+  async *_streamMessagesToLLM(_messages: any[]): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'Chunk1' });
     yield new ChunkResponse({ content: 'Chunk2', is_complete: true });
   }

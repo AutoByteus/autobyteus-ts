@@ -12,18 +12,38 @@ import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMConfig } from '../../../../src/llm/utils/llm-config.js';
 import { CompleteResponse } from '../../../../src/llm/utils/response-types.js';
 import { ToolSchemaProvider } from '../../../../src/tools/usage/providers/tool-schema-provider.js';
-import type { LLMUserMessage as LLMUserMessageType } from '../../../../src/llm/user-message.js';
 import type { ChunkResponse as ChunkResponseType } from '../../../../src/llm/utils/response-types.js';
+import { MemoryManager } from '../../../../src/memory/memory-manager.js';
+import { MemoryStore } from '../../../../src/memory/store/base-store.js';
+import { MemoryType } from '../../../../src/memory/models/memory-types.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessageType): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
-    _userMessage: LLMUserMessageType
+  protected async *_streamMessagesToLLM(
+    _messages: any[]
   ): AsyncGenerator<ChunkResponseType, void, unknown> {
     yield new ChunkResponse({ content: 'ok', is_complete: true });
+  }
+}
+
+class InMemoryStore extends MemoryStore {
+  private items: any[] = [];
+
+  add(items: Iterable<any>): void {
+    for (const item of items) {
+      this.items.push(item);
+    }
+  }
+
+  list(memoryType: MemoryType, limit?: number): any[] {
+    const filtered = this.items.filter((item) => item?.memoryType === memoryType);
+    if (typeof limit === 'number') {
+      return filtered.slice(-limit);
+    }
+    return filtered;
   }
 }
 
@@ -48,6 +68,7 @@ const makeContext = (provider: LLMProvider, toolNames: string[] = []) => {
 
   state.inputEventQueues = inputQueues;
   state.statusManagerRef = { notifier } as any;
+  state.memoryManager = new MemoryManager({ store: new InMemoryStore() });
   state.toolInstances = toolNames.reduce((acc, name) => {
     acc[name] = { getName: () => name };
     return acc;
@@ -86,7 +107,8 @@ describe('LLMUserMessageReadyEventHandler', () => {
 
     const mockLLM = {
       model: { provider: LLMProvider.ANTHROPIC },
-      streamUserMessage: async function* (_msg: LLMUserMessageType) {
+      config: { systemMessage: 'system' },
+      streamMessages: async function* (_messages: any[], _rendered: unknown, _kwargs: Record<string, any>) {
         for (const chunk of chunks) {
           yield chunk;
         }
@@ -120,7 +142,8 @@ describe('LLMUserMessageReadyEventHandler', () => {
 
     const mockLLM = {
       model: { provider: LLMProvider.GEMINI },
-      streamUserMessage: async function* (_msg: LLMUserMessageType) {
+      config: { systemMessage: 'system' },
+      streamMessages: async function* (_messages: any[], _rendered: unknown, _kwargs: Record<string, any>) {
         yield new ChunkResponse({ content: jsonPayload, is_complete: true });
       }
     };
@@ -142,7 +165,8 @@ describe('LLMUserMessageReadyEventHandler', () => {
 
     const mockLLM = {
       model: { provider: LLMProvider.OPENAI },
-      streamUserMessage: async function* (_msg: LLMUserMessageType) {
+      config: { systemMessage: 'system' },
+      streamMessages: async function* (_messages: any[], _rendered: unknown, _kwargs: Record<string, any>) {
         yield new ChunkResponse({ content: '<write_file>', is_complete: true });
       }
     };
@@ -187,7 +211,8 @@ describe('LLMUserMessageReadyEventHandler', () => {
     const toolsPassed: { value: any } = { value: null };
     const mockLLM = {
       model: { provider: LLMProvider.OPENAI },
-      streamUserMessage: async function* (_msg: LLMUserMessageType, kwargs: Record<string, any>) {
+      config: { systemMessage: 'system' },
+      streamMessages: async function* (_messages: any[], _rendered: unknown, kwargs: Record<string, any>) {
         toolsPassed.value = kwargs.tools;
         yield new ChunkResponse({ content: 'Hello', is_complete: true });
       }

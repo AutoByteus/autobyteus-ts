@@ -48,7 +48,6 @@ runIntegration('QwenLLM Integration', () => {
 
       expect(receivedTokens.length).toBeGreaterThan(0);
       expect(completeResponse.length).toBeGreaterThan(0);
-      expect(llm.messages.length).toBe(3);
     } finally {
       await llm.cleanup();
     }
@@ -64,9 +63,6 @@ runIntegration('QwenLLM Integration', () => {
       expect(response).toBeInstanceOf(CompleteResponse);
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessageText);
-      expect(llm.messages[2].content).toBe(response.content);
     } finally {
       await llm.cleanup();
     }
@@ -90,9 +86,6 @@ runIntegration('QwenLLM Integration', () => {
 
       expect(receivedTokens.length).toBeGreaterThan(0);
       expect(completeResponse.length).toBeGreaterThan(0);
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessageText);
-      expect(llm.messages[2].content).toBe(completeResponse);
     } finally {
       await llm.cleanup();
     }

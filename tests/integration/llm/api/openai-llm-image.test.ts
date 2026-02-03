@@ -49,9 +49,6 @@ runIntegration('OpenAILLM Image Integration', () => {
       expect(response).toBeInstanceOf(CompleteResponse);
       expect(typeof response.content).toBe('string');
       expect(response.content.toLowerCase()).toContain('blue');
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessage.content);
-      expect(llm.messages[1].image_urls).toEqual([sampleImagePath]);
     } finally {
       await llm.cleanup();
     }
@@ -73,9 +70,6 @@ runIntegration('OpenAILLM Image Integration', () => {
       const response = await llm.sendUserMessage(userMessage);
       expect(response).toBeInstanceOf(CompleteResponse);
       expect(response.content.toLowerCase()).toContain('blue');
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessage.content);
-      expect(llm.messages[1].image_urls).toEqual(userMessage.image_urls);
     } finally {
       await llm.cleanup();
     }
@@ -102,9 +96,6 @@ runIntegration('OpenAILLM Image Integration', () => {
       const text = response.content.toLowerCase();
       expect(text).toContain('red');
       expect(text).toContain('green');
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessage.content);
-      expect(llm.messages[1].image_urls).toEqual([img1, img2]);
     } finally {
       await llm.cleanup();
     }
@@ -131,9 +122,6 @@ runIntegration('OpenAILLM Image Integration', () => {
       }
 
       expect(completeResponse.toLowerCase()).toContain('blue');
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessage.content);
-      expect(llm.messages[1].image_urls).toEqual([sampleImagePath]);
     } finally {
       await llm.cleanup();
     }
@@ -152,15 +140,12 @@ runIntegration('OpenAILLM Image Integration', () => {
       expect(response).toBeInstanceOf(CompleteResponse);
       expect(typeof response.content).toBe('string');
       expect(response.content.length).toBeGreaterThan(0);
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessage.content);
-      expect(llm.messages[1].image_urls).toEqual([invalidPath]);
     } finally {
       await llm.cleanup();
     }
   }, 120000);
 
-  it('should clear messages on cleanup', async () => {
+  it('should allow cleanup after a multimodal request', async () => {
     if (!fs.existsSync(sampleImagePath)) {
       return;
     }
@@ -173,6 +158,5 @@ runIntegration('OpenAILLM Image Integration', () => {
 
     await llm.sendUserMessage(userMessage);
     await llm.cleanup();
-    expect(llm.messages.length).toBe(0);
   }, 120000);
 });

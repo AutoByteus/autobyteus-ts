@@ -6,11 +6,10 @@ import { ToolInvocation, ToolInvocationTurn } from '../tool-invocation.js';
 import { ToDoList } from '../../task-management/todo-list.js';
 import { BaseLLM } from '../../llm/base.js';
 import type { BaseTool } from '../../tools/base-tool.js';
+import type { MemoryManager } from '../../memory/memory-manager.js';
 
 import type { AgentStatusDeriver } from '../status/status-deriver.js';
 import type { AgentStatusManager } from '../status/manager.js';
-
-type MessagePayload = Record<string, any>;
 
 type ToolInstances = Record<string, BaseTool>;
 
@@ -23,18 +22,18 @@ export class AgentRuntimeState {
   eventStore: AgentEventStore | null = null;
   statusDeriver: AgentStatusDeriver | null = null;
   workspace: BaseAgentWorkspace | null;
-  conversationHistory: MessagePayload[];
   pendingToolApprovals: Record<string, ToolInvocation>;
   customData: Record<string, any>;
   activeMultiToolCallTurn: ToolInvocationTurn | null = null;
   todoList: ToDoList | null = null;
+  memoryManager: MemoryManager | null = null;
+  activeTurnId: string | null = null;
   processedSystemPrompt: string | null = null;
   statusManagerRef: AgentStatusManager | null = null;
 
   constructor(
     agentId: string,
     workspace: BaseAgentWorkspace | null = null,
-    conversationHistory: MessagePayload[] | null = null,
     customData: Record<string, any> | null = null
   ) {
     if (!agentId || typeof agentId !== 'string') {
@@ -49,24 +48,12 @@ export class AgentRuntimeState {
     this.agentId = agentId;
     this.currentStatus = AgentStatus.UNINITIALIZED;
     this.workspace = workspace;
-    this.conversationHistory = conversationHistory ?? [];
     this.pendingToolApprovals = {};
     this.customData = customData ?? {};
 
     console.info(
       `AgentRuntimeState initialized for agent_id '${this.agentId}'. Initial status: ${this.currentStatus}. Workspace linked. InputQueues pending initialization. Output data via notifier.`
     );
-  }
-
-  addMessageToHistory(message: MessagePayload): void {
-    if (!message || typeof message !== 'object' || !('role' in message)) {
-      console.warn(
-        `Attempted to add malformed message to history for agent '${this.agentId}': ${JSON.stringify(message)}`
-      );
-      return;
-    }
-    this.conversationHistory.push(message);
-    console.debug(`Message added to history for agent '${this.agentId}': role=${message.role}`);
   }
 
   storePendingToolInvocation(invocation: ToolInvocation): void {
@@ -106,7 +93,6 @@ export class AgentRuntimeState {
       `llmStatus='${llmStatus}', toolsStatus='${toolsStatus}', ` +
       `inputQueuesStatus='${inputQueuesStatus}', ` +
       `pendingApprovals=${Object.keys(this.pendingToolApprovals).length}, ` +
-      `historyLen=${this.conversationHistory.length}, ` +
       `multiToolCallTurn='${activeTurnStatus}')`
     );
   }

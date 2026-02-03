@@ -18,3 +18,5 @@ export { GenerateSpeechTool } from './multimedia/audio-tools.js';
 export { ReadMediaFile } from './multimedia/media-reader-tool.js';
 export { DownloadMediaTool } from './multimedia/download-media-tool.js';
 export { ReadUrl } from './web/read-url-tool.js';
+
+export * from './terminal/index.js';

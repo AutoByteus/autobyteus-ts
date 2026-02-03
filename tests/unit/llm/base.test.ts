@@ -4,16 +4,19 @@ import { LLMModel } from '../../../src/llm/models.js';
 import { LLMConfig } from '../../../src/llm/utils/llm-config.js';
 import { LLMUserMessage } from '../../../src/llm/user-message.js';
 import { CompleteResponse, ChunkResponse } from '../../../src/llm/utils/response-types.js';
-import { MessageRole } from '../../../src/llm/utils/messages.js';
+import { Message, MessageRole } from '../../../src/llm/utils/messages.js';
 import { LLMProvider } from '../../../src/llm/providers.js';
 
 class ConcreteLLM extends BaseLLM {
-  async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
-    // Mock response
+  lastMessages: Message[] | null = null;
+
+  async _sendMessagesToLLM(messages: Message[], _kwargs: Record<string, unknown>): Promise<CompleteResponse> {
+    this.lastMessages = messages;
     return new CompleteResponse({ content: 'Mock response' });
   }
 
-  async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
+  async *_streamMessagesToLLM(messages: Message[], _kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
+    this.lastMessages = messages;
     yield new ChunkResponse({ content: 'Mock' });
     yield new ChunkResponse({ content: ' Stream', is_complete: true });
   }
@@ -36,32 +39,36 @@ describe('BaseLLM', () => {
   });
 
   it('should initialize with system message', () => {
-    expect(llm.messages).toHaveLength(1);
-    expect(llm.messages[0].role).toBe(MessageRole.SYSTEM);
-    expect(llm.messages[0].content).toContain("helpful assistant");
+    expect(llm.systemMessage).toContain('helpful assistant');
+    expect(llm.config.systemMessage).toContain('helpful assistant');
   });
 
-  it('should add user message', () => {
-    llm.addUserMessage(new LLMUserMessage({ content: 'Hi' }));
-    expect(llm.messages).toHaveLength(2);
-    expect(llm.messages[1].role).toBe(MessageRole.USER);
-    expect(llm.messages[1].content).toBe('Hi');
-  });
-
-  it('should send user message and trigger hooks', async () => {
-    const spy = vi.spyOn(llm as any, 'executeBeforeHooks');
+  it('should send user message and build system + user messages', async () => {
     const resp = await llm.sendUserMessage(new LLMUserMessage({ content: 'Hi' }));
     expect(resp.content).toBe('Mock response');
-    expect(spy).toHaveBeenCalled();
+    expect(llm.lastMessages).toHaveLength(2);
+    expect(llm.lastMessages?.[0].role).toBe(MessageRole.SYSTEM);
+    expect(llm.lastMessages?.[1].role).toBe(MessageRole.USER);
+    expect(llm.lastMessages?.[1].content).toBe('Hi');
+  });
+
+  it('should stream messages with explicit list', async () => {
+    const messages = [new Message(MessageRole.USER, 'Hello')];
+    const chunks: string[] = [];
+    for await (const chunk of llm.streamMessages(messages)) {
+      if (chunk.content) chunks.push(chunk.content);
+    }
+    expect(chunks.join('')).toBe('Mock Stream');
+    expect(llm.lastMessages).toEqual(messages);
   });
 
   it('should configure system prompt', () => {
     llm.configureSystemPrompt('New prompt');
-    expect(llm.messages[0].content).toBe('New prompt');
-    
-    // Add another, ensure it replaces first
+    expect(llm.systemMessage).toBe('New prompt');
+    expect(llm.config.systemMessage).toBe('New prompt');
+
     llm.configureSystemPrompt('New prompt 2');
-    expect(llm.messages[0].content).toBe('New prompt 2');
-    expect(llm.messages).toHaveLength(1);
+    expect(llm.systemMessage).toBe('New prompt 2');
+    expect(llm.config.systemMessage).toBe('New prompt 2');
   });
 });

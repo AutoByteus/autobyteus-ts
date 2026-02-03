@@ -63,6 +63,10 @@ export class TokenUsageTracker {
     this.currentUsage = null;
   }
 
+  countOutputTokens(message: Message): number {
+    return this.tokenCounter.countOutputTokens(message);
+  }
+
   getLatestUsage(): TokenUsage | null {
     return this.usageHistory.length > 0 ? this.usageHistory[this.usageHistory.length - 1] : null;
   }

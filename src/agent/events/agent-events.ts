@@ -121,13 +121,15 @@ export class ToolResultEvent extends AgentOperationalEvent {
   toolInvocationId?: string;
   error?: string;
   toolArgs?: Record<string, unknown>;
+  turnId?: string;
 
   constructor(
     toolName: string,
     result: unknown,
     toolInvocationId?: string,
     error?: string,
-    toolArgs?: Record<string, unknown>
+    toolArgs?: Record<string, unknown>,
+    turnId?: string
   ) {
     super();
     this.toolName = toolName;
@@ -135,6 +137,7 @@ export class ToolResultEvent extends AgentOperationalEvent {
     this.toolInvocationId = toolInvocationId;
     this.error = error;
     this.toolArgs = toolArgs;
+    this.turnId = turnId;
   }
 }
 

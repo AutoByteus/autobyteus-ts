@@ -39,6 +39,9 @@ import { ApprovedToolInvocationEventHandler } from '../handlers/approved-tool-in
 import { BootstrapEventHandler } from '../handlers/bootstrap-event-handler.js';
 import { LifecycleEventLogger } from '../handlers/lifecycle-event-logger.js';
 import { SkillRegistry } from '../../skills/registry.js';
+import { FileMemoryStore, MemoryManager } from '../../memory/index.js';
+import { MemoryIngestInputProcessor } from '../input-processor/memory-ingest-input-processor.js';
+import { MemoryIngestToolResultProcessor } from '../tool-execution-result-processor/memory-ingest-tool-result-processor.js';
 import { AgentRuntime } from '../runtime/agent-runtime.js';
 import { registerTools } from '../../tools/register-tools.js';
 import { initializeLogging } from '../../utils/logger.js';
@@ -141,9 +144,23 @@ export class AgentFactory extends Singleton {
     const runtimeState = new AgentRuntimeState(
       agentId,
       config.workspace ?? null,
-      null,
       config.initialCustomData ?? null
     );
+
+    const memoryDir = process.env.AUTOBYTEUS_MEMORY_DIR ?? path.join(process.cwd(), 'memory');
+    const memoryStore = new FileMemoryStore(memoryDir, agentId);
+    runtimeState.memoryManager = new MemoryManager({ store: memoryStore });
+
+    if (!config.inputProcessors.some((processor) => processor instanceof MemoryIngestInputProcessor)) {
+      config.inputProcessors.push(new MemoryIngestInputProcessor());
+    }
+    if (
+      !config.toolExecutionResultProcessors.some(
+        (processor) => processor instanceof MemoryIngestToolResultProcessor
+      )
+    ) {
+      config.toolExecutionResultProcessors.push(new MemoryIngestToolResultProcessor());
+    }
 
     runtimeState.llmInstance = config.llmInstance;
     runtimeState.toolInstances = this.prepareToolInstances(agentId, config);

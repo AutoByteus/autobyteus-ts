@@ -32,12 +32,13 @@ describe('AgentRuntimeState', () => {
 
     expect(state.agentId).toBe('agent-1');
     expect(state.currentStatus).toBe(AgentStatus.UNINITIALIZED);
-    expect(state.conversationHistory).toEqual([]);
     expect(state.pendingToolApprovals).toEqual({});
     expect(state.customData).toEqual({});
     expect(state.workspace).toBeNull();
     expect(state.activeMultiToolCallTurn).toBeNull();
     expect(state.todoList).toBeNull();
+    expect(state.memoryManager).toBeNull();
+    expect(state.activeTurnId).toBeNull();
   });
 
   it('accepts a workspace instance', () => {
@@ -51,25 +52,8 @@ describe('AgentRuntimeState', () => {
     expect(() => new AgentRuntimeState('agent-3', {} as BaseAgentWorkspace)).toThrow(/workspace/);
   });
 
-  it('adds valid messages to history', () => {
-    const state = new AgentRuntimeState('agent-4');
-
-    state.addMessageToHistory({ role: 'user', content: 'hi' });
-
-    expect(state.conversationHistory).toHaveLength(1);
-    expect(state.conversationHistory[0]).toEqual({ role: 'user', content: 'hi' });
-  });
-
-  it('ignores malformed messages', () => {
-    const state = new AgentRuntimeState('agent-5');
-
-    state.addMessageToHistory({ content: 'missing role' } as Record<string, unknown>);
-
-    expect(state.conversationHistory).toHaveLength(0);
-  });
-
   it('stores and retrieves pending tool invocations', () => {
-    const state = new AgentRuntimeState('agent-6');
+    const state = new AgentRuntimeState('agent-4');
     const invocation = new ToolInvocation('tool', { foo: 'bar' }, 'inv-1');
 
     state.storePendingToolInvocation(invocation);
@@ -81,13 +65,13 @@ describe('AgentRuntimeState', () => {
   });
 
   it('handles missing pending tool invocations', () => {
-    const state = new AgentRuntimeState('agent-7');
+    const state = new AgentRuntimeState('agent-5');
 
     expect(state.retrievePendingToolInvocation('missing')).toBeUndefined();
   });
 
   it('does not store invalid tool invocations', () => {
-    const state = new AgentRuntimeState('agent-8');
+    const state = new AgentRuntimeState('agent-6');
 
     state.storePendingToolInvocation({} as ToolInvocation);
 
@@ -95,9 +79,9 @@ describe('AgentRuntimeState', () => {
   });
 
   it('renders a readable string representation', () => {
-    const state = new AgentRuntimeState('agent-9');
+    const state = new AgentRuntimeState('agent-7');
 
-    expect(state.toString()).toContain("agentId='agent-9'");
+    expect(state.toString()).toContain("agentId='agent-7'");
     expect(state.toString()).toContain("currentStatus='uninitialized'");
   });
 });

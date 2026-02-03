@@ -2,10 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { BaseLLM } from '../base.js';
 import { LLMModel } from '../models.js';
 import { LLMConfig } from '../utils/llm-config.js';
-import { LLMUserMessage } from '../user-message.js';
+import { Message } from '../utils/messages.js';
 import { CompleteResponse, ChunkResponse } from '../utils/response-types.js';
 import { TokenUsage } from '../utils/token-usage.js';
 import { AutobyteusClient } from '../../clients/autobyteus-client.js';
+import { AutobyteusPromptRenderer } from '../prompt-renderers/autobyteus-prompt-renderer.js';
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -27,6 +28,7 @@ const toTokenUsage = (value: unknown): TokenUsage => {
 export class AutobyteusLLM extends BaseLLM {
   private client: AutobyteusClient;
   private conversationId: string;
+  private _renderer: AutobyteusPromptRenderer;
 
   constructor(model: LLMModel, llmConfig: LLMConfig) {
     if (!model.hostUrl) {
@@ -37,21 +39,26 @@ export class AutobyteusLLM extends BaseLLM {
 
     this.client = new AutobyteusClient(model.hostUrl);
     this.conversationId = randomUUID();
+    this._renderer = new AutobyteusPromptRenderer();
   }
 
-  protected async _sendUserMessageToLLM(
-    userMessage: LLMUserMessage,
+  protected async _sendMessagesToLLM(
+    messages: Message[],
     _kwargs: Record<string, unknown>
   ): Promise<CompleteResponse> {
-    this.addUserMessage(userMessage);
+    const rendered = await this._renderer.render(messages);
+    if (!rendered.length) {
+      throw new Error('AutobyteusLLM requires at least one user message.');
+    }
 
+    const payload = rendered[0];
     const response = await this.client.sendMessage(
       this.conversationId,
       this.model.name,
-      userMessage.content,
-      userMessage.image_urls,
-      userMessage.audio_urls,
-      userMessage.video_urls
+      String(payload.content ?? ''),
+      Array.isArray(payload.image_urls) ? payload.image_urls : [],
+      Array.isArray(payload.audio_urls) ? payload.audio_urls : [],
+      Array.isArray(payload.video_urls) ? payload.video_urls : []
     );
 
     const responseRecord = isRecord(response) ? response : {};
@@ -60,8 +67,6 @@ export class AutobyteusLLM extends BaseLLM {
       asString(responseRecord.content) ??
       asString(responseRecord.message) ??
       '';
-    this.addAssistantMessage({ content: assistantMessage });
-
     const tokenUsage = toTokenUsage(responseRecord.token_usage);
 
     return new CompleteResponse({
@@ -70,20 +75,24 @@ export class AutobyteusLLM extends BaseLLM {
     });
   }
 
-  protected async *_streamUserMessageToLLM(
-    userMessage: LLMUserMessage,
+  protected async *_streamMessagesToLLM(
+    messages: Message[],
     _kwargs: Record<string, unknown>
   ): AsyncGenerator<ChunkResponse, void, unknown> {
-    this.addUserMessage(userMessage);
-    let completeResponse = '';
+    const rendered = await this._renderer.render(messages);
+    if (!rendered.length) {
+      throw new Error('AutobyteusLLM requires at least one user message.');
+    }
+
+    const payload = rendered[0];
 
     for await (const chunk of this.client.streamMessage(
       this.conversationId,
       this.model.name,
-      userMessage.content,
-      userMessage.image_urls,
-      userMessage.audio_urls,
-      userMessage.video_urls
+      String(payload.content ?? ''),
+      Array.isArray(payload.image_urls) ? payload.image_urls : [],
+      Array.isArray(payload.audio_urls) ? payload.audio_urls : [],
+      Array.isArray(payload.video_urls) ? payload.video_urls : []
     )) {
       if (chunk?.error) {
         throw new Error(String(chunk.error));
@@ -91,9 +100,6 @@ export class AutobyteusLLM extends BaseLLM {
 
       const chunkRecord = isRecord(chunk) ? chunk : {};
       const content = asString(chunkRecord.content) ?? '';
-      if (content) {
-        completeResponse += content;
-      }
 
       const isComplete = Boolean(chunkRecord.is_complete ?? false);
       let usage: TokenUsage | null = null;
@@ -112,8 +118,6 @@ export class AutobyteusLLM extends BaseLLM {
         usage
       });
     }
-
-    this.addAssistantMessage({ content: completeResponse });
   }
 
   async cleanup(): Promise<void> {

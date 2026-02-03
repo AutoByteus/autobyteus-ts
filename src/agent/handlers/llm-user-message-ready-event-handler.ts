@@ -7,17 +7,16 @@ import {
   BaseEvent
 } from '../events/agent-events.js';
 import { ChunkResponse, CompleteResponse } from '../../llm/utils/response-types.js';
+import { BaseLLM } from '../../llm/base.js';
 import { StreamingResponseHandlerFactory } from '../streaming/handlers/streaming-handler-factory.js';
 import { SegmentEvent, SegmentType } from '../streaming/segments/segment-events.js';
 import { ToolInvocationTurn } from '../tool-invocation.js';
+import { OpenAIChatRenderer } from '../../llm/prompt-renderers/openai-chat-renderer.js';
+import { LLMRequestAssembler } from '../llm-request-assembler.js';
+import { applyCompactionPolicy, resolveTokenBudget } from '../token-budget.js';
 import type { AgentContext } from '../context/agent-context.js';
 import type { LLMUserMessage } from '../../llm/user-message.js';
 import type { TokenUsage } from '../../llm/utils/token-usage.js';
-
-type LLMInstanceLike = {
-  streamUserMessage: (message: LLMUserMessage, kwargs?: Record<string, any>) => AsyncGenerator<ChunkResponse, void, unknown>;
-  model?: { provider?: any };
-};
 
 export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
   constructor() {
@@ -34,7 +33,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     }
 
     const agentId = context.agentId;
-    const llmInstance = context.state.llmInstance as LLMInstanceLike | null;
+    const llmInstance = context.state.llmInstance as BaseLLM | null;
     if (!llmInstance) {
       const errorMsg = `Agent '${agentId}' received LLMUserMessageReadyEvent but LLM instance is not yet initialized.`;
       console.error(errorMsg);
@@ -50,8 +49,16 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     console.debug(
       `Agent '${agentId}' preparing to send full message to LLM:\n---\n${llmUserMessage.content}\n---`
     );
+    const memoryManager = context.state.memoryManager;
+    if (!memoryManager) {
+      throw new Error(`Agent '${agentId}' requires a memory manager to assemble LLM requests.`);
+    }
 
-    context.state.addMessageToHistory({ role: 'user', content: llmUserMessage.content });
+    let activeTurnId = context.state.activeTurnId ?? null;
+    if (!activeTurnId) {
+      activeTurnId = memoryManager.startTurn();
+      context.state.activeTurnId = activeTurnId;
+    }
 
     let completeResponseText = '';
     let completeReasoningText = '';
@@ -122,8 +129,17 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     const segmentIdPrefix = `turn_${randomUUID().replace(/-/g, '')}:`;
     let currentReasoningPartId: string | null = null;
 
+    const renderer = (llmInstance as any)._renderer ?? new OpenAIChatRenderer();
+    const assembler = new LLMRequestAssembler(memoryManager, renderer);
+    const systemPrompt = context.state.processedSystemPrompt ?? llmInstance.config.systemMessage ?? null;
+    const request = await assembler.prepareRequest(llmUserMessage, activeTurnId, systemPrompt ?? undefined);
+
     try {
-      for await (const chunkResponse of llmInstance.streamUserMessage(llmUserMessage, streamKwargs)) {
+      for await (const chunkResponse of llmInstance.streamMessages(
+        request.messages,
+        request.renderedPayload,
+        streamKwargs
+      )) {
         if (chunkResponse.content) {
           completeResponseText += chunkResponse.content;
         }
@@ -167,6 +183,12 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
             `Agent '${agentId}': Parsed ${toolInvocations.length} tool invocations from streaming parser.`
           );
           for (const invocation of toolInvocations) {
+            if (activeTurnId && !invocation.turnId) {
+              invocation.turnId = activeTurnId;
+            }
+            if (memoryManager) {
+              memoryManager.ingestToolIntent(invocation, activeTurnId ?? undefined);
+            }
             await context.inputEventQueues.enqueueToolInvocationRequest(
               new PendingToolInvocationEvent(invocation)
             );
@@ -180,7 +202,6 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     } catch (error) {
       console.error(`Agent '${agentId}' error during LLM stream: ${error}`);
       const errorMessage = `Error processing your request with the LLM: ${String(error)}`;
-      context.state.addMessageToHistory({ role: 'assistant', content: errorMessage, is_error: true });
 
       if (notifier) {
         try {
@@ -204,21 +225,6 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       return;
     }
 
-    const historyEntry: Record<string, any> = { role: 'assistant', content: completeResponseText };
-    if (completeReasoningText) {
-      historyEntry.reasoning = completeReasoningText;
-    }
-    if (completeImageUrls.length) {
-      historyEntry.image_urls = completeImageUrls;
-    }
-    if (completeAudioUrls.length) {
-      historyEntry.audio_urls = completeAudioUrls;
-    }
-    if (completeVideoUrls.length) {
-      historyEntry.video_urls = completeVideoUrls;
-    }
-    context.state.addMessageToHistory(historyEntry);
-
     const completeResponse = new CompleteResponse({
       content: completeResponseText,
       reasoning: completeReasoningText || null,
@@ -227,6 +233,23 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       audio_urls: completeAudioUrls,
       video_urls: completeVideoUrls
     });
+
+    if (memoryManager && activeTurnId) {
+      memoryManager.ingestAssistantResponse(completeResponse, activeTurnId, 'LLMCompleteResponseReceivedEvent');
+      if (tokenUsage) {
+        const budget = resolveTokenBudget(llmInstance.model, llmInstance.config, memoryManager.compactionPolicy);
+        if (budget) {
+          applyCompactionPolicy(memoryManager.compactionPolicy, budget);
+          if (memoryManager.compactor && memoryManager.compactionPolicy.shouldCompact(
+            tokenUsage.prompt_tokens,
+            budget.inputBudget
+          )) {
+            memoryManager.requestCompaction();
+          }
+        }
+      }
+    }
+
     await context.inputEventQueues.enqueueInternalSystemEvent(
       new LLMCompleteResponseReceivedEvent(completeResponse)
     );

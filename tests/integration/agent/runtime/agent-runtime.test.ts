@@ -47,11 +47,11 @@ import type { LLMUserMessage } from '../../../../src/llm/user-message.js';
 import type { ChunkResponse } from '../../../../src/llm/utils/response-types.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
+  protected async *_streamMessagesToLLM(
     _userMessage: LLMUserMessage
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     yield { content: 'ok', is_complete: true } as ChunkResponse;
@@ -133,7 +133,7 @@ describe('Agent runtime integration', () => {
     const config = createDummyConfig();
     const agentId = `runtime_${Date.now()}`;
 
-    const state = new AgentRuntimeState(agentId, null, null, null);
+    const state = new AgentRuntimeState(agentId, null, null);
     state.llmInstance = config.llmInstance;
     state.toolInstances = {};
 

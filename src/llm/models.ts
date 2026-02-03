@@ -11,6 +11,9 @@ export interface LLMModelOptions {
   llmClass?: new (model: LLMModel, config: LLMConfig) => BaseLLM;
   canonicalName: string;
   defaultConfig?: LLMConfig;
+  maxContextTokens?: number | null;
+  defaultCompactionRatio?: number | null;
+  defaultSafetyMarginTokens?: number | null;
   runtime?: LLMRuntime;
   hostUrl?: string;
   configSchema?: ParameterSchema; // Or generic dict if schema not ported
@@ -34,6 +37,9 @@ export class LLMModel {
   public provider: LLMProvider;
   public llmClass?: new (model: LLMModel, config: LLMConfig) => BaseLLM; 
   public defaultConfig: LLMConfig;
+  public maxContextTokens: number | null;
+  public defaultCompactionRatio: number | null;
+  public defaultSafetyMarginTokens: number | null;
   public runtime: LLMRuntime;
   public hostUrl?: string;
   public configSchema?: ParameterSchema;
@@ -46,6 +52,10 @@ export class LLMModel {
     this.provider = options.provider;
     this.llmClass = options.llmClass;
     this.defaultConfig = options.defaultConfig || new LLMConfig();
+    const defaultMaxContext = this.defaultConfig.tokenLimit ?? 200000;
+    this.maxContextTokens = options.maxContextTokens ?? defaultMaxContext;
+    this.defaultCompactionRatio = options.defaultCompactionRatio ?? 0.8;
+    this.defaultSafetyMarginTokens = options.defaultSafetyMarginTokens ?? 256;
     this.runtime = options.runtime || LLMRuntime.API;
     this.hostUrl = options.hostUrl;
     this.configSchema = options.configSchema;

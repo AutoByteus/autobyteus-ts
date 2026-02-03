@@ -5,10 +5,10 @@ import { CompleteResponse } from '../../../../src/llm/utils/response-types.js';
 import { LLMUserMessage } from '../../../../src/llm/user-message.js';
 
 class DummyLLM extends BaseLLM {
-  async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: '' });
   }
-  async *_streamUserMessageToLLM(): AsyncGenerator<any, void, unknown> {
+  async *_streamMessagesToLLM(_messages: any[]): AsyncGenerator<any, void, unknown> {
     yield;
   }
 }

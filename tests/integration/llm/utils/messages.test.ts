@@ -17,7 +17,8 @@ describe('Message (integration)', () => {
       reasoning_content: null,
       image_urls: ['img.png'],
       audio_urls: ['audio.mp3'],
-      video_urls: ['video.mp4']
+      video_urls: ['video.mp4'],
+      tool_payload: null
     });
   });
 });

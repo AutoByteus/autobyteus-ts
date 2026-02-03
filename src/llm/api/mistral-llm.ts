@@ -2,64 +2,17 @@ import { Mistral } from '@mistralai/mistralai';
 import { BaseLLM } from '../base.js';
 import { LLMModel } from '../models.js';
 import { LLMConfig } from '../utils/llm-config.js';
-import { LLMUserMessage } from '../user-message.js';
 import { CompleteResponse, ChunkResponse } from '../utils/response-types.js';
 import { TokenUsage } from '../utils/token-usage.js';
-import { Message, MessageRole } from '../utils/messages.js';
-import { mediaSourceToBase64, createDataUri, getMimeType, isValidMediaPath } from '../utils/media-payload-formatter.js';
+import { Message } from '../utils/messages.js';
 import { convertMistralToolCalls } from '../converters/mistral-tool-call-converter.js';
 import { LLMProvider } from '../providers.js';
-
-async function formatMistralMessages(messages: Message[]): Promise<any[]> {
-  const formatted: any[] = [];
-
-  for (const msg of messages) {
-    if (msg.role !== MessageRole.SYSTEM && !msg.content && msg.image_urls.length === 0) {
-      continue;
-    }
-
-    let content: any = msg.content ?? '';
-
-    if (msg.image_urls.length > 0) {
-      const parts: any[] = [];
-      if (msg.content) {
-        parts.push({ type: 'text', text: msg.content });
-      }
-
-      for (const url of msg.image_urls) {
-        try {
-          const b64 = await mediaSourceToBase64(url);
-          let mimeType = 'image/jpeg';
-          if (await isValidMediaPath(url)) {
-            mimeType = getMimeType(url);
-          }
-          const dataUri = createDataUri(mimeType, b64);
-          parts.push({
-            type: 'image_url',
-            imageUrl: {
-              url: dataUri.image_url.url
-            }
-          });
-        } catch (error) {
-          console.error(`Error processing image ${url}: ${error}`);
-        }
-      }
-
-      content = parts;
-    }
-
-    formatted.push({
-      role: msg.role,
-      content
-    });
-  }
-
-  return formatted;
-}
+import { MistralPromptRenderer } from '../prompt-renderers/mistral-prompt-renderer.js';
 
 export class MistralLLM extends BaseLLM {
   protected client: Mistral;
   protected maxTokens: number | null;
+  protected _renderer: MistralPromptRenderer;
 
   constructor(model?: LLMModel, llmConfig?: LLMConfig) {
     const effectiveModel =
@@ -81,6 +34,7 @@ export class MistralLLM extends BaseLLM {
 
     this.client = new Mistral({ apiKey });
     this.maxTokens = config.maxTokens ?? null;
+    this._renderer = new MistralPromptRenderer();
   }
 
   private toTokenUsage(usage: any): TokenUsage | null {
@@ -92,10 +46,8 @@ export class MistralLLM extends BaseLLM {
     };
   }
 
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
-    this.addUserMessage(userMessage);
-
-    const formattedMessages = await formatMistralMessages(this.messages);
+  protected async _sendMessagesToLLM(messages: Message[], kwargs: Record<string, unknown>): Promise<CompleteResponse> {
+    const formattedMessages = await this._renderer.render(messages);
 
     const params: any = {
       model: this.model.value,
@@ -123,8 +75,6 @@ export class MistralLLM extends BaseLLM {
           .join('');
       }
 
-      this.addAssistantMessage({ content });
-
       return new CompleteResponse({
         content,
         usage: this.toTokenUsage(response.usage)
@@ -134,10 +84,8 @@ export class MistralLLM extends BaseLLM {
     }
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
-    this.addUserMessage(userMessage);
-
-    const formattedMessages = await formatMistralMessages(this.messages);
+  protected async *_streamMessagesToLLM(messages: Message[], kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
+    const formattedMessages = await this._renderer.render(messages);
     const params: any = {
       model: this.model.value,
       messages: formattedMessages,
@@ -151,8 +99,6 @@ export class MistralLLM extends BaseLLM {
     if (this.config.extraParams) {
       Object.assign(params, this.config.extraParams);
     }
-
-    let accumulated = '';
 
     try {
       const stream = await this.client.chat.stream(params);
@@ -169,7 +115,6 @@ export class MistralLLM extends BaseLLM {
                 .map((part: any) => part?.text ?? '')
                 .join('');
           if (text) {
-            accumulated += text;
             yield new ChunkResponse({ content: text });
           }
         }
@@ -191,7 +136,6 @@ export class MistralLLM extends BaseLLM {
         }
       }
 
-      this.addAssistantMessage({ content: accumulated });
     } catch (error) {
       throw new Error(`Error in Mistral streaming: ${error}`);
     }

@@ -4,8 +4,9 @@ export class ToolInvocation {
   name: string;
   arguments: Record<string, unknown>;
   id: string;
+  turnId?: string;
 
-  constructor(name: string, arguments_: Record<string, unknown>, id: string) {
+  constructor(name: string, arguments_: Record<string, unknown>, id: string, turnId?: string) {
     if (!id) {
       throw new Error('ToolInvocation requires a non-empty id.');
     }
@@ -19,6 +20,7 @@ export class ToolInvocation {
     this.name = name;
     this.arguments = arguments_;
     this.id = id;
+    this.turnId = turnId;
   }
 
   isValid(): boolean {
@@ -26,7 +28,8 @@ export class ToolInvocation {
   }
 
   toString(): string {
-    return `ToolInvocation(id='${this.id}', name='${this.name}', arguments=${JSON.stringify(this.arguments)})`;
+    const turnSegment = this.turnId ? `, turnId='${this.turnId}'` : '';
+    return `ToolInvocation(id='${this.id}', name='${this.name}', arguments=${JSON.stringify(this.arguments)}${turnSegment})`;
   }
 }
 

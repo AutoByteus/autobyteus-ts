@@ -2,16 +2,61 @@ import Anthropic from '@anthropic-ai/sdk';
 import { BaseLLM } from '../base.js';
 import { LLMModel } from '../models.js';
 import { LLMConfig } from '../utils/llm-config.js';
-import { LLMUserMessage } from '../user-message.js';
 import { CompleteResponse, ChunkResponse } from '../utils/response-types.js';
 import { TokenUsage } from '../utils/token-usage.js';
 import { Message, MessageRole } from '../utils/messages.js';
-import { mediaSourceToBase64, getMimeType } from '../utils/media-payload-formatter.js';
 import { convertAnthropicToolCall } from '../converters/anthropic-tool-call-converter.js';
+import { AnthropicPromptRenderer } from '../prompt-renderers/anthropic-prompt-renderer.js';
+import type {
+  ContentBlock,
+  MessageCreateParamsNonStreaming,
+  MessageCreateParamsStreaming,
+  MessageParam,
+  RawMessageStreamEvent,
+  ToolUnion
+} from '@anthropic-ai/sdk/resources/messages/messages.js';
+
+const splitSystemMessages = (messages: Message[]): { systemPrompt: string | null; remaining: Message[] } => {
+  const systemParts = messages
+    .filter((msg) => msg.role === MessageRole.SYSTEM)
+    .map((msg) => msg.content)
+    .filter((content): content is string => Boolean(content));
+  const systemPrompt = systemParts.length ? systemParts.join('\n') : null;
+  const remaining = messages.filter((msg) => msg.role !== MessageRole.SYSTEM);
+  return { systemPrompt, remaining };
+};
+
+const buildThinkingParam = (extraParams: Record<string, unknown> | null | undefined): Record<string, unknown> | null => {
+  if (!extraParams) return null;
+  const enabled = extraParams.thinking_enabled;
+  if (enabled !== true) return null;
+  const budgetRaw = extraParams.thinking_budget_tokens;
+  const budget = typeof budgetRaw === 'number' ? budgetRaw : Number(budgetRaw ?? 1024);
+  return { type: 'enabled', budget_tokens: Number.isFinite(budget) ? budget : 1024 };
+};
+
+const splitClaudeContentBlocks = (blocks: ContentBlock[] | null | undefined): { content: string; thinking: string } => {
+  const contentSegments: string[] = [];
+  const thinkingSegments: string[] = [];
+
+  for (const block of blocks ?? []) {
+    const candidate = block as { type?: string; text?: string; thinking?: string; redacted_thinking?: string };
+    if (candidate?.type === 'text' && candidate.text) {
+      contentSegments.push(candidate.text);
+    } else if (candidate?.type === 'thinking' && candidate.thinking) {
+      thinkingSegments.push(candidate.thinking);
+    } else if (candidate?.type === 'redacted_thinking' && candidate.redacted_thinking) {
+      thinkingSegments.push(candidate.redacted_thinking);
+    }
+  }
+
+  return { content: contentSegments.join(''), thinking: thinkingSegments.join('') };
+};
 
 export class AnthropicLLM extends BaseLLM {
   protected client: Anthropic;
   protected maxTokens: number;
+  protected _renderer: AnthropicPromptRenderer;
 
   constructor(model: LLMModel, llmConfig?: LLMConfig) {
     if (!llmConfig) {
@@ -27,96 +72,54 @@ export class AnthropicLLM extends BaseLLM {
 
     this.client = new Anthropic({ apiKey });
     this.maxTokens = llmConfig.maxTokens ?? 8192;
+    this._renderer = new AnthropicPromptRenderer();
   }
 
-  private async formatAnthropicMessages(): Promise<Anthropic.MessageParam[]> {
-    const formattedMessages: Anthropic.MessageParam[] = [];
+  protected async _sendMessagesToLLM(messages: Message[], kwargs: Record<string, unknown>): Promise<CompleteResponse> {
+    const { systemPrompt, remaining } = splitSystemMessages(messages);
+    const formattedMessages = await this._renderer.render(remaining) as MessageParam[];
+    const thinkingParam = buildThinkingParam(this.config.extraParams ?? null);
 
-    for (const msg of this.messages) {
-      if (msg.role === MessageRole.SYSTEM) continue; // System handled separately
-
-      if (msg.image_urls && msg.image_urls.length > 0) {
-        const contentBlocks: Anthropic.ContentBlockParam[] = [];
-        
-        for (const url of msg.image_urls) {
-           try {
-             const b64 = await mediaSourceToBase64(url);
-             let mimeType = getMimeType(url);
-             const validImageMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-             if (!validImageMimes.includes(mimeType)) {
-               console.warn(
-                 `Unsupported image MIME type '${mimeType}' for ${url}. ` +
-                 `Anthropic supports: ${validImageMimes.join(', ')}. Defaulting to image/jpeg.`
-               );
-               mimeType = 'image/jpeg';
-             }
-             contentBlocks.push({
-               type: 'image',
-               source: {
-                 type: 'base64',
-                 media_type: mimeType as any,
-                 data: b64
-               }
-             });
-           } catch (error) {
-             console.error(`Error processing image ${url}: ${error}`);
-             continue;
-           }
-        }
-
-        if (msg.content) {
-          contentBlocks.push({ type: 'text', text: msg.content });
-        }
-        
-        formattedMessages.push({
-          role: msg.role === MessageRole.USER ? 'user' : 'assistant',
-          content: contentBlocks
-        });
-
-      } else {
-        formattedMessages.push({
-          role: msg.role === MessageRole.USER ? 'user' : 'assistant',
-          content: msg.content || ""
-        });
-      }
-    }
-    return formattedMessages;
-  }
-
-  protected async _sendUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): Promise<CompleteResponse> {
-    this.addUserMessage(userMessage);
-
-    const messages = await this.formatAnthropicMessages();
-    
-    const params: Anthropic.MessageCreateParams = {
+    const params: MessageCreateParamsNonStreaming = {
       model: this.model.value,
       max_tokens: this.maxTokens,
-      system: this.systemMessage,
-      messages: messages,
-      ...kwargs
+      messages: formattedMessages,
     };
+
+    if (systemPrompt) {
+      params.system = systemPrompt;
+    }
 
     if (this.config.extraParams) {
        Object.assign(params, this.config.extraParams);
-       // Handle thinking/budget if ported
+    }
+    const paramOverrides = { ...kwargs } as Partial<MessageCreateParamsNonStreaming>;
+    delete (paramOverrides as { stream?: unknown }).stream;
+    Object.assign(params, paramOverrides);
+    if (Array.isArray(kwargs.tools)) {
+      params.tools = kwargs.tools as ToolUnion[];
+    }
+
+    if (thinkingParam) {
+      params.thinking = thinkingParam as any;
+    } else if (!params.temperature) {
+      params.temperature = 0 as any;
     }
 
     try {
       const response = await this.client.messages.create(params);
       
-      let content = "";
+      let content = '';
+      let reasoning: string | null = null;
       if (response.content) {
-        // Extract text blocks
-        content = response.content
-          .filter(b => b.type === 'text')
-          .map(b => (b as Anthropic.TextBlock).text)
-          .join('');
+        const split = splitClaudeContentBlocks(response.content as ContentBlock[]);
+        content = split.content;
+        reasoning = split.thinking || null;
       }
 
-      this.addAssistantMessage({ content });
-
       return new CompleteResponse({
-        content,
+        content: content ?? '',
+        reasoning,
         usage: {
           prompt_tokens: response.usage.input_tokens,
           completion_tokens: response.usage.output_tokens,
@@ -128,31 +131,47 @@ export class AnthropicLLM extends BaseLLM {
     }
   }
 
-  protected async *_streamUserMessageToLLM(userMessage: LLMUserMessage, kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
-    this.addUserMessage(userMessage);
+  protected async *_streamMessagesToLLM(messages: Message[], kwargs: Record<string, unknown>): AsyncGenerator<ChunkResponse, void, unknown> {
+    const { systemPrompt, remaining } = splitSystemMessages(messages);
+    const formattedMessages = await this._renderer.render(remaining) as MessageParam[];
+    const thinkingParam = buildThinkingParam(this.config.extraParams ?? null);
 
-    const messages = await this.formatAnthropicMessages();
-    const params: any = {
+    const params: MessageCreateParamsStreaming = {
       model: this.model.value,
       max_tokens: this.maxTokens,
-      system: this.systemMessage,
-      messages: messages,
+      messages: formattedMessages,
       stream: true,
-      ...kwargs
     };
+
+    if (systemPrompt) {
+      params.system = systemPrompt;
+    }
     
-    // Tools handling omitted for brevity, similar to Python
-    if (kwargs.tools) params.tools = kwargs.tools;
+    if (Array.isArray(kwargs.tools)) params.tools = kwargs.tools as ToolUnion[];
+    if (thinkingParam) {
+      params.thinking = thinkingParam as any;
+    } else if (!params.temperature) {
+      params.temperature = 0 as any;
+    }
+    if (this.config.extraParams) {
+      Object.assign(params, this.config.extraParams);
+    }
+    const streamOverrides = { ...kwargs } as Partial<MessageCreateParamsStreaming>;
+    delete (streamOverrides as { stream?: unknown }).stream;
+    Object.assign(params, streamOverrides);
 
     try {
-      const stream = await this.client.messages.create(params) as any as AsyncIterable<Anthropic.MessageStreamEvent>;
+      const stream = await this.client.messages.create(params);
       
-      let accumulatedContent = "";
-
-      for await (const event of stream) {
+      for await (const event of stream as AsyncIterable<RawMessageStreamEvent>) {
         if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-          accumulatedContent += event.delta.text;
           yield new ChunkResponse({ content: event.delta.text });
+        }
+        if (event.type === 'content_block_delta' && event.delta.type === 'thinking_delta') {
+          const thinkingText = event.delta.thinking ?? '';
+          if (thinkingText) {
+            yield new ChunkResponse({ content: '', reasoning: thinkingText });
+          }
         }
         
         const toolDeltas = convertAnthropicToolCall(event);
@@ -165,7 +184,6 @@ export class AnthropicLLM extends BaseLLM {
            // In SDK stream, usage comes in message_delta maybe?
         }
         
-        // Handling usage in stream for Anthropic is slightly different (MessageDeltaEvent with usage)
         if (event.type === 'message_delta' && event.usage) {
            yield new ChunkResponse({
              content: "", is_complete: true,
@@ -177,9 +195,6 @@ export class AnthropicLLM extends BaseLLM {
            });
         }
       }
-      
-      this.addAssistantMessage({ content: accumulatedContent });
-
     } catch (e) {
       throw new Error(`Error in Anthropic streaming: ${e}`);
     }

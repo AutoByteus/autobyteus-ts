@@ -28,6 +28,14 @@ describe('BaseAgentWorkspace', () => {
     expect(workspace.config).toBe(config);
   });
 
+  it('uses workspaceId from config when provided', () => {
+    const config = new WorkspaceConfig({ workspaceId: 'custom_ws' });
+    const workspace = new TestWorkspace(config);
+
+    expect(workspace.workspaceId).toBe('custom_ws');
+  });
+
+
   it('sets context and exposes agentId', () => {
     const workspace = new TestWorkspace();
     const context = { agentId: 'agent-123' };

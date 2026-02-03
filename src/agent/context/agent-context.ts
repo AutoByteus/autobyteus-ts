@@ -10,8 +10,7 @@ import type { BaseAgentWorkspace } from '../workspace/base-workspace.js';
 
 import type { AgentStatusDeriver } from '../status/status-deriver.js';
 import type { AgentStatusManager } from '../status/manager.js';
-
-type MessagePayload = Record<string, any>;
+import type { MemoryManager } from '../../memory/memory-manager.js';
 
 export class AgentContext {
   agentId: string;
@@ -93,10 +92,6 @@ export class AgentContext {
     return this.state.statusDeriver;
   }
 
-  get conversationHistory(): MessagePayload[] {
-    return this.state.conversationHistory;
-  }
-
   get pendingToolApprovals(): Record<string, ToolInvocation> {
     return this.state.pendingToolApprovals;
   }
@@ -117,8 +112,8 @@ export class AgentContext {
     this.state.processedSystemPrompt = value;
   }
 
-  addMessageToHistory(message: MessagePayload): void {
-    this.state.addMessageToHistory(message);
+  get memoryManager(): MemoryManager | null {
+    return this.state.memoryManager;
   }
 
   getTool(toolName: string): BaseTool | undefined {

@@ -53,7 +53,6 @@ runIntegration('KimiLLM Integration', () => {
 
       expect(receivedTokens.length).toBeGreaterThan(1);
       expect(completeResponse.length).toBeGreaterThan(10);
-      expect(llm.messages.length).toBe(3);
     } finally {
       await llm.cleanup();
     }
@@ -69,9 +68,6 @@ runIntegration('KimiLLM Integration', () => {
       expect(response).toBeInstanceOf(CompleteResponse);
       expect(typeof response.content).toBe('string');
       expect(response.content.toLowerCase()).toContain('guido van rossum');
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessageText);
-      expect(llm.messages[2].content).toBe(response.content);
     } finally {
       await llm.cleanup();
     }
@@ -96,9 +92,6 @@ runIntegration('KimiLLM Integration', () => {
       expect(receivedTokens.length).toBeGreaterThan(1);
       expect(completeResponse.toLowerCase()).toContain('django');
       expect(completeResponse.toLowerCase()).toContain('flask');
-      expect(llm.messages.length).toBe(3);
-      expect(llm.messages[1].content).toBe(userMessageText);
-      expect(llm.messages[2].content).toBe(completeResponse);
     } finally {
       await llm.cleanup();
     }

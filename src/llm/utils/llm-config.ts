@@ -49,6 +49,8 @@ export interface LLMConfigData {
   system_message?: string;
   temperature?: number;
   max_tokens?: number | null;
+  compaction_ratio?: number | null;
+  safety_margin_tokens?: number | null;
   top_p?: number | null;
   frequency_penalty?: number | null;
   presence_penalty?: number | null;
@@ -63,6 +65,8 @@ export interface LLMConfigInput {
   systemMessage?: string;
   temperature?: number;
   maxTokens?: number | null;
+  compactionRatio?: number | null;
+  safetyMarginTokens?: number | null;
   topP?: number | null;
   frequencyPenalty?: number | null;
   presencePenalty?: number | null;
@@ -77,6 +81,8 @@ export class LLMConfig {
   public systemMessage: string;
   public temperature: number;
   public maxTokens: number | null;
+  public compactionRatio: number | null;
+  public safetyMarginTokens: number | null;
   public topP: number | null;
   public frequencyPenalty: number | null;
   public presencePenalty: number | null;
@@ -90,6 +96,8 @@ export class LLMConfig {
     this.systemMessage = data.systemMessage ?? 'You are a helpful assistant.';
     this.temperature = data.temperature ?? 0.7;
     this.maxTokens = data.maxTokens ?? null;
+    this.compactionRatio = data.compactionRatio ?? null;
+    this.safetyMarginTokens = data.safetyMarginTokens ?? null;
     this.topP = data.topP ?? null;
     this.frequencyPenalty = data.frequencyPenalty ?? null;
     this.presencePenalty = data.presencePenalty ?? null;
@@ -121,6 +129,8 @@ export class LLMConfig {
       systemMessage: (data as { system_message?: string }).system_message ?? undefined,
       temperature: (data as { temperature?: number }).temperature ?? undefined,
       maxTokens: (data as { max_tokens?: number | null }).max_tokens ?? null,
+      compactionRatio: (data as { compaction_ratio?: number | null }).compaction_ratio ?? null,
+      safetyMarginTokens: (data as { safety_margin_tokens?: number | null }).safety_margin_tokens ?? null,
       topP: (data as { top_p?: number | null }).top_p ?? null,
       frequencyPenalty: (data as { frequency_penalty?: number | null }).frequency_penalty ?? null,
       presencePenalty: (data as { presence_penalty?: number | null }).presence_penalty ?? null,
@@ -142,6 +152,8 @@ export class LLMConfig {
       system_message: this.systemMessage,
       temperature: this.temperature,
       max_tokens: this.maxTokens,
+      compaction_ratio: this.compactionRatio,
+      safety_margin_tokens: this.safetyMarginTokens,
       top_p: this.topP,
       frequency_penalty: this.frequencyPenalty,
       presence_penalty: this.presencePenalty,
@@ -212,6 +224,12 @@ export class LLMConfig {
     if (override.systemMessage !== null && override.systemMessage !== undefined) this.systemMessage = override.systemMessage;
     if (override.temperature !== null && override.temperature !== undefined) this.temperature = override.temperature;
     if (override.maxTokens !== null && override.maxTokens !== undefined) this.maxTokens = override.maxTokens;
+    if (override.compactionRatio !== null && override.compactionRatio !== undefined) {
+      this.compactionRatio = override.compactionRatio;
+    }
+    if (override.safetyMarginTokens !== null && override.safetyMarginTokens !== undefined) {
+      this.safetyMarginTokens = override.safetyMarginTokens;
+    }
     if (override.topP !== null && override.topP !== undefined) this.topP = override.topP;
     if (override.frequencyPenalty !== null && override.frequencyPenalty !== undefined) {
       this.frequencyPenalty = override.frequencyPenalty;

@@ -2,20 +2,14 @@ import { Ollama } from 'ollama';
 import { BaseLLM } from '../base.js';
 import { LLMModel } from '../models.js';
 import { LLMConfig } from '../utils/llm-config.js';
-import { LLMUserMessage } from '../user-message.js';
 import { CompleteResponse, ChunkResponse } from '../utils/response-types.js';
 import { TokenUsage } from '../utils/token-usage.js';
 import { Message } from '../utils/messages.js';
-import { mediaSourceToBase64 } from '../utils/media-payload-formatter.js';
-
-type OllamaMessage = {
-  role: string;
-  content: string;
-  images?: string[];
-};
+import { OllamaPromptRenderer } from '../prompt-renderers/ollama-prompt-renderer.js';
 
 export class OllamaLLM extends BaseLLM {
   private client: Ollama;
+  private _renderer: OllamaPromptRenderer;
 
   constructor(model: LLMModel, llmConfig: LLMConfig) {
     if (!model.hostUrl) {
@@ -24,41 +18,14 @@ export class OllamaLLM extends BaseLLM {
 
     super(model, llmConfig);
     this.client = new Ollama({ host: model.hostUrl });
+    this._renderer = new OllamaPromptRenderer();
   }
 
-  private async formatOllamaMessages(messages: Message[]): Promise<OllamaMessage[]> {
-    const formatted: OllamaMessage[] = [];
-
-    for (const msg of messages) {
-      const entry: OllamaMessage = {
-        role: msg.role,
-        content: msg.content ?? ''
-      };
-
-      if (msg.image_urls.length > 0) {
-        try {
-          const images = await Promise.all(msg.image_urls.map((url) => mediaSourceToBase64(url)));
-          if (images.length > 0) {
-            entry.images = images;
-          }
-        } catch (error) {
-          console.error(`Error processing images for Ollama, skipping them. Error: ${error}`);
-        }
-      }
-
-      formatted.push(entry);
-    }
-
-    return formatted;
-  }
-
-  protected async _sendUserMessageToLLM(
-    userMessage: LLMUserMessage,
+  protected async _sendMessagesToLLM(
+    messages: Message[],
     _kwargs: Record<string, unknown>
   ): Promise<CompleteResponse> {
-    this.addUserMessage(userMessage);
-
-    const formattedMessages = await this.formatOllamaMessages(this.messages);
+    const formattedMessages = await this._renderer.render(messages);
     const response: any = await this.client.chat({
       model: this.model.value,
       messages: formattedMessages
@@ -77,8 +44,6 @@ export class OllamaLLM extends BaseLLM {
       }
     }
 
-    this.addAssistantMessage({ content: mainContent, reasoning_content: reasoning });
-
     const promptTokens = response?.prompt_eval_count ?? 0;
     const completionTokens = response?.eval_count ?? 0;
     const usage: TokenUsage = {
@@ -94,12 +59,11 @@ export class OllamaLLM extends BaseLLM {
     });
   }
 
-  protected async *_streamUserMessageToLLM(
-    userMessage: LLMUserMessage,
+  protected async *_streamMessagesToLLM(
+    messages: Message[],
     _kwargs: Record<string, unknown>
   ): AsyncGenerator<ChunkResponse, void, unknown> {
-    this.addUserMessage(userMessage);
-    const formattedMessages = await this.formatOllamaMessages(this.messages);
+    const formattedMessages = await this._renderer.render(messages);
 
     const stream = await this.client.chat({
       model: this.model.value,
@@ -154,6 +118,5 @@ export class OllamaLLM extends BaseLLM {
     }
 
     yield new ChunkResponse({ content: '', reasoning: null, is_complete: true, usage });
-    this.addAssistantMessage({ content: accumulatedMain, reasoning_content: accumulatedReasoning });
   }
 }

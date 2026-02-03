@@ -9,7 +9,12 @@ export abstract class BaseAgentWorkspace {
 
   constructor(config?: WorkspaceConfig) {
     this.configValue = config ?? new WorkspaceConfig();
-    this.workspaceId = randomUUID();
+    const configuredId = this.configValue.get('workspaceId');
+    if (typeof configuredId === 'string' && configuredId.trim()) {
+      this.workspaceId = configuredId.trim();
+    } else {
+      this.workspaceId = randomUUID();
+    }
     console.debug(
       `${this.constructor.name} instance initialized with ID ${this.workspaceId}. Context pending injection.`
     );

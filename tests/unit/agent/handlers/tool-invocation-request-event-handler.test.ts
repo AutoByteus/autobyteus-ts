@@ -14,15 +14,15 @@ import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
 import { LLMConfig } from '../../../../src/llm/utils/llm-config.js';
 import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/response-types.js';
-import { LLMUserMessage } from '../../../../src/llm/user-message.js';
+import { Message } from '../../../../src/llm/utils/messages.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: Message[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
-    _userMessage: LLMUserMessage
+  protected async *_streamMessagesToLLM(
+    _messages: Message[]
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'ok', is_complete: true });
   }
@@ -75,7 +75,6 @@ describe('ToolInvocationRequestEventHandler', () => {
     };
     (context as any).state.statusManagerRef = { notifier };
     const storeSpy = vi.spyOn(context.state, 'storePendingToolInvocation');
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -89,20 +88,6 @@ describe('ToolInvocationRequestEventHandler', () => {
       invocation_id: 'mock-id-1',
       tool_name: 'mock_tool',
       arguments: { arg1: 'value1' }
-    });
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'assistant',
-      content: null,
-      tool_calls: [
-        {
-          id: 'mock-id-1',
-          type: 'function',
-          function: {
-            name: 'mock_tool',
-            arguments: JSON.stringify({ arg1: 'value1' })
-          }
-        }
-      ]
     });
     expect(inputQueues.enqueueToolResult).not.toHaveBeenCalled();
   });
@@ -125,41 +110,6 @@ describe('ToolInvocationRequestEventHandler', () => {
     ).toBe(true);
   });
 
-  it('handles approval-required with unserializable args', async () => {
-    const handler = new ToolInvocationRequestEventHandler();
-    const { context } = makeContext();
-    context.config.autoExecuteTools = false;
-    const invocation = new ToolInvocation('test_tool', { data: BigInt(42) }, 'bad-args-id');
-    const event = new PendingToolInvocationEvent(invocation);
-    const notifier = {
-      notifyAgentRequestToolInvocationApproval: vi.fn()
-    };
-    (context as any).state.statusManagerRef = { notifier };
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
-
-    await handler.handle(event, context);
-
-    expect(
-      warnSpy.mock.calls.some(([msg]: [unknown]) =>
-        String(msg).includes("Could not serialize args for history tool_call for 'test_tool'.")
-      )
-    ).toBe(true);
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'assistant',
-      content: null,
-      tool_calls: [
-        {
-          id: 'bad-args-id',
-          type: 'function',
-          function: {
-            name: 'test_tool',
-            arguments: '{}'
-          }
-        }
-      ]
-    });
-  });
-
   it('handles direct execution success', async () => {
     const handler = new ToolInvocationRequestEventHandler();
     const { context, inputQueues } = makeContext();
@@ -173,7 +123,6 @@ describe('ToolInvocationRequestEventHandler', () => {
       notifyAgentDataToolLog: vi.fn()
     };
     (context as any).state.statusManagerRef = { notifier };
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -189,12 +138,6 @@ describe('ToolInvocationRequestEventHandler', () => {
     ).toBe(true);
 
     expect(toolInstance.execute).toHaveBeenCalledWith(context, { arg1: 'value1' });
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'mock-id-2',
-      name: 'mock_tool',
-      content: 'Direct execution successful!'
-    });
 
     expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
     const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
@@ -214,7 +157,6 @@ describe('ToolInvocationRequestEventHandler', () => {
       notifyAgentErrorOutputGeneration: vi.fn()
     };
     (context as any).state.statusManagerRef = { notifier };
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -227,13 +169,6 @@ describe('ToolInvocationRequestEventHandler', () => {
       'ToolExecutionDirect.ToolNotFound.missing_tool',
       "Tool 'missing_tool' not found or configured for agent 'agent-1'."
     );
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'mock-id-3',
-      name: 'missing_tool',
-      content:
-        "Error: Tool 'missing_tool' execution failed. Reason: Tool 'missing_tool' not found or configured for agent 'agent-1'."
-    });
     const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
     expect(enqueued.error).toBe("Tool 'missing_tool' not found or configured for agent 'agent-1'.");
   });
@@ -251,7 +186,6 @@ describe('ToolInvocationRequestEventHandler', () => {
       notifyAgentErrorOutputGeneration: vi.fn()
     };
     (context as any).state.statusManagerRef = { notifier };
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -265,14 +199,6 @@ describe('ToolInvocationRequestEventHandler', () => {
     expect(callArgs[0]).toBe('ToolExecutionDirect.Exception.boom_tool');
     expect(String(callArgs[1])).toContain("Error executing tool 'boom_tool' (ID: mock-id-4)");
     expect(typeof callArgs[2]).toBe('string');
-
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'mock-id-4',
-      name: 'boom_tool',
-      content:
-        "Error: Tool 'boom_tool' execution failed. Reason: Error executing tool 'boom_tool' (ID: mock-id-4): Error: Tool crashed unexpectedly!"
-    });
     const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
     expect(enqueued.error).toContain("Error executing tool 'boom_tool'");
   });

@@ -13,11 +13,11 @@ import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/respo
 import { LLMUserMessage } from '../../../../src/llm/user-message.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(_userMessage: LLMUserMessage): AsyncGenerator<ChunkResponse, void, unknown> {
+  protected async *_streamMessagesToLLM(_messages: any[]): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'ok', is_complete: true });
   }
 }

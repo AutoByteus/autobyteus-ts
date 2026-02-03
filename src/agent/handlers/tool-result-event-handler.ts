@@ -118,6 +118,10 @@ export class ToolResultEventHandler extends AgentEventHandler {
       return;
     }
 
+    if (!event.turnId && context.state.activeTurnId) {
+      event.turnId = context.state.activeTurnId;
+    }
+
     const agentId = context.agentId;
     const notifier = context.statusManager?.notifier;
 
@@ -204,7 +208,9 @@ export class ToolResultEventHandler extends AgentEventHandler {
             invocation.name,
             null,
             invocation.id,
-            'Critical Error: Result for this tool call was lost.'
+            'Critical Error: Result for this tool call was lost.',
+            undefined,
+            invocation.turnId ?? context.state.activeTurnId ?? undefined
           )
         );
       }

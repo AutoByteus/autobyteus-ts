@@ -14,15 +14,15 @@ import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
 import { LLMConfig } from '../../../../src/llm/utils/llm-config.js';
 import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/response-types.js';
-import { LLMUserMessage } from '../../../../src/llm/user-message.js';
+import { Message } from '../../../../src/llm/utils/messages.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: Message[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
-    _userMessage: LLMUserMessage
+  protected async *_streamMessagesToLLM(
+    _messages: Message[]
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'ok', is_complete: true });
   }
@@ -76,7 +76,6 @@ describe('ApprovedToolInvocationEventHandler', () => {
     const event = new ApprovedToolInvocationEvent(toolInvocation);
     const toolInstance = { execute: vi.fn(async () => 'Successful execution result') };
     vi.spyOn(context, 'getTool').mockReturnValue(toolInstance as any);
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -96,12 +95,6 @@ describe('ApprovedToolInvocationEventHandler', () => {
     ).toBe(true);
 
     expect(notifier.notifyAgentDataToolLog).toHaveBeenCalled();
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'approved-tool-id-123',
-      name: 'mock_tool',
-      content: 'Successful execution result'
-    });
 
     expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
     const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
@@ -120,7 +113,6 @@ describe('ApprovedToolInvocationEventHandler', () => {
     const toolInvocation = new ToolInvocation('non_existent_tool', { param: 'val' }, 'notfound-tool-id-456');
     const event = new ApprovedToolInvocationEvent(toolInvocation);
     vi.spyOn(context, 'getTool').mockReturnValue(undefined);
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -135,14 +127,6 @@ describe('ApprovedToolInvocationEventHandler', () => {
       "Tool 'non_existent_tool' not found or configured for agent 'agent-1'."
     );
 
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'notfound-tool-id-456',
-      name: 'non_existent_tool',
-      content:
-        "Error: Approved tool 'non_existent_tool' execution failed. Reason: Tool 'non_existent_tool' not found or configured for agent 'agent-1'."
-    });
-
     expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
     const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];
     expect(enqueued.result).toBeNull();
@@ -156,7 +140,6 @@ describe('ApprovedToolInvocationEventHandler', () => {
     const event = new ApprovedToolInvocationEvent(toolInvocation);
     const toolInstance = { execute: vi.fn(async () => { throw new Error('Simulated tool execution failure!'); }) };
     vi.spyOn(context, 'getTool').mockReturnValue(toolInstance as any);
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     await handler.handle(event, context);
 
@@ -176,14 +159,6 @@ describe('ApprovedToolInvocationEventHandler', () => {
       "Error executing approved tool 'failing_tool' (ID: fail-tool-id-789)"
     );
     expect(typeof callArgs[2]).toBe('string');
-
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'fail-tool-id-789',
-      name: 'failing_tool',
-      content:
-        "Error: Approved tool 'failing_tool' execution failed. Reason: Error executing approved tool 'failing_tool' (ID: fail-tool-id-789): Error: Simulated tool execution failure!"
-    });
 
     expect(inputQueues.enqueueToolResult).toHaveBeenCalledTimes(1);
     const enqueued = inputQueues.enqueueToolResult.mock.calls[0][0];

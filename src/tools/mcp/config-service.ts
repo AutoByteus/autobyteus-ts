@@ -131,13 +131,23 @@ export class McpConfigService extends Singleton {
     }
 
     const serverId = keys[0];
-    const configData = configDict[serverId];
+    const rawConfigData = configDict[serverId];
 
-    if (!configData || typeof configData !== 'object' || Array.isArray(configData)) {
+    if (!rawConfigData || typeof rawConfigData !== 'object' || Array.isArray(rawConfigData)) {
       throw new Error(`Configuration for server '${serverId}' must be a dictionary.`);
     }
 
-    const transportTypeValue = (configData as ConfigDict)['transport_type'];
+    const configData: ConfigDict = { ...(rawConfigData as ConfigDict) };
+    if (!('transport_type' in configData) && 'transportType' in configData) {
+      configData.transport_type = configData.transportType;
+      delete configData.transportType;
+    }
+    if (!('tool_name_prefix' in configData) && 'toolNamePrefix' in configData) {
+      configData.tool_name_prefix = configData.toolNamePrefix;
+      delete configData.toolNamePrefix;
+    }
+
+    const transportTypeValue = configData['transport_type'];
     if (typeof transportTypeValue !== 'string' || !transportTypeValue) {
       throw new Error(`Config data for server '${serverId}' is missing 'transport_type' field.`);
     }

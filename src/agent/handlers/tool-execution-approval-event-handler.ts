@@ -61,16 +61,6 @@ export class ToolExecutionApprovalEventHandler extends AgentEventHandler {
 
     const denialReason = event.reason ?? 'No specific reason provided.';
     const denialContent = `Tool execution denied by user/system. Reason: ${denialReason}`;
-    context.state.addMessageToHistory({
-      role: 'tool',
-      tool_call_id: event.toolInvocationId,
-      name: retrievedInvocation.name,
-      content: denialContent
-    });
-    console.debug(
-      `Agent '${context.agentId}': Added 'tool' role denial message to history for ` +
-        `'${retrievedInvocation.name}' (ID: ${event.toolInvocationId}).`
-    );
 
     const promptContentForLlm =
       `The request to use the tool '${retrievedInvocation.name}' ` +

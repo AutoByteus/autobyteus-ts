@@ -1,5 +1,4 @@
 import { BaseLLM } from '../base.js';
-import { LLMUserMessage } from '../user-message.js';
 import { Message } from '../utils/messages.js';
 import { CompleteResponse } from '../utils/response-types.js';
 
@@ -10,21 +9,17 @@ export abstract class LLMExtension {
     this.llm = llm;
   }
 
-  abstract beforeInvoke(userMessage: LLMUserMessage, kwargs?: Record<string, unknown>): Promise<void>;
-
-  abstract afterInvoke(
-    userMessage: LLMUserMessage,
-    response: CompleteResponse | null,
+  abstract beforeInvoke(
+    messages: Message[],
+    renderedPayload?: unknown,
     kwargs?: Record<string, unknown>
   ): Promise<void>;
 
-  onUserMessageAdded(message: Message): void {
-    // Optional hook
-  }
-
-  onAssistantMessageAdded(message: Message): void {
-    // Optional hook
-  }
+  abstract afterInvoke(
+    messages: Message[],
+    response: CompleteResponse | null,
+    kwargs?: Record<string, unknown>
+  ): Promise<void>;
 
   async cleanup(): Promise<void> {
     // Optional hook

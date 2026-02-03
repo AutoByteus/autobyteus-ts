@@ -2,9 +2,8 @@ import { LLMExtension } from './base-extension.js';
 import { BaseLLM } from '../base.js';
 import { TokenUsageTracker, ModelWithConfig } from '../utils/token-usage-tracker.js';
 import { BaseTokenCounter } from '../token-counter/base-token-counter.js';
-import { LLMUserMessage } from '../user-message.js';
 import { CompleteResponse } from '../utils/response-types.js';
-import { Message } from '../utils/messages.js';
+import { Message, MessageRole } from '../utils/messages.js';
 import { TokenUsage } from '../utils/token-usage.js';
 
 // We need a factory or mechanism to get the token counter.
@@ -52,46 +51,48 @@ export class TokenUsageTrackingExtension extends LLMExtension {
     return this.latestUsage;
   }
 
-  async beforeInvoke(userMessage: LLMUserMessage, kwargs?: Record<string, unknown>): Promise<void> {
-    // No-op
+  async beforeInvoke(messages: Message[], _renderedPayload?: unknown, _kwargs?: Record<string, unknown>): Promise<void> {
+    if (!this.isEnabled || !this.usageTracker) return;
+    if (!messages.length) {
+      console.warn('TokenUsageTrackingExtension.beforeInvoke received empty messages list.');
+      return;
+    }
+    this.usageTracker.calculateInputMessages(messages);
   }
 
-  async afterInvoke(userMessage: LLMUserMessage, response: CompleteResponse | null, kwargs?: Record<string, unknown>): Promise<void> {
+  async afterInvoke(
+    _messages: Message[],
+    response: CompleteResponse | null,
+    _kwargs?: Record<string, unknown>
+  ): Promise<void> {
     if (!this.isEnabled || !this.usageTracker) return;
 
     const latest = this.usageTracker.getLatestUsage();
-    
     if (!latest) {
-      console.warn("No token usage record found in after_invoke.");
+      console.warn(
+        'No token usage record found in afterInvoke. This may indicate beforeInvoke was not called.'
+      );
       return;
     }
 
     if (response && response.usage) {
       latest.prompt_tokens = response.usage.prompt_tokens;
       latest.completion_tokens = response.usage.completion_tokens;
-      // Recalc total
       latest.total_tokens = response.usage.total_tokens;
+    } else if (response && response.content) {
+      const assistantMessage = new Message(MessageRole.ASSISTANT, {
+        content: response.content,
+        reasoning_content: response.reasoning ?? null
+      });
+      latest.completion_tokens = this.usageTracker.countOutputTokens(assistantMessage);
+      latest.total_tokens = latest.prompt_tokens + latest.completion_tokens;
     }
 
-    // Recalculate costs
     latest.prompt_cost = this.usageTracker.calculateCost(latest.prompt_tokens, true);
     latest.completion_cost = this.usageTracker.calculateCost(latest.completion_tokens, false);
     latest.total_cost = (latest.prompt_cost || 0) + (latest.completion_cost || 0);
 
     this.latestUsage = latest;
-  }
-
-  onUserMessageAdded(message: Message): void {
-    if (!this.isEnabled || !this.usageTracker) return;
-    // We need access to llm.messages. BaseLLM skeleton needs this property.
-    // We'll cast for now.
-    const history = this.llm.messages || [];
-    this.usageTracker.calculateInputMessages(history);
-  }
-
-  onAssistantMessageAdded(message: Message): void {
-    if (!this.isEnabled || !this.usageTracker) return;
-    this.usageTracker.calculateOutputMessage(message);
   }
 
   getTotalCost(): number {

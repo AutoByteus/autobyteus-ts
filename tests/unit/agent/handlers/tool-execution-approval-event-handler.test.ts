@@ -15,15 +15,15 @@ import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
 import { LLMConfig } from '../../../../src/llm/utils/llm-config.js';
 import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/response-types.js';
-import { LLMUserMessage } from '../../../../src/llm/user-message.js';
+import { Message } from '../../../../src/llm/utils/messages.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponse> {
+  protected async _sendMessagesToLLM(_messages: Message[]): Promise<CompleteResponse> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
-    _userMessage: LLMUserMessage
+  protected async *_streamMessagesToLLM(
+    _messages: Message[]
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     yield new ChunkResponse({ content: 'ok', is_complete: true });
   }
@@ -98,7 +98,6 @@ describe('ToolExecutionApprovalEventHandler', () => {
     const { context, inputQueues } = makeContext();
     const invocation = new ToolInvocation('mock_tool', { arg1: 'value1' }, 'test_tool_invocation_id');
     vi.spyOn(context.state, 'retrievePendingToolInvocation').mockReturnValue(invocation);
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     const denialReason = 'User denied due to cost.';
     const event = new ToolExecutionApprovalEvent('test_tool_invocation_id', false, denialReason);
@@ -111,13 +110,6 @@ describe('ToolExecutionApprovalEventHandler', () => {
     ).toBe(true);
 
     expect(context.state.retrievePendingToolInvocation).toHaveBeenCalledWith('test_tool_invocation_id');
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'test_tool_invocation_id',
-      name: 'mock_tool',
-      content: `Tool execution denied by user/system. Reason: ${denialReason}`
-    });
-
     expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledTimes(1);
     const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued).toBeInstanceOf(LLMUserMessageReadyEvent);
@@ -133,17 +125,9 @@ describe('ToolExecutionApprovalEventHandler', () => {
     const { context, inputQueues } = makeContext();
     const invocation = new ToolInvocation('mock_tool', { arg1: 'value1' }, 'test_tool_invocation_id');
     vi.spyOn(context.state, 'retrievePendingToolInvocation').mockReturnValue(invocation);
-    const historySpy = vi.spyOn(context.state, 'addMessageToHistory');
 
     const event = new ToolExecutionApprovalEvent('test_tool_invocation_id', false);
     await handler.handle(event, context);
-
-    expect(historySpy).toHaveBeenCalledWith({
-      role: 'tool',
-      tool_call_id: 'test_tool_invocation_id',
-      name: 'mock_tool',
-      content: 'Tool execution denied by user/system. Reason: No specific reason provided.'
-    });
 
     const enqueued = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
     expect(enqueued.llmUserMessage.content).toContain("Denial reason: 'No specific reason provided.'.");

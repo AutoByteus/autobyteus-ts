@@ -30,11 +30,11 @@ import type { CompleteResponse as CompleteResponseType, ChunkResponse } from '..
 import type { AgentEventHandler } from '../../../../src/agent/handlers/base-event-handler.js';
 
 class DummyLLM extends BaseLLM {
-  protected async _sendUserMessageToLLM(_userMessage: LLMUserMessage): Promise<CompleteResponseType> {
+  protected async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponseType> {
     return new CompleteResponse({ content: 'ok' });
   }
 
-  protected async *_streamUserMessageToLLM(
+  protected async *_streamMessagesToLLM(
     _userMessage: LLMUserMessage
   ): AsyncGenerator<ChunkResponse, void, unknown> {
     yield { content: 'ok', is_complete: true } as ChunkResponse;
