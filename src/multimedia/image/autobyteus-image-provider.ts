@@ -36,6 +36,9 @@ function resolveProvider(provider: string): MultimediaProvider | null {
   if (normalized === 'GOOGLE') {
     return MultimediaProvider.GEMINI;
   }
+  if (normalized === 'ALIBABA_QWEN') {
+    return MultimediaProvider.QWEN;
+  }
   if (Object.values(MultimediaProvider).includes(normalized as MultimediaProvider)) {
     return normalized as MultimediaProvider;
   }
