@@ -5,7 +5,7 @@ import { LLMUserMessage } from '../../../../src/llm/user-message.js';
 import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/response-types.js';
 
 const apiKey = process.env.AUTOBYTEUS_API_KEY;
-const host = process.env.AUTOBYTEUS_LLM_SERVER_URLS ?? process.env.AUTOBYTEUS_LLM_SERVER_URL;
+const host = process.env.AUTOBYTEUS_LLM_SERVER_HOSTS ?? process.env.AUTOBYTEUS_LLM_SERVER_URL;
 const forcedTextModelId = process.env.AUTOBYTEUS_LLM_MODEL_ID;
 const forcedImageModelId = process.env.AUTOBYTEUS_LLM_IMAGE_MODEL_ID;
 const runIntegration = apiKey && host ? describe : describe.skip;
