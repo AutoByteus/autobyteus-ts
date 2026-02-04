@@ -67,6 +67,7 @@ export class AutobyteusAudioModelProvider {
     let totalRegistered = 0;
 
     for (const hostUrl of hosts) {
+      const startTime = Date.now();
       if (!isValidUrl(hostUrl)) {
         console.error(`Invalid Autobyteus host URL for audio model discovery: ${hostUrl}, skipping.`);
         continue;
@@ -83,9 +84,14 @@ export class AutobyteusAudioModelProvider {
         }
 
         let hostRegistered = 0;
+        let skippedMalformed = 0;
+        let skippedMissingSchema = 0;
+        let skippedUnknownProvider = 0;
+        const registeredIdentifiers: string[] = [];
         for (const modelInfo of models) {
           if (!isRecord(modelInfo)) {
             console.warn(`Skipping malformed audio model from ${hostUrl}: ${JSON.stringify(modelInfo)}`);
+            skippedMalformed += 1;
             continue;
           }
 
@@ -95,6 +101,7 @@ export class AutobyteusAudioModelProvider {
 
           if (!name || !value || !providerValue) {
             console.warn(`Skipping malformed audio model from ${hostUrl}: ${JSON.stringify(modelInfo)}`);
+            skippedMalformed += 1;
             continue;
           }
 
@@ -102,12 +109,14 @@ export class AutobyteusAudioModelProvider {
             console.debug(
               `Skipping model from ${hostUrl} as it lacks a parameter schema: ${name}`
             );
+            skippedMissingSchema += 1;
             continue;
           }
 
           const provider = resolveProvider(providerValue);
           if (!provider) {
             console.error(`Cannot register audio model '${name}' with unknown provider '${providerValue}'.`);
+            skippedUnknownProvider += 1;
             continue;
           }
 
@@ -123,11 +132,19 @@ export class AutobyteusAudioModelProvider {
 
           AudioClientFactory.registerModel(audioModel);
           hostRegistered += 1;
+          registeredIdentifiers.push(audioModel.modelIdentifier);
         }
 
         if (hostRegistered > 0) {
           console.info(`Registered ${hostRegistered} audio models from Autobyteus host ${hostUrl}.`);
+          console.info(`Autobyteus audio models from ${hostUrl}: ${registeredIdentifiers.join(', ')}`);
         }
+        console.info(
+          `Autobyteus audio discovery summary for ${hostUrl}: total=${models.length}, ` +
+          `registered=${hostRegistered}, skippedMalformed=${skippedMalformed}, ` +
+          `skippedMissingSchema=${skippedMissingSchema}, skippedUnknownProvider=${skippedUnknownProvider}, ` +
+          `durationMs=${Date.now() - startTime}`
+        );
         totalRegistered += hostRegistered;
       } catch (error) {
         console.warn(`Could not fetch audio models from Autobyteus server at ${hostUrl}: ${String(error)}`);

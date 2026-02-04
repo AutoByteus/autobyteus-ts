@@ -67,6 +67,7 @@ export class AutobyteusImageModelProvider {
     let totalRegistered = 0;
 
     for (const hostUrl of hosts) {
+      const startTime = Date.now();
       if (!isValidUrl(hostUrl)) {
         console.error(`Invalid Autobyteus host URL for image model discovery: ${hostUrl}, skipping.`);
         continue;
@@ -83,9 +84,14 @@ export class AutobyteusImageModelProvider {
         }
 
         let hostRegistered = 0;
+        let skippedMalformed = 0;
+        let skippedMissingSchema = 0;
+        let skippedUnknownProvider = 0;
+        const registeredIdentifiers: string[] = [];
         for (const modelInfo of models) {
           if (!isRecord(modelInfo)) {
             console.warn(`Skipping malformed image model from ${hostUrl}: ${JSON.stringify(modelInfo)}`);
+            skippedMalformed += 1;
             continue;
           }
 
@@ -95,6 +101,7 @@ export class AutobyteusImageModelProvider {
 
           if (!name || !value || !providerValue) {
             console.warn(`Skipping malformed image model from ${hostUrl}: ${JSON.stringify(modelInfo)}`);
+            skippedMalformed += 1;
             continue;
           }
 
@@ -102,12 +109,14 @@ export class AutobyteusImageModelProvider {
             console.debug(
               `Skipping model from ${hostUrl} as it lacks a parameter schema: ${name}`
             );
+            skippedMissingSchema += 1;
             continue;
           }
 
           const provider = resolveProvider(providerValue);
           if (!provider) {
             console.error(`Cannot register image model '${name}' with unknown provider '${providerValue}'.`);
+            skippedUnknownProvider += 1;
             continue;
           }
 
@@ -123,11 +132,19 @@ export class AutobyteusImageModelProvider {
 
           ImageClientFactory.registerModel(imageModel);
           hostRegistered += 1;
+          registeredIdentifiers.push(imageModel.modelIdentifier);
         }
 
         if (hostRegistered > 0) {
           console.info(`Registered ${hostRegistered} image models from Autobyteus host ${hostUrl}.`);
+          console.info(`Autobyteus image models from ${hostUrl}: ${registeredIdentifiers.join(', ')}`);
         }
+        console.info(
+          `Autobyteus image discovery summary for ${hostUrl}: total=${models.length}, ` +
+          `registered=${hostRegistered}, skippedMalformed=${skippedMalformed}, ` +
+          `skippedMissingSchema=${skippedMissingSchema}, skippedUnknownProvider=${skippedUnknownProvider}, ` +
+          `durationMs=${Date.now() - startTime}`
+        );
         totalRegistered += hostRegistered;
       } catch (error) {
         console.warn(`Could not fetch image models from Autobyteus server at ${hostUrl}: ${String(error)}`);
