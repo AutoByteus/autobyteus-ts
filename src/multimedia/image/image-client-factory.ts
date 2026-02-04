@@ -32,6 +32,7 @@ export class ImageClientFactory extends Singleton {
   static reinitialize(): void {
     ImageClientFactory.initialized = false;
     ImageClientFactory.modelsByIdentifier.clear();
+    AutobyteusImageModelProvider.resetDiscovery();
     ImageClientFactory.ensureInitialized();
   }
 
@@ -103,9 +104,7 @@ export class ImageClientFactory extends Singleton {
       ImageClientFactory.registerModel(model);
     }
 
-    void AutobyteusImageModelProvider.discoverAndRegister().catch((error) => {
-      console.warn(`Autobyteus image model discovery failed: ${String(error)}`);
-    });
+    void AutobyteusImageModelProvider.ensureDiscovered();
   }
 
   static registerModel(model: ImageModel): void {

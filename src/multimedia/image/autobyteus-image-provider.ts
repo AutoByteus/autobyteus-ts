@@ -40,6 +40,23 @@ function resolveProvider(provider: string): MultimediaProvider | null {
 }
 
 export class AutobyteusImageModelProvider {
+  private static discoveryPromise: Promise<void> | null = null;
+
+  static resetDiscovery(): void {
+    AutobyteusImageModelProvider.discoveryPromise = null;
+  }
+
+  static async ensureDiscovered(): Promise<void> {
+    if (!AutobyteusImageModelProvider.discoveryPromise) {
+      AutobyteusImageModelProvider.discoveryPromise = AutobyteusImageModelProvider
+        .discoverAndRegister()
+        .catch((error) => {
+          console.warn(`Autobyteus image model discovery failed: ${String(error)}`);
+        });
+    }
+    return AutobyteusImageModelProvider.discoveryPromise;
+  }
+
   static async discoverAndRegister(): Promise<void> {
     const hosts = parseHosts();
     if (hosts.length === 0) {

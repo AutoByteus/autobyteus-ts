@@ -84,6 +84,7 @@ export class AudioClientFactory extends Singleton {
   static reinitialize(): void {
     AudioClientFactory.initialized = false;
     AudioClientFactory.modelsByIdentifier.clear();
+    AutobyteusAudioModelProvider.resetDiscovery();
     AudioClientFactory.ensureInitialized();
   }
 
@@ -177,9 +178,7 @@ export class AudioClientFactory extends Singleton {
       AudioClientFactory.registerModel(model);
     }
 
-    void AutobyteusAudioModelProvider.discoverAndRegister().catch((error) => {
-      console.warn(`Autobyteus audio model discovery failed: ${String(error)}`);
-    });
+    void AutobyteusAudioModelProvider.ensureDiscovered();
   }
 
   static registerModel(model: AudioModel): void {

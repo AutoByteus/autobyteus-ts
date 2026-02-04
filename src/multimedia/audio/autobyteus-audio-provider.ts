@@ -40,6 +40,23 @@ function resolveProvider(provider: string): MultimediaProvider | null {
 }
 
 export class AutobyteusAudioModelProvider {
+  private static discoveryPromise: Promise<void> | null = null;
+
+  static resetDiscovery(): void {
+    AutobyteusAudioModelProvider.discoveryPromise = null;
+  }
+
+  static async ensureDiscovered(): Promise<void> {
+    if (!AutobyteusAudioModelProvider.discoveryPromise) {
+      AutobyteusAudioModelProvider.discoveryPromise = AutobyteusAudioModelProvider
+        .discoverAndRegister()
+        .catch((error) => {
+          console.warn(`Autobyteus audio model discovery failed: ${String(error)}`);
+        });
+    }
+    return AutobyteusAudioModelProvider.discoveryPromise;
+  }
+
   static async discoverAndRegister(): Promise<void> {
     const hosts = parseHosts();
     if (hosts.length === 0) {
