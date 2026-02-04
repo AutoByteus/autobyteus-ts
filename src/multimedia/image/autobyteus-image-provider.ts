@@ -41,12 +41,33 @@ function resolveProvider(provider: string): MultimediaProvider | null {
 
 export class AutobyteusImageModelProvider {
   private static discoveryPromise: Promise<void> | null = null;
+  private static lastHostsKey: string | null = null;
 
   static resetDiscovery(): void {
     AutobyteusImageModelProvider.discoveryPromise = null;
+    AutobyteusImageModelProvider.lastHostsKey = null;
   }
 
   static async ensureDiscovered(): Promise<void> {
+    const hostsKey = parseHosts().join(',');
+    if (!hostsKey) {
+      if (AutobyteusImageModelProvider.lastHostsKey !== '') {
+        console.info('No Autobyteus server hosts configured. Skipping Autobyteus image model discovery.');
+      }
+      AutobyteusImageModelProvider.lastHostsKey = '';
+      AutobyteusImageModelProvider.discoveryPromise = null;
+      return;
+    }
+
+    if (
+      AutobyteusImageModelProvider.lastHostsKey &&
+      AutobyteusImageModelProvider.lastHostsKey !== hostsKey
+    ) {
+      AutobyteusImageModelProvider.discoveryPromise = null;
+    }
+
+    AutobyteusImageModelProvider.lastHostsKey = hostsKey;
+
     if (!AutobyteusImageModelProvider.discoveryPromise) {
       AutobyteusImageModelProvider.discoveryPromise = AutobyteusImageModelProvider
         .discoverAndRegister()

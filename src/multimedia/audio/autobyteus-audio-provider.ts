@@ -41,12 +41,33 @@ function resolveProvider(provider: string): MultimediaProvider | null {
 
 export class AutobyteusAudioModelProvider {
   private static discoveryPromise: Promise<void> | null = null;
+  private static lastHostsKey: string | null = null;
 
   static resetDiscovery(): void {
     AutobyteusAudioModelProvider.discoveryPromise = null;
+    AutobyteusAudioModelProvider.lastHostsKey = null;
   }
 
   static async ensureDiscovered(): Promise<void> {
+    const hostsKey = parseHosts().join(',');
+    if (!hostsKey) {
+      if (AutobyteusAudioModelProvider.lastHostsKey !== '') {
+        console.info('No Autobyteus server hosts configured. Skipping Autobyteus audio model discovery.');
+      }
+      AutobyteusAudioModelProvider.lastHostsKey = '';
+      AutobyteusAudioModelProvider.discoveryPromise = null;
+      return;
+    }
+
+    if (
+      AutobyteusAudioModelProvider.lastHostsKey &&
+      AutobyteusAudioModelProvider.lastHostsKey !== hostsKey
+    ) {
+      AutobyteusAudioModelProvider.discoveryPromise = null;
+    }
+
+    AutobyteusAudioModelProvider.lastHostsKey = hostsKey;
+
     if (!AutobyteusAudioModelProvider.discoveryPromise) {
       AutobyteusAudioModelProvider.discoveryPromise = AutobyteusAudioModelProvider
         .discoverAndRegister()
