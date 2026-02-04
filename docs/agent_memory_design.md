@@ -1,4 +1,4 @@
-# Autobyteus Agent Memory Design (Node.js/TypeScript)
+# Autobyteus Agent Memory Design
 
 **Status:** Active
 **Date:** 2026-01-30
@@ -15,7 +15,7 @@ an execution component that consumes prompts built from memory.
 
 ---
 
-## 2. Current State (TypeScript)
+## 2. Current State (Node.js/TypeScript)
 
 Legacy trace storage in `AgentRuntimeState.conversation_history` has been removed.
 LLM calls are memory‑centric, and providers no longer own history.
@@ -60,7 +60,7 @@ The memory system is defined by its implemented operations:
 - **compact(turn_ids)**: summarize old traces into EPISODIC + SEMANTIC and prune RAW_TRACE
 - **retrieve(max_episodic, max_semantic)**: return a MemoryBundle for snapshot building
 - **build_snapshot(system_prompt, bundle, raw_tail)**: produce a Compaction Snapshot message list
-- **resetTranscript(snapshot)**: reset Active Transcript to the snapshot baseline
+- **reset_transcript(snapshot)**: reset Active Transcript to the snapshot baseline
 
 ---
 
@@ -177,7 +177,7 @@ LLMs consume provider-specific payloads, so the generic transcript is rendered
 by a **Prompt Renderer** per provider (OpenAI, Anthropic, etc.). This keeps the
 memory layer canonical and makes LLMs stateless executors.
 
-**Note (TypeScript today):** system prompts are configured on the LLM instance
+**Note (Node.js today):** system prompts are configured on the LLM instance
 during bootstrap. In memory-centric mode, the system prompt can be injected
 directly into the transcript to make the LLM fully stateless.
 
@@ -195,7 +195,7 @@ and configured per model.
 - `safety_margin` (configurable)
 - `compaction_ratio` (model default, overrideable)
 
-**TypeScript note:** context size is token-based and should live on `LLMModel`
+**Implementation note:** context size is token-based and should live on `LLMModel`
 (`max_context_tokens`). `LLMConfig.token_limit` is only a temporary placeholder
 until the model registry carries explicit context size.
 **Current default (temporary):** when model metadata is missing, we use
@@ -396,7 +396,7 @@ LLMUserMessageReadyEventHandler
    ├─► PendingToolInvocationEvent
    │      └─► ToolInvocationRequestEventHandler
    │
-   └─► MemoryManager.ingestAssistantResponse(...)
+   └─► MemoryManager.ingest_assistant_response(...)
 
 ToolResultEvent
    └─► ToolResultEventHandler
@@ -523,14 +523,14 @@ is executed **before the next LLM call**.
 ```
 input_budget = max_context_tokens - max_output_tokens - safety_margin
 if prompt_tokens > input_budget:
-    requestCompaction()
+    request_compaction()
 ```
 
 **Suggested early trigger**
 
 ```
 if prompt_tokens > 0.8 * input_budget:
-    requestCompaction()
+    request_compaction()
 ```
 
 ### Where the trigger lives
@@ -540,7 +540,7 @@ if prompt_tokens > 0.8 * input_budget:
   2. Evaluates the compaction policy
   3. Sets `MemoryManager.compaction_required = True`
 
-- **LLMRequestAssembler.prepareRequest(...)** (pre-next-call):
+- **LLMRequestAssembler.prepare_request(...)** (pre-next-call):
   1. Checks `compaction_required`
   2. Runs compaction + snapshot reset when requested
   3. Appends the new user/tool input to the transcript
@@ -575,11 +575,11 @@ Refactor the LLM call site to delegate prompt construction to memory:
 UserMessageReceivedEvent
   └─► UserInputMessageEventHandler
         └─► LLMUserMessageReadyEvent (processed input)
-              └─► MemoryManager.ingestUserMessage(...)
+              └─► MemoryManager.ingest_user_message(...)
                     └─► LLMUserMessageReadyEventHandler
-                          ├─► LLMRequestAssembler.prepareRequest(processed_user)
+                          ├─► LLMRequestAssembler.prepare_request(processed_user)
                           ├─► LLM.streamMessages(messages, rendered_payload)
-                          └─► MemoryManager.ingestAssistantResponse(...)
+                          └─► MemoryManager.ingest_assistant_response(...)
 ```
 
 Key changes:
@@ -651,7 +651,7 @@ messages and renders provider payloads via Prompt Renderers.
 - Provider implementations:
   - `src/llm/api/openai-responses-llm.ts`
   - `src/llm/api/openai-compatible-llm.ts`
-  - `src/llm/api/anthropic-llm.ts`
+  - `src/llm/api/claude-llm.ts`
   - `src/llm/api/gemini-llm.ts`
   - `src/llm/api/ollama-llm.ts`
   - others as needed
@@ -777,7 +777,7 @@ type ToolPayload = ToolCallPayload | ToolResultPayload;
 - Add provider renderers:
   - `openai-responses-renderer.ts`
   - `openai-chat-renderer.ts`
-  - later: `anthropic-prompt-renderer.ts`, `gemini-prompt-renderer.ts`
+  - later: `claude-renderer.ts`, `gemini-renderer.ts`
 - LLM implementations call renderer to produce API payloads.
   - `tools` schema remains a kwarg passed into the LLM call.
   - Renderers decide how to encode tool schemas for providers that support native tools.
@@ -811,7 +811,7 @@ type ToolPayload = ToolCallPayload | ToolResultPayload;
 **Agent integration**
 
 - `LLMUserMessageReadyEventHandler` calls
-  `LLMRequestAssembler.prepareRequest(...)` and passes messages to LLM.
+  `LLMRequestAssembler.prepare_request(...)` and passes messages to LLM.
 
 **Tests**
 
@@ -858,7 +858,7 @@ User asks a question; no tool calls are emitted.
 ```
 LLMUserMessageReadyEventHandler.handle(...)
   at src/agent/handlers/llm-user-message-ready-event-handler.ts
-  └─► LLMRequestAssembler.prepareRequest(...)
+  └─► LLMRequestAssembler.prepare_request(...)
         at src/agent/llm-request-assembler.ts
         ├─► ActiveTranscript.build_messages()
         │     at src/memory/active-transcript.ts
@@ -869,7 +869,7 @@ LLMUserMessageReadyEventHandler.handle(...)
         at src/llm/base.ts
         └─► Provider call
               at src/llm/api/openai-responses-llm.ts
-  └─► MemoryManager.ingestAssistantResponse(...)
+  └─► MemoryManager.ingest_assistant_response(...)
         at src/memory/memory-manager.ts
         └─► ActiveTranscript.append_assistant(...)
               at src/memory/active-transcript.ts
@@ -890,13 +890,13 @@ LLM emits one or more tool calls; tools run; results return; LLM continues.
 ```
 LLMUserMessageReadyEventHandler.handle(...)
   at src/agent/handlers/llm-user-message-ready-event-handler.ts
-  └─► LLMRequestAssembler.prepareRequest(...)
+  └─► LLMRequestAssembler.prepare_request(...)
         at src/agent/llm-request-assembler.ts
   └─► LLM.streamMessages(messages, tools)
         at src/llm/base.ts
         └─► Streaming parser detects tool call(s)
               at src/agent/streaming/*
-              └─► MemoryManager.ingestToolIntent(...)
+              └─► MemoryManager.ingest_tool_intent(...)
                     at src/memory/memory-manager.ts
                     └─► ActiveTranscript.append_tool_calls(...)
                           at src/memory/active-transcript.ts
@@ -908,7 +908,7 @@ LLMUserMessageReadyEventHandler.handle(...)
                                 at src/agent/events/agent-events.ts
                                 └─► MemoryIngestToolResultProcessor.process(...)
                                       at src/agent/tool-execution-result-processor/memory-ingest-tool-result-processor.ts
-                                      └─► MemoryManager.ingestToolResult(...)
+                                      └─► MemoryManager.ingest_tool_result(...)
                                             at src/memory/memory-manager.ts
                                             └─► ActiveTranscript.append_tool_result(...)
                                                   at src/memory/active-transcript.ts
@@ -934,7 +934,7 @@ before the next LLM call.
 ```
 LLMUserMessageReadyEventHandler.handle(...)
   at src/agent/handlers/llm-user-message-ready-event-handler.ts
-  └─► LLMRequestAssembler.prepareRequest(...)
+  └─► LLMRequestAssembler.prepare_request(...)
         at src/agent/llm-request-assembler.ts
         ├─► Compactor.compact(...)
         │     at src/memory/compaction/compactor.ts
@@ -1096,25 +1096,25 @@ UserMessageReceivedEvent
   └─► UserInputMessageEventHandler
         └─► Input processors
         └─► MemoryIngestInputProcessor (order 900)
-              └─► MemoryManager.ingestUserMessage(...)
+              └─► MemoryManager.ingest_user_message(...)
         └─► LLMUserMessageReadyEvent
 
 LLMUserMessageReadyEventHandler
-  ├─► request = LLMRequestAssembler.prepareRequest(processedUserInput)
+  ├─► request = LLMRequestAssembler.prepare_request(processed_user_input)
   │     ├─► Prompt Renderer (provider payload)
   │     └─► Compaction check (token budget)
   │           └─► Compactor.compact(...)
   │                 └─► Summarizer
   ├─► LLM.streamMessages(request.messages, rendered_payload)
   ├─► Parse tool invocations
-  │     ├─► MemoryManager.ingestToolIntent(...)
+  │     ├─► MemoryManager.ingest_tool_intent(...)
   │     └─► PendingToolInvocationEvent
-  └─► MemoryManager.ingestAssistantResponse(...)
+  └─► MemoryManager.ingest_assistant_response(...)
 
 ToolResultEventHandler
   └─► Tool result processors
         └─► MemoryIngestToolResultProcessor (order 900)
-              └─► MemoryManager.ingestToolResult(...)
+              └─► MemoryManager.ingest(tool_result)
 
 Memory Store (file-backed)
   ├─► RAW_TRACE (short tail)
@@ -1130,10 +1130,10 @@ Memory Store (file-backed)
 
 ```
 startTurn(): string
-ingestUserMessage(llmUserMessage, turnId: string, sourceEvent): void
+ingestUserMessage(llmUserMessage, turnId, sourceEvent): void
 ingestToolIntent(toolInvocation, turnId?: string): void
 ingestToolResult(toolResultEvent, turnId?: string): void
-ingestAssistantResponse(completeResponse, turnId: string, sourceEvent): void
+ingestAssistantResponse(completeResponse, turnId, sourceEvent): void
 requestCompaction(): void
 clearCompactionRequest(): void
 getRawTail(tailTurns: number, excludeTurnId?: string): RawTraceItem[]
@@ -1160,7 +1160,7 @@ getTracesForTurns(turnIds: string[]): RawTraceItem[]
 ### Summarizer
 
 ```
-summarize(traces: RawTraceItem[]): CompactionResult
+summarize(turns: RawTraceItem[]): CompactionResult
 ```
 
 ### Retriever

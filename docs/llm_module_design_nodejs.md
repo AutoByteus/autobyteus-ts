@@ -66,7 +66,7 @@ Responses streaming (OpenAI) emits:
 
 ## 7. Testing
 
-Integration tests live in `autobyteus-ts/tests/integration/llm/...`.
+Integration tests live in `tests/integration/llm/...`.
 They mirror Python tests one‑for‑one (model names preserved).
 
 ## 8. Where to Update

@@ -82,10 +82,10 @@ Python runs each agent in its own thread and private asyncio event loop. In Node
 The Node.js CLI uses **Ink** for the interactive TUI and a lightweight console renderer for single-agent sessions.
 
 - **Single-agent CLI** (`src/cli/agent`):
-  - `cli_display.ts`: stateful renderer for stream events (segment tags, thinking blocks, approvals).
-  - `agent_cli.ts`: controller loop (input, approvals, lifecycle) using `AgentEventStream`.
+  - `cli-display.ts`: stateful renderer for stream events (segment tags, thinking blocks, approvals).
+  - `agent-cli.ts`: controller loop (input, approvals, lifecycle) using `AgentEventStream`.
 - **Agent team TUI** (`src/cli/agent-team`):
-  - `state_store.ts`: reducer-style state store (team/agent/task status, approvals, history).
+  - `state-store.ts`: reducer-style state store (team/agent/task status, approvals, history).
   - `app.tsx`: Ink composition root (sidebar + focus pane + status bar).
   - `widgets/*`: pure components (sidebar, focus pane, task plan panel, status bar, logo).
 
