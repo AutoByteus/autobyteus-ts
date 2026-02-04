@@ -4,6 +4,7 @@ import { AgentRuntimeState } from '../../../../src/agent/context/agent-runtime-s
 import { AgentContext } from '../../../../src/agent/context/agent-context.js';
 import { AgentInputUserMessage } from '../../../../src/agent/message/agent-input-user-message.js';
 import { MemoryIngestInputProcessor } from '../../../../src/agent/input-processor/memory-ingest-input-processor.js';
+import { SenderType } from '../../../../src/agent/sender-type.js';
 import { BaseLLM } from '../../../../src/llm/base.js';
 import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
@@ -68,5 +69,24 @@ describe('MemoryIngestInputProcessor', () => {
 
     expect(result).toBe(message);
     expect(context.state.activeTurnId).toBeNull();
+  });
+
+  it('skips TOOL-originated messages to avoid duplicate tool results', async () => {
+    const context = makeContext();
+    const processor = new MemoryIngestInputProcessor();
+    const memoryManager = {
+      startTurn: vi.fn().mockReturnValue('turn_0002'),
+      ingestUserMessage: vi.fn()
+    };
+    context.state.memoryManager = memoryManager as any;
+    context.state.activeTurnId = 'turn_existing';
+
+    const message = new AgentInputUserMessage('Tool result', SenderType.TOOL);
+    const result = await processor.process(message, context, {} as any);
+
+    expect(result).toBe(message);
+    expect(context.state.activeTurnId).toBe('turn_existing');
+    expect(memoryManager.startTurn).not.toHaveBeenCalled();
+    expect(memoryManager.ingestUserMessage).not.toHaveBeenCalled();
   });
 });
