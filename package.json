@@ -28,6 +28,7 @@
     "@modelcontextprotocol/sdk": "^1.25.3",
     "axios": "^1.13.2",
     "cheerio": "^1.2.0",
+    "hono": "^4.0.0",
     "ink": "^6.6.0",
     "mime-types": "^3.0.2",
     "node-pty": "^1.1.0",

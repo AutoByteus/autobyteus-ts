@@ -39,7 +39,7 @@ import { ApprovedToolInvocationEventHandler } from '../handlers/approved-tool-in
 import { BootstrapEventHandler } from '../handlers/bootstrap-event-handler.js';
 import { LifecycleEventLogger } from '../handlers/lifecycle-event-logger.js';
 import { SkillRegistry } from '../../skills/registry.js';
-import { FileMemoryStore, MemoryManager } from '../../memory/index.js';
+import { FileMemoryStore, MemoryManager, resolveMemoryBaseDir } from '../../memory/index.js';
 import { MemoryIngestInputProcessor } from '../input-processor/memory-ingest-input-processor.js';
 import { MemoryIngestToolResultProcessor } from '../tool-execution-result-processor/memory-ingest-tool-result-processor.js';
 import { AgentRuntime } from '../runtime/agent-runtime.js';
@@ -147,7 +147,9 @@ export class AgentFactory extends Singleton {
       config.initialCustomData ?? null
     );
 
-    const memoryDir = process.env.AUTOBYTEUS_MEMORY_DIR ?? path.join(process.cwd(), 'memory');
+    const memoryDir = resolveMemoryBaseDir({
+      overrideDir: config.memoryDir ?? null
+    });
     const memoryStore = new FileMemoryStore(memoryDir, agentId);
     runtimeState.memoryManager = new MemoryManager({ store: memoryStore });
 

@@ -42,6 +42,7 @@ export class AgentConfig {
   lifecycleProcessors: BaseLifecycleEventProcessor[];
   initialCustomData?: Record<string, any> | null;
   skills: string[];
+  memoryDir?: string | null;
 
   constructor(
     name: string,
@@ -59,7 +60,8 @@ export class AgentConfig {
     workspace: BaseAgentWorkspace | null = null,
     lifecycleProcessors: BaseLifecycleEventProcessor[] | null = null,
     initialCustomData: Record<string, any> | null = null,
-    skills: string[] | null = null
+    skills: string[] | null = null,
+    memoryDir: string | null = null
   ) {
     this.name = name;
     this.role = role;
@@ -86,6 +88,7 @@ export class AgentConfig {
     this.lifecycleProcessors = lifecycleProcessors ?? [];
     this.initialCustomData = initialCustomData ?? undefined;
     this.skills = skills ?? [];
+    this.memoryDir = memoryDir ?? undefined;
 
     const toolCallFormat = resolveToolCallFormat();
     if (toolCallFormat === 'api_tool_call') {
@@ -118,7 +121,8 @@ export class AgentConfig {
       this.workspace,
       this.lifecycleProcessors.slice(),
       deepClone(this.initialCustomData ?? null),
-      this.skills.slice()
+      this.skills.slice(),
+      this.memoryDir ?? null
     );
   }
 

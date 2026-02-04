@@ -21,3 +21,5 @@ export { Retriever } from './retrieval/retriever.js';
 
 export { MemoryStore } from './store/base-store.js';
 export { FileMemoryStore } from './store/file-store.js';
+
+export { resolveMemoryBaseDir, resolveAgentMemoryDir } from './path-resolver.js';
