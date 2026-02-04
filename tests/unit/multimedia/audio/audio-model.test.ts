@@ -54,7 +54,7 @@ describe('AudioModel', () => {
     const model = new AudioModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyAudioClient,
       parameterSchema: sampleSchemaDict
     });
@@ -72,7 +72,7 @@ describe('AudioModel', () => {
     const model = new AudioModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyAudioClient,
       parameterSchema: sampleSchemaObject
     });
@@ -85,7 +85,7 @@ describe('AudioModel', () => {
     const model = new AudioModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyAudioClient
     });
 
@@ -97,7 +97,7 @@ describe('AudioModel', () => {
     const model = new AudioModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyAudioClient,
       parameterSchema: sampleSchemaDict
     });
@@ -116,7 +116,7 @@ describe('AudioModel', () => {
     const model = new AudioModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyAudioClient,
       parameterSchema: schema
     });

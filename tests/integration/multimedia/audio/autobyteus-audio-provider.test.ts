@@ -52,7 +52,7 @@ describe('AutobyteusAudioModelProvider integration', () => {
     const dummyModel = new AudioModel({
       name: 'dummy-audio-model',
       value: 'dummy-audio-model',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: AutobyteusAudioClient,
       runtime: MultimediaRuntime.AUTOBYTEUS,
       hostUrl: 'http://dummy-host:1234'

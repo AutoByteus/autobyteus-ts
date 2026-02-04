@@ -74,7 +74,7 @@ export class ImageClientFactory extends Singleton {
     const imagenModel = new ImageModel({
       name: 'imagen-4',
       value: 'imagen-4.0-generate-001',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: GeminiImageClient,
       parameterSchema: null,
       description: 'High-fidelity stateless model; text-to-image only.'
@@ -83,7 +83,7 @@ export class ImageClientFactory extends Singleton {
     const geminiFlashImageModel = new ImageModel({
       name: 'gemini-2.5-flash-image',
       value: 'gemini-2.5-flash-image',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: GeminiImageClient,
       parameterSchema: null,
       description: 'Fast conversational multimodal image model.'
@@ -92,7 +92,7 @@ export class ImageClientFactory extends Singleton {
     const geminiProImageModel = new ImageModel({
       name: 'gemini-3-pro-image-preview',
       value: 'gemini-3-pro-image-preview',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: GeminiImageClient,
       parameterSchema: null,
       description: 'High-quality conversational image model for complex edits.'

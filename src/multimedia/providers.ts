@@ -1,6 +1,6 @@
 export enum MultimediaProvider {
   OPENAI = 'OPENAI',
-  GOOGLE = 'GOOGLE',
+  GEMINI = 'GEMINI',
   ALIBABA_QWEN = 'ALIBABA_QWEN',
   AUTOBYTEUS = 'AUTOBYTEUS'
 }

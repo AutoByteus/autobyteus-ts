@@ -137,7 +137,7 @@ export class AudioClientFactory extends Singleton {
     const geminiTtsModel = new AudioModel({
       name: 'gemini-2.5-flash-tts',
       value: 'gemini-2.5-flash-preview-tts',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: GeminiAudioClient,
       parameterSchema: geminiTtsSchema
     });

@@ -32,8 +32,12 @@ function isValidUrl(url: string): boolean {
 }
 
 function resolveProvider(provider: string): MultimediaProvider | null {
-  if (Object.values(MultimediaProvider).includes(provider as MultimediaProvider)) {
-    return provider as MultimediaProvider;
+  const normalized = provider.trim().toUpperCase();
+  if (normalized === 'GOOGLE') {
+    return MultimediaProvider.GEMINI;
+  }
+  if (Object.values(MultimediaProvider).includes(normalized as MultimediaProvider)) {
+    return normalized as MultimediaProvider;
   }
   return null;
 }

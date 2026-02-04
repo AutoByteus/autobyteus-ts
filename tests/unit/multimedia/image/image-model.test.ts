@@ -43,7 +43,7 @@ describe('ImageModel', () => {
     const model = new ImageModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyImageClient,
       parameterSchema: sampleSchemaDict
     });
@@ -61,7 +61,7 @@ describe('ImageModel', () => {
     const model = new ImageModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyImageClient,
       parameterSchema: sampleSchemaObject
     });
@@ -73,7 +73,7 @@ describe('ImageModel', () => {
     const model = new ImageModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyImageClient
     });
 
@@ -85,7 +85,7 @@ describe('ImageModel', () => {
     const model = new ImageModel({
       name: 'test-model',
       value: 'test-model-v1',
-      provider: MultimediaProvider.GOOGLE,
+      provider: MultimediaProvider.GEMINI,
       clientClass: DummyImageClient,
       parameterSchema: sampleSchemaDict
     });
