@@ -5,7 +5,8 @@ import os from 'node:os';
 import { ImageGenerationResponse } from '../../../../../src/multimedia/index.js';
 import { ImageClientFactory } from '../../../../../src/multimedia/image/image-client-factory.js';
 
-const hasVertex = Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const hasVertexApiKey = Boolean(process.env.VERTEX_AI_API_KEY);
+const hasVertex = hasVertexApiKey || Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
 const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
 const runIntegration = hasVertex || hasApiKey ? describe : describe.skip;
 const LOCAL_SERVER_BASE_URL = process.env.AUTOBYTEUS_MEDIA_LOCAL_BASE_URL ?? 'http://192.168.2.124:29695';

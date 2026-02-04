@@ -3,7 +3,8 @@ import fs from 'node:fs/promises';
 import { SpeechGenerationResponse } from '../../../../../src/multimedia/index.js';
 import { AudioClientFactory } from '../../../../../src/multimedia/audio/audio-client-factory.js';
 
-const hasVertex = Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const hasVertexApiKey = Boolean(process.env.VERTEX_AI_API_KEY);
+const hasVertex = hasVertexApiKey || Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
 const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
 const runIntegration = hasVertex || hasApiKey ? describe : describe.skip;
 

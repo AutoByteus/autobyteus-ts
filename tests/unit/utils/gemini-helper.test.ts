@@ -19,6 +19,7 @@ describe('initializeGeminiClientWithRuntime', () => {
   beforeEach(() => {
     process.env = { ...originalEnv };
     constructorMock.mockClear();
+    delete process.env.VERTEX_AI_API_KEY;
     delete process.env.VERTEX_AI_PROJECT;
     delete process.env.VERTEX_AI_LOCATION;
     delete process.env.GEMINI_API_KEY;
@@ -26,6 +27,19 @@ describe('initializeGeminiClientWithRuntime', () => {
 
   afterEach(() => {
     process.env = { ...originalEnv };
+  });
+
+  it('prefers Vertex AI Express API key when set', () => {
+    process.env.VERTEX_AI_API_KEY = 'vertex-key';
+    process.env.VERTEX_AI_PROJECT = 'proj';
+    process.env.VERTEX_AI_LOCATION = 'loc';
+    process.env.GEMINI_API_KEY = 'gemini-key';
+
+    const { runtimeInfo } = initializeGeminiClientWithRuntime();
+    expect(runtimeInfo.runtime).toBe('vertex');
+    expect(runtimeInfo.project).toBeNull();
+    expect(runtimeInfo.location).toBeNull();
+    expect(constructorMock).toHaveBeenCalledWith({ vertexai: true, apiKey: 'vertex-key' });
   });
 
   it('prefers Vertex AI when project and location are set', () => {

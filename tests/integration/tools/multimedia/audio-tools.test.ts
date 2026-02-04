@@ -17,7 +17,11 @@ const makeContext = (basePath: string) => ({
   }
 });
 
-const isVertexRuntime = () => Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const isVertexRuntime = () =>
+  Boolean(
+    process.env.VERTEX_AI_API_KEY
+      || (process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION)
+  );
 
 const runMultiSpeaker = isVertexRuntime() ? it.skip : it;
 

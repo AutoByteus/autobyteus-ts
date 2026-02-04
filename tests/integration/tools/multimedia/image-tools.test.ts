@@ -27,13 +27,16 @@ const isRateLimitError = (error: unknown): boolean => {
 };
 
 const withVertexDisabled = async <T>(fn: () => Promise<T>): Promise<T> => {
+  const vertexApiKey = process.env.VERTEX_AI_API_KEY;
   const vertexProject = process.env.VERTEX_AI_PROJECT;
   const vertexLocation = process.env.VERTEX_AI_LOCATION;
+  delete process.env.VERTEX_AI_API_KEY;
   delete process.env.VERTEX_AI_PROJECT;
   delete process.env.VERTEX_AI_LOCATION;
   try {
     return await fn();
   } finally {
+    if (vertexApiKey !== undefined) process.env.VERTEX_AI_API_KEY = vertexApiKey;
     if (vertexProject !== undefined) process.env.VERTEX_AI_PROJECT = vertexProject;
     if (vertexLocation !== undefined) process.env.VERTEX_AI_LOCATION = vertexLocation;
   }

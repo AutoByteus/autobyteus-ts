@@ -10,7 +10,8 @@ import { ToolDefinition } from '../../../../src/tools/registry/tool-definition.j
 import { registerWriteFileTool } from '../../../../src/tools/file/write-file.js';
 import { GeminiJsonSchemaFormatter } from '../../../../src/tools/usage/formatters/gemini-json-schema-formatter.js';
 
-const hasVertex = Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const hasVertexApiKey = Boolean(process.env.VERTEX_AI_API_KEY);
+const hasVertex = hasVertexApiKey || Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
 const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
 const runIntegration = hasVertex || hasApiKey ? describe : describe.skip;
 

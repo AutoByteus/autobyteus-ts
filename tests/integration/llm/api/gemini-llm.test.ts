@@ -12,7 +12,8 @@ import { defaultToolRegistry, ToolRegistry } from '../../../../src/tools/registr
 import { ToolDefinition } from '../../../../src/tools/registry/tool-definition.js';
 import { registerWriteFileTool } from '../../../../src/tools/file/write-file.js';
 
-const hasVertex = Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const hasVertexApiKey = Boolean(process.env.VERTEX_AI_API_KEY);
+const hasVertex = hasVertexApiKey || Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
 const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
 const runIntegration = hasVertex || hasApiKey ? describe : describe.skip;
 
