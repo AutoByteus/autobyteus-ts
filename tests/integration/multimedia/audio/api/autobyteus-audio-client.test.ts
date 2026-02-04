@@ -3,7 +3,7 @@ import { AutobyteusAudioModelProvider } from '../../../../../src/multimedia/audi
 import { AudioClientFactory } from '../../../../../src/multimedia/audio/audio-client-factory.js';
 import { MultimediaRuntime } from '../../../../../src/multimedia/runtimes.js';
 
-const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
+const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_URLS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
 const hasKey = Boolean(process.env.AUTOBYTEUS_API_KEY);
 const forcedModelId = process.env.AUTOBYTEUS_AUDIO_MODEL_ID;
 const runIntegration = hasHosts && hasKey ? describe : describe.skip;

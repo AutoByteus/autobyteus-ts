@@ -12,7 +12,7 @@ export class AutobyteusModelProvider {
   static readonly DEFAULT_SERVER_URL = 'https://localhost:8000';
 
   static getHosts(): string[] {
-    const hostsStr = process.env.AUTOBYTEUS_LLM_SERVER_HOSTS;
+    const hostsStr = process.env.AUTOBYTEUS_LLM_SERVER_URLS;
     if (hostsStr) {
       return hostsStr.split(',').map((host) => host.trim()).filter(Boolean);
     }

@@ -9,7 +9,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
 
 function parseHosts(): string[] {
-  const hosts = process.env.AUTOBYTEUS_LLM_SERVER_HOSTS;
+  const hosts = process.env.AUTOBYTEUS_LLM_SERVER_URLS;
   if (hosts) {
     return hosts.split(',').map((host) => host.trim()).filter(Boolean);
   }
