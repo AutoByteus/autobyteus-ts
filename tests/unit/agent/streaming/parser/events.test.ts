@@ -9,6 +9,7 @@ describe('SegmentType', () => {
     expect(SegmentType.PATCH_FILE).toBe('patch_file');
     expect(SegmentType.RUN_BASH).toBe('run_bash');
     expect(SegmentType.REASONING).toBe('reasoning');
+    expect(SegmentType.MEDIA).toBe('media');
   });
 });
 

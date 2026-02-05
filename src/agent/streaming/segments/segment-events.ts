@@ -4,7 +4,8 @@ export enum SegmentType {
   WRITE_FILE = 'write_file',
   PATCH_FILE = 'patch_file',
   RUN_BASH = 'run_bash',
-  REASONING = 'reasoning'
+  REASONING = 'reasoning',
+  MEDIA = 'media'
 }
 
 export enum SegmentEventType {
