@@ -48,7 +48,7 @@ and can be layered above.
 
 - **TOOL_INTERACTION**: a paired view that links a tool call with its result
   using `tool_call_id`. This is for human-friendly inspection and summaries,
-  while the underlying transcript remains event-based.
+  while the underlying working context snapshot remains event-based.
 
 ---
 
@@ -56,11 +56,11 @@ and can be layered above.
 
 The memory system is defined by its implemented operations:
 
-- **ingest(event)**: store trace as RAW_TRACE and append to the Active Transcript
+- **ingest(event)**: store trace as RAW_TRACE and append to the Working Context Snapshot
 - **compact(turn_ids)**: summarize old traces into EPISODIC + SEMANTIC and prune RAW_TRACE
 - **retrieve(max_episodic, max_semantic)**: return a MemoryBundle for snapshot building
 - **build_snapshot(system_prompt, bundle, raw_tail)**: produce a Compaction Snapshot message list
-- **resetTranscript(snapshot)**: reset Active Transcript to the snapshot baseline
+- **resetWorkingContextSnapshot(snapshot)**: reset Working Context Snapshot to the snapshot baseline
 
 ---
 
@@ -139,23 +139,23 @@ The memory module is **event-driven**. It is triggered by:
 - When input prompt exceeds token budget (post-response usage)
 
 ### Retrieval (every LLM call)
-Before sending a user message to the LLM, memory prepares an **Active Transcript**
+Before sending a user message to the LLM, memory prepares a **Working Context Snapshot**
 for the current compaction epoch. If compaction is triggered, memory builds a
-**Compaction Snapshot** and resets the transcript to that snapshot before the call.
+**Compaction Snapshot** and resets the working context snapshot to that snapshot before the call.
 
 ---
 
-## 9. Prompt Assembly (Active Transcript + Compaction Snapshot)
+## 9. Prompt Assembly (Working Context Snapshot + Compaction Snapshot)
 
-The memory layer maintains an **Active Transcript**: a generic, append-only
+The memory layer maintains a **Working Context Snapshot**: a generic, append-only
 message list that grows between compaction boundaries. This is what the LLM
 receives on each call.
 
 When compaction triggers, memory builds a **Compaction Snapshot** (a compact,
-curated baseline) and **resets** the Active Transcript to that snapshot.
+curated baseline) and **resets** the Working Context Snapshot to that snapshot.
 
-### Active Transcript (per-epoch)
-The transcript is a list of generic messages that includes:
+### Working Context Snapshot (per-epoch)
+The working context snapshot is a list of generic messages that includes:
 
 1. System prompt (bootstrapped)
 2. Prior user / assistant messages (since last compaction)
@@ -163,23 +163,23 @@ The transcript is a list of generic messages that includes:
 4. Current user input
 
 ### Compaction Snapshot (handoff baseline)
-The snapshot is a compact replacement for the transcript base:
+The snapshot is a compact replacement for the working context snapshot base:
 
 1. System prompt (bootstrapped)
 2. Memory bundle (episodic + semantic)
 3. Short RAW_TRACE tail (last few turns)
 
-After compaction, the transcript is reset to this snapshot, then new turns
+After compaction, the working context snapshot is reset to this snapshot, then new turns
 append again.
 
 ### Prompt Renderer (provider adaptation)
-LLMs consume provider-specific payloads, so the generic transcript is rendered
+LLMs consume provider-specific payloads, so the generic working context snapshot is rendered
 by a **Prompt Renderer** per provider (OpenAI, Anthropic, etc.). This keeps the
 memory layer canonical and makes LLMs stateless executors.
 
 **Note (TypeScript today):** system prompts are configured on the LLM instance
 during bootstrap. In memory-centric mode, the system prompt can be injected
-directly into the transcript to make the LLM fully stateless.
+directly into the working context snapshot to make the LLM fully stateless.
 
 ---
 
@@ -209,7 +209,7 @@ values are set.
 **Trigger (post-response)**
 
 - If the **last response** reports `prompt_tokens > input_budget`, mark
-  compaction required and rebuild the transcript **before the next call**
+  compaction required and rebuild the working context snapshot **before the next call**
   via Compaction Snapshot.
 - Early trigger: `prompt_tokens > compaction_ratio * input_budget`
 
@@ -224,7 +224,7 @@ Compaction policy:
 ## 10.1 Compaction Pipeline (Primary Priority)
 
 Compaction is the **first priority** of the memory system because it keeps the
-Active Transcript bounded and useful.
+Working Context Snapshot bounded and useful.
 
 ### Trigger Conditions
 
@@ -232,13 +232,13 @@ Active Transcript bounded and useful.
 
 ### Compaction Outputs
 
-Compaction produces **structured memory artifacts** and a new transcript base:
+Compaction produces **structured memory artifacts** and a new working context snapshot base:
 
 1. **EPISODIC summary** (compressed narrative of older RAW_TRACE)
 2. **SEMANTIC facts** (stable preferences/decisions/constraints)
 3. **RAW_TRACE tail** preserved (last N turns)
 4. **Pruned RAW_TRACE** (oldest traces removed)
-5. **Compaction Snapshot** (new base for the Active Transcript)
+5. **Compaction Snapshot** (new base for the Working Context Snapshot)
 
 ### Compaction Flow (LLM-driven)
 
@@ -391,7 +391,7 @@ LLMUserMessageReadyEvent
    ▼
 LLMUserMessageReadyEventHandler
    │
-   ├─► LLM.streamMessages(Active Transcript)
+   ├─► LLM.streamMessages(Working Context Snapshot)
    │
    ├─► PendingToolInvocationEvent
    │      └─► ToolInvocationRequestEventHandler
@@ -423,8 +423,8 @@ src/memory/
 ├── store/
 │   ├── base-store.ts             # MemoryStore interface
 │   ├── file-store.ts             # Default file-backed store (JSONL)
-├── active-transcript.ts          # Generic, append-only messages per epoch
-├── compaction-snapshot-builder.ts# Builds compact transcript baseline
+├── working-context-snapshot.ts          # Generic, append-only messages per epoch
+├── compaction-snapshot-builder.ts# Builds compact working context snapshot baseline
 ├── compaction/
 │   ├── compaction-result.ts
 │   ├── compactor.ts              # orchestration of compaction flow
@@ -444,7 +444,7 @@ src/agent/
 
 ### Responsibility Map
 
-- **MemoryManager**: receives events, manages Active Transcript, and flags compaction.
+- **MemoryManager**: receives events, manages Working Context Snapshot, and flags compaction.
 - **Compactor**: runs compaction flow, writes EPISODIC/SEMANTIC items, prunes RAW_TRACE.
 - **Summarizer**: produces episodic summary + semantic facts from raw traces.
 - **Retriever**: loads episodic/semantic items into a MemoryBundle.
@@ -460,15 +460,15 @@ src/agent/
 **Suggested integration**
 
 - Add `MemoryManager` to `AgentRuntimeState`
-- Keep ingest processors (user/tool/assistant) to append to Active Transcript
-- Add a pre-LLM hook to request a transcript render + compaction check
+- Keep ingest processors (user/tool/assistant) to append to Working Context Snapshot
+- Add a pre-LLM hook to request a working context snapshot render + compaction check
 - Route tool results and messages into memory ingest
 
 **Migration path**
 
 1. **Hybrid epoch mode**: append to LLM history until compaction, then reset
    from Compaction Snapshot.
-2. **Memory-centric mode**: LLM history becomes stateless; memory owns transcript.
+2. **Memory-centric mode**: LLM history becomes stateless; memory owns working context snapshot.
 3. **Full core mode**: all history and context sourced from memory store.
 
 ---
@@ -484,7 +484,7 @@ src/agent/
 ## 13. Memory-Centric Architecture (LLM as a Service)
 
 In memory-centric mode, the LLM does **not** own history. Memory is the source
-of truth and the LLM is invoked with an **Active Transcript** built from memory
+of truth and the LLM is invoked with a **Working Context Snapshot** built from memory
 state (and reset from Compaction Snapshot when needed).
 
 ```
@@ -496,7 +496,7 @@ MemoryManager (ingest)
    ├─► Compactor (if compaction_required)
    │      └─► Summarizer (LLM)
    │
-   ├─► Active Transcript (append or reset)
+   ├─► Working Context Snapshot (append or reset)
    │      └─► Compaction Snapshot (if needed)
    │
    └─► Prompt Renderer (provider payload)
@@ -543,7 +543,7 @@ if prompt_tokens > 0.8 * input_budget:
 - **LLMRequestAssembler.prepareRequest(...)** (pre-next-call):
   1. Checks `compaction_required`
   2. Runs compaction + snapshot reset when requested
-  3. Appends the new user/tool input to the transcript
+  3. Appends the new user/tool input to the working context snapshot
   4. Renders provider payload
 
 This keeps compaction centralized **without token estimation** and avoids
@@ -587,7 +587,7 @@ Key changes:
 - Add `memory_manager` to `AgentRuntimeState`
 - Ingest **processed** user input (LLMUserMessageReadyEvent), plus tool intent,
   tool results, and assistant response events
-- Build or reset Active Transcript before every LLM call (via assembler)
+- Build or reset Working Context Snapshot before every LLM call (via assembler)
 - Keep LLM stateless (no internal history ownership)
 
 ### 15.4 Refactor targets (files)
@@ -676,7 +676,7 @@ messages and renders provider payloads via Prompt Renderers.
 
 **Where used**
 
-- Active Transcript appends tool call intents and tool results as structured
+- Working Context Snapshot appends tool call intents and tool results as structured
   messages.
 - Prompt Renderers map tool messages to provider-specific formats.
 
@@ -789,17 +789,17 @@ type ToolPayload = ToolCallPayload | ToolResultPayload;
 
 ---
 
-### Phase C — Memory owns transcript
+### Phase C — Memory owns working context snapshot
 
-**Goal:** Memory produces the transcript used by LLM.
+**Goal:** Memory produces the working context snapshot used by LLM.
 
-- Add `src/memory/active-transcript.ts`
+- Add `src/memory/working-context-snapshot.ts`
 - Add `src/memory/compaction-snapshot-builder.ts`
 - Update `MemoryManager` to:
-- append to Active Transcript on each ingest
+- append to Working Context Snapshot on each ingest
   - build Compaction Snapshot on compaction
-  - reset transcript to snapshot at compaction boundary
-- expose Active Transcript accessors (messages + metadata)
+  - reset working context snapshot to snapshot at compaction boundary
+- expose Working Context Snapshot accessors (messages + metadata)
 
 **Tool events (structured)**
 
@@ -815,9 +815,9 @@ type ToolPayload = ToolCallPayload | ToolResultPayload;
 
 **Tests**
 
-- Transcript append ordering
+- Working context snapshot append ordering
 - Snapshot reset behavior
-- Compaction boundary resets transcript
+- Compaction boundary resets working context snapshot
 
 ---
 
@@ -837,7 +837,7 @@ type ToolPayload = ToolCallPayload | ToolResultPayload;
 
 - Streaming parser continues to detect tool calls (XML / JSON / API-native).
 - After parsing tool calls, append an assistant message with `tool_calls`
-  metadata to the Active Transcript.
+  metadata to the Working Context Snapshot.
 - Tool results are appended as `MessageRole.TOOL` messages.
 - The next turn is triggered by a short user continuation message.
 
@@ -860,8 +860,8 @@ LLMUserMessageReadyEventHandler.handle(...)
   at src/agent/handlers/llm-user-message-ready-event-handler.ts
   └─► LLMRequestAssembler.prepareRequest(...)
         at src/agent/llm-request-assembler.ts
-        ├─► ActiveTranscript.build_messages()
-        │     at src/memory/active-transcript.ts
+        ├─► WorkingContextSnapshot.build_messages()
+        │     at src/memory/working-context-snapshot.ts
         ├─► PromptRenderer.render(...)
         │     at src/llm/prompt-renderers/openai-responses-renderer.ts
         └─► (no compaction)
@@ -871,8 +871,8 @@ LLMUserMessageReadyEventHandler.handle(...)
               at src/llm/api/openai-responses-llm.ts
   └─► MemoryManager.ingestAssistantResponse(...)
         at src/memory/memory-manager.ts
-        └─► ActiveTranscript.append_assistant(...)
-              at src/memory/active-transcript.ts
+        └─► WorkingContextSnapshot.append_assistant(...)
+              at src/memory/working-context-snapshot.ts
 ```
 
 **Gap check**  
@@ -898,8 +898,8 @@ LLMUserMessageReadyEventHandler.handle(...)
               at src/agent/streaming/*
               └─► MemoryManager.ingestToolIntent(...)
                     at src/memory/memory-manager.ts
-                    └─► ActiveTranscript.append_tool_calls(...)
-                          at src/memory/active-transcript.ts
+                    └─► WorkingContextSnapshot.append_tool_calls(...)
+                          at src/memory/working-context-snapshot.ts
               └─► PendingToolInvocationEvent
                     at src/agent/events/agent-events.ts
                     └─► ToolInvocationRequestEventHandler.handle(...)
@@ -910,8 +910,8 @@ LLMUserMessageReadyEventHandler.handle(...)
                                       at src/agent/tool-execution-result-processor/memory-ingest-tool-result-processor.ts
                                       └─► MemoryManager.ingestToolResult(...)
                                             at src/memory/memory-manager.ts
-                                            └─► ActiveTranscript.append_tool_result(...)
-                                                  at src/memory/active-transcript.ts
+                                            └─► WorkingContextSnapshot.append_tool_result(...)
+                                                  at src/memory/working-context-snapshot.ts
                                 └─► ToolResultEventHandler.handle(...)
                                       at src/agent/handlers/tool-result-event-handler.ts
                                       └─► enqueue UserMessageReceivedEvent
@@ -942,11 +942,11 @@ LLMUserMessageReadyEventHandler.handle(...)
         │           at src/memory/compaction/summarizer.ts
         ├─► CompactionSnapshotBuilder.build(...)
         │     at src/memory/compaction-snapshot-builder.ts
-        ├─► ActiveTranscript.reset(snapshot)
-        │     at src/memory/active-transcript.ts
+        ├─► WorkingContextSnapshot.reset(snapshot)
+        │     at src/memory/working-context-snapshot.ts
         └─► PromptRenderer.render(messages)
               at src/llm/prompt-renderers/openai-responses-renderer.ts
-  └─► LLM.streamMessages(compacted transcript)
+  └─► LLM.streamMessages(compacted working context snapshot)
 ```
 
 **Gap check**  
@@ -961,7 +961,7 @@ Use this “debug-trace simulation” as a review checklist:
 - Each step has an explicit owner (file + class).
 - No hidden mutation of LLM history.
 - Tool calls/results are structured messages.
-- Compaction resets transcript and changes the next prompt.
+- Compaction resets working context snapshot and changes the next prompt.
 
 **Tests**
 
@@ -1000,7 +1000,7 @@ Use this “debug-trace simulation” as a review checklist:
 **Tests**
 
 - Ensure no history is stored inside LLM
-- Ensure memory is the only transcript source
+- Ensure memory is the only working context snapshot source
 
 ---
 
@@ -1010,7 +1010,7 @@ Use this “debug-trace simulation” as a review checklist:
 
 - `src/memory/memory-manager.ts`
   - Event-driven entry point
-  - Ingests traces and manages the Active Transcript
+  - Ingests traces and manages the Working Context Snapshot
   - Flags compaction requests
 
 - `src/agent/llm-request-assembler.ts`
@@ -1025,7 +1025,7 @@ Use this “debug-trace simulation” as a review checklist:
 - `src/memory/models/*`
   - `memory-types.ts`, `raw-trace-item.ts`, `episodic-item.ts`, `semantic-item.ts`, `tool-interaction.ts`
 
-- `src/memory/active-transcript.ts`
+- `src/memory/working-context-snapshot.ts`
   - Append/reset/build message list per compaction epoch
 
 - `src/memory/turn-tracker.ts`
@@ -1137,8 +1137,8 @@ ingestAssistantResponse(completeResponse, turnId: string, sourceEvent): void
 requestCompaction(): void
 clearCompactionRequest(): void
 getRawTail(tailTurns: number, excludeTurnId?: string): RawTraceItem[]
-getTranscriptMessages(): Message[]
-resetTranscript(snapshotMessages: Message[]): void
+getWorkingContextMessages(): Message[]
+resetWorkingContextSnapshot(snapshotMessages: Message[]): void
 getToolInteractions(turnId?: string): ToolInteraction[]
 ```
 
@@ -1174,7 +1174,7 @@ retrieve(maxEpisodic: number, maxSemantic: number): MemoryBundle
 ## 19. Compaction Snapshot Assembly Rules
 
 The Compaction Snapshot is used only at the **compaction boundary** to reset
-the Active Transcript.
+the Working Context Snapshot.
 
 ### Ordering
 

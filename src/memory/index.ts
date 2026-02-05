@@ -1,4 +1,5 @@
-export { ActiveTranscript } from './active-transcript.js';
+export { WorkingContextSnapshot } from './working-context-snapshot.js';
+export { WorkingContextSnapshotSerializer } from './working-context-snapshot-serializer.js';
 export { CompactionSnapshotBuilder } from './compaction-snapshot-builder.js';
 export { MemoryManager } from './memory-manager.js';
 export { TurnTracker } from './turn-tracker.js';
@@ -21,5 +22,6 @@ export { Retriever } from './retrieval/retriever.js';
 
 export { MemoryStore } from './store/base-store.js';
 export { FileMemoryStore } from './store/file-store.js';
+export { WorkingContextSnapshotStore } from './store/working-context-snapshot-store.js';
 
 export { resolveMemoryBaseDir, resolveAgentMemoryDir } from './path-resolver.js';

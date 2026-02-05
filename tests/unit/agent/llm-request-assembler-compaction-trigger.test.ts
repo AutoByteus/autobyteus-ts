@@ -26,7 +26,7 @@ class TestSummarizer {
 }
 
 describe('LLMRequestAssembler compaction trigger', () => {
-  it('compacts when requested and resets transcript', async () => {
+  it('compacts when requested and resets working context snapshot', async () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'memory-assembler-'));
     try {
       const store = new FileMemoryStore(tempDir, 'agent_trigger');
@@ -65,7 +65,7 @@ describe('LLMRequestAssembler compaction trigger', () => {
       const request = await assembler.prepareRequest('current input', 'turn_0003', 'System prompt');
 
       expect(request.didCompact).toBe(true);
-      expect(manager.activeTranscript.epochId).toBe(2);
+      expect(manager.workingContextSnapshot.epochId).toBe(2);
       expect(request.messages.slice(0, 2).map((message) => message.role)).toEqual([
         MessageRole.SYSTEM,
         MessageRole.USER

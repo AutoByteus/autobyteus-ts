@@ -4,6 +4,7 @@ import { BaseBootstrapStep } from '../../../../src/agent/bootstrap-steps/base-bo
 import { WorkspaceContextInitializationStep } from '../../../../src/agent/bootstrap-steps/workspace-context-initialization-step.js';
 import { McpServerPrewarmingStep } from '../../../../src/agent/bootstrap-steps/mcp-server-prewarming-step.js';
 import { SystemPromptProcessingStep } from '../../../../src/agent/bootstrap-steps/system-prompt-processing-step.js';
+import { WorkingContextSnapshotRestoreStep } from '../../../../src/agent/bootstrap-steps/working-context-snapshot-restore-step.js';
 
 class MockStep1 extends BaseBootstrapStep {
   async execute(): Promise<boolean> {
@@ -30,10 +31,11 @@ describe('AgentBootstrapper', () => {
 
   it('initializes with default steps', () => {
     const bootstrapper = new AgentBootstrapper();
-    expect(bootstrapper.bootstrapSteps).toHaveLength(3);
+    expect(bootstrapper.bootstrapSteps).toHaveLength(4);
     expect(bootstrapper.bootstrapSteps[0]).toBeInstanceOf(WorkspaceContextInitializationStep);
     expect(bootstrapper.bootstrapSteps[1]).toBeInstanceOf(McpServerPrewarmingStep);
     expect(bootstrapper.bootstrapSteps[2]).toBeInstanceOf(SystemPromptProcessingStep);
+    expect(bootstrapper.bootstrapSteps[3]).toBeInstanceOf(WorkingContextSnapshotRestoreStep);
     expect(
       debugSpy.mock.calls.some(([msg]: [unknown]) =>
         String(msg).includes('AgentBootstrapper initialized with default steps.')

@@ -11,7 +11,9 @@ import { Compactor } from './compaction/compactor.js';
 import { Retriever } from './retrieval/retriever.js';
 import { MemoryStore } from './store/base-store.js';
 import { TurnTracker } from './turn-tracker.js';
-import { ActiveTranscript } from './active-transcript.js';
+import { WorkingContextSnapshot } from './working-context-snapshot.js';
+import { WorkingContextSnapshotSerializer } from './working-context-snapshot-serializer.js';
+import { WorkingContextSnapshotStore } from './store/working-context-snapshot-store.js';
 import { buildToolInteractions } from './tool-interaction-builder.js';
 
 export class MemoryManager {
@@ -21,7 +23,8 @@ export class MemoryManager {
   compactor: Compactor | null;
   retriever: Retriever;
   memoryTypes = MemoryType;
-  activeTranscript: ActiveTranscript;
+  workingContextSnapshot: WorkingContextSnapshot;
+  workingContextSnapshotStore: WorkingContextSnapshotStore | null;
   compactionRequired = false;
   private seqByTurn = new Map<string, number>();
 
@@ -31,14 +34,16 @@ export class MemoryManager {
     compactionPolicy?: CompactionPolicy;
     compactor?: Compactor | null;
     retriever?: Retriever;
-    activeTranscript?: ActiveTranscript;
+    workingContextSnapshot?: WorkingContextSnapshot;
+    workingContextSnapshotStore?: WorkingContextSnapshotStore | null;
   }) {
     this.store = options.store;
     this.turnTracker = options.turnTracker ?? new TurnTracker();
     this.compactionPolicy = options.compactionPolicy ?? new CompactionPolicy();
     this.compactor = options.compactor ?? null;
     this.retriever = options.retriever ?? new Retriever(this.store);
-    this.activeTranscript = options.activeTranscript ?? new ActiveTranscript();
+    this.workingContextSnapshot = options.workingContextSnapshot ?? new WorkingContextSnapshot();
+    this.workingContextSnapshotStore = options.workingContextSnapshotStore ?? null;
   }
 
   startTurn(): string {
@@ -98,7 +103,7 @@ export class MemoryManager {
     });
 
     this.store.add([trace]);
-    this.activeTranscript.appendToolCalls([
+    this.workingContextSnapshot.appendToolCalls([
       { id: toolInvocation.id, name: toolInvocation.name, arguments: toolInvocation.arguments } as ToolCallSpec
     ]);
   }
@@ -125,7 +130,7 @@ export class MemoryManager {
     });
 
     this.store.add([trace]);
-    this.activeTranscript.appendToolResult(
+    this.workingContextSnapshot.appendToolResult(
       event.toolInvocationId ?? '',
       event.toolName,
       event.result,
@@ -146,8 +151,9 @@ export class MemoryManager {
     });
     this.store.add([trace]);
     if (response.content || response.reasoning) {
-      this.activeTranscript.appendAssistant(response.content ?? null, response.reasoning ?? null);
+      this.workingContextSnapshot.appendAssistant(response.content ?? null, response.reasoning ?? null);
     }
+    this.persistWorkingContextSnapshot();
   }
 
   private getRawTailInternal(tailTurns: number, excludeTurnId?: string | null): RawTraceItem[] {
@@ -187,12 +193,30 @@ export class MemoryManager {
     return this.getRawTailInternal(tailTurns, excludeTurnId);
   }
 
-  getTranscriptMessages() {
-    return this.activeTranscript.buildMessages();
+  getWorkingContextMessages() {
+    return this.workingContextSnapshot.buildMessages();
   }
 
-  resetTranscript(snapshotMessages: Iterable<any>): void {
-    this.activeTranscript.reset(snapshotMessages);
+  resetWorkingContextSnapshot(snapshotMessages: Iterable<any>): void {
+    this.workingContextSnapshot.reset(snapshotMessages);
+    this.persistWorkingContextSnapshot();
+  }
+
+  persistWorkingContextSnapshot(): void {
+    if (!this.workingContextSnapshotStore) {
+      return;
+    }
+    const agentId = this.workingContextSnapshotStore.agentId ?? (this.store as any).agentId;
+    if (!agentId) {
+      return;
+    }
+    const payload = WorkingContextSnapshotSerializer.serialize(this.workingContextSnapshot, {
+      schema_version: 1,
+      agent_id: agentId,
+      epoch_id: this.workingContextSnapshot.epochId,
+      last_compaction_ts: this.workingContextSnapshot.lastCompactionTs
+    });
+    this.workingContextSnapshotStore.write(agentId, payload);
   }
 
   getToolInteractions(turnId?: string | null) {

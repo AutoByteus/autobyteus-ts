@@ -51,7 +51,7 @@ describe('MemoryManager', () => {
     }
   });
 
-  it('ingests tool intent and result into transcript', () => {
+    it('ingests tool intent and result into working context snapshot', () => {
     const tempDir = makeTempDir();
     try {
       const store = new FileMemoryStore(tempDir, 'agent_mem_tools');
@@ -64,10 +64,10 @@ describe('MemoryManager', () => {
       const toolResult = new ToolResultEvent('write_file', 'ok', 'call_1', undefined, { path: 'x.txt' }, turnId);
       manager.ingestToolResult(toolResult, turnId);
 
-      const transcript = manager.getTranscriptMessages();
-      expect(transcript).toHaveLength(2);
-      expect(transcript[0].role).toBe(MessageRole.ASSISTANT);
-      expect(transcript[1].role).toBe(MessageRole.TOOL);
+      const snapshot = manager.getWorkingContextMessages();
+      expect(snapshot).toHaveLength(2);
+      expect(snapshot[0].role).toBe(MessageRole.ASSISTANT);
+      expect(snapshot[1].role).toBe(MessageRole.TOOL);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });
     }

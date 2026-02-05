@@ -40,6 +40,8 @@ import { BootstrapEventHandler } from '../handlers/bootstrap-event-handler.js';
 import { LifecycleEventLogger } from '../handlers/lifecycle-event-logger.js';
 import { SkillRegistry } from '../../skills/registry.js';
 import { FileMemoryStore, MemoryManager, resolveMemoryBaseDir } from '../../memory/index.js';
+import { WorkingContextSnapshotStore } from '../../memory/store/working-context-snapshot-store.js';
+import { WorkingContextSnapshotBootstrapOptions } from '../../memory/restore/working-context-snapshot-bootstrapper.js';
 import { MemoryIngestInputProcessor } from '../input-processor/memory-ingest-input-processor.js';
 import { MemoryIngestToolResultProcessor } from '../tool-execution-result-processor/memory-ingest-tool-result-processor.js';
 import { AgentRuntime } from '../runtime/agent-runtime.js';
@@ -138,7 +140,12 @@ export class AgentFactory extends Singleton {
     config.skills = updatedSkills;
   }
 
-  private createRuntime(agentId: string, config: AgentConfig): AgentRuntime {
+  private createRuntimeWithId(
+    agentId: string,
+    config: AgentConfig,
+    memoryDirOverride: string | null = null,
+    restoreOptions: WorkingContextSnapshotBootstrapOptions | null = null
+  ): AgentRuntime {
     this.prepareSkills(agentId, config);
 
     const runtimeState = new AgentRuntimeState(
@@ -148,10 +155,12 @@ export class AgentFactory extends Singleton {
     );
 
     const memoryDir = resolveMemoryBaseDir({
-      overrideDir: config.memoryDir ?? null
+      overrideDir: memoryDirOverride ?? config.memoryDir ?? null
     });
     const memoryStore = new FileMemoryStore(memoryDir, agentId);
-    runtimeState.memoryManager = new MemoryManager({ store: memoryStore });
+    const snapshotStore = new WorkingContextSnapshotStore(memoryDir, agentId);
+    runtimeState.memoryManager = new MemoryManager({ store: memoryStore, workingContextSnapshotStore: snapshotStore });
+    runtimeState.restoreOptions = restoreOptions;
 
     if (!config.inputProcessors.some((processor) => processor instanceof MemoryIngestInputProcessor)) {
       config.inputProcessors.push(new MemoryIngestInputProcessor());
@@ -188,10 +197,26 @@ export class AgentFactory extends Singleton {
       agentId = `${config.name}_${config.role}_${Math.floor(Math.random() * 9000) + 1000}`;
     }
 
-    const runtime = this.createRuntime(agentId, config);
+    const runtime = this.createRuntimeWithId(agentId, config);
     const agent = new Agent(runtime);
     this.activeAgents.set(agentId, agent);
     console.info(`Agent '${agentId}' created and stored successfully.`);
+    return agent;
+  }
+
+  restoreAgent(agentId: string, config: AgentConfig, memoryDir: string | null = null): Agent {
+    if (!agentId || typeof agentId !== 'string') {
+      throw new Error('restoreAgent requires a non-empty string agentId.');
+    }
+    if (this.activeAgents.has(agentId)) {
+      throw new Error(`Agent '${agentId}' is already active.`);
+    }
+
+    const restoreOptions = new WorkingContextSnapshotBootstrapOptions();
+    const runtime = this.createRuntimeWithId(agentId, config, memoryDir, restoreOptions);
+    const agent = new Agent(runtime);
+    this.activeAgents.set(agentId, agent);
+    console.info(`Agent '${agentId}' restored and stored successfully.`);
     return agent;
   }
 

@@ -1,6 +1,6 @@
 import { Message, MessageRole, ToolCallPayload, ToolCallSpec, ToolResultPayload } from '../llm/utils/messages.js';
 
-export class ActiveTranscript {
+export class WorkingContextSnapshot {
   private messages: Message[] = [];
   epochId = 1;
   lastCompactionTs: number | null = null;

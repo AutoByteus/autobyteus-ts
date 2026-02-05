@@ -7,6 +7,7 @@ import { ToDoList } from '../../task-management/todo-list.js';
 import { BaseLLM } from '../../llm/base.js';
 import type { BaseTool } from '../../tools/base-tool.js';
 import type { MemoryManager } from '../../memory/memory-manager.js';
+import type { WorkingContextSnapshotBootstrapOptions } from '../../memory/restore/working-context-snapshot-bootstrapper.js';
 
 import type { AgentStatusDeriver } from '../status/status-deriver.js';
 import type { AgentStatusManager } from '../status/manager.js';
@@ -28,6 +29,7 @@ export class AgentRuntimeState {
   todoList: ToDoList | null = null;
   memoryManager: MemoryManager | null = null;
   activeTurnId: string | null = null;
+  restoreOptions: WorkingContextSnapshotBootstrapOptions | null = null;
   processedSystemPrompt: string | null = null;
   statusManagerRef: AgentStatusManager | null = null;
 

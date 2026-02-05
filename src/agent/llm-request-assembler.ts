@@ -54,14 +54,14 @@ export class LLMRequestAssembler {
           bundle,
           rawTail
         );
-        this.memoryManager.resetTranscript(snapshotMessages);
+        this.memoryManager.resetWorkingContextSnapshot(snapshotMessages);
         this.memoryManager.clearCompactionRequest();
         didCompact = true;
       }
     }
 
-    this.memoryManager.activeTranscript.appendMessage(userMessage);
-    const finalMessages = this.memoryManager.getTranscriptMessages();
+    this.memoryManager.workingContextSnapshot.appendMessage(userMessage);
+    const finalMessages = this.memoryManager.getWorkingContextMessages();
     const renderedPayload = await this.renderPayload(finalMessages);
 
     return {
@@ -91,9 +91,9 @@ export class LLMRequestAssembler {
     if (!systemPrompt) {
       return;
     }
-    const existing = this.memoryManager.getTranscriptMessages();
+    const existing = this.memoryManager.getWorkingContextMessages();
     if (!existing.length) {
-      this.memoryManager.activeTranscript.appendMessage(
+      this.memoryManager.workingContextSnapshot.appendMessage(
         new Message(MessageRole.SYSTEM, { content: systemPrompt })
       );
     }

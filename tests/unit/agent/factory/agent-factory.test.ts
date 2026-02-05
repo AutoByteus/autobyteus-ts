@@ -100,7 +100,7 @@ describe('AgentFactory', () => {
     runtimeStub.context = { agentId: '' } as any;
 
     const createRuntimeSpy = vi
-      .spyOn(factory as any, 'createRuntime')
+      .spyOn(factory as any, 'createRuntimeWithId')
       .mockImplementation((...args: any[]) => {
         const agentId = String(args[0] ?? '');
         runtimeStub.context.agentId = agentId;
@@ -145,9 +145,33 @@ describe('AgentFactory', () => {
     const factory = new AgentFactory();
     const config = makeConfig();
 
-    const runtime = (factory as any).createRuntime('test-runtime-agent', config) as AgentRuntime;
+    const runtime = (factory as any).createRuntimeWithId('test-runtime-agent', config) as AgentRuntime;
     expect(runtime).toBeInstanceOf(AgentRuntime);
     expect(runtime.context.state.llmInstance).toBe(config.llmInstance);
     expect(runtime.context.state.toolInstances?.factory_tool).toBe(config.tools[0]);
+  });
+
+  it('restores agents with existing id', () => {
+    const factory = new AgentFactory();
+    const config = makeConfig();
+
+    const runtimeStub = Object.create(AgentRuntime.prototype) as AgentRuntime;
+    runtimeStub.context = { agentId: '' } as any;
+
+    const createRuntimeSpy = vi
+      .spyOn(factory as any, 'createRuntimeWithId')
+      .mockImplementation((...args: any[]) => {
+        const agentId = String(args[0] ?? '');
+        runtimeStub.context.agentId = agentId;
+        return runtimeStub;
+      });
+
+    const agent = factory.restoreAgent('restored-agent', config, '/tmp/memory');
+    expect(agent.agentId).toBe('restored-agent');
+    const callArgs = createRuntimeSpy.mock.calls[0] ?? [];
+    expect(callArgs[0]).toBe('restored-agent');
+    expect(callArgs[1]).toBe(config);
+    expect(callArgs[2]).toBe('/tmp/memory');
+    expect(callArgs[3]).not.toBeNull();
   });
 });

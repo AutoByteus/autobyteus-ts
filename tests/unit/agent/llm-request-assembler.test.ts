@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { LLMRequestAssembler } from '../../../src/agent/llm-request-assembler.js';
 import { BasePromptRenderer } from '../../../src/llm/prompt-renderers/base-prompt-renderer.js';
 import { Message, MessageRole } from '../../../src/llm/utils/messages.js';
-import { ActiveTranscript } from '../../../src/memory/active-transcript.js';
+import { WorkingContextSnapshot } from '../../../src/memory/working-context-snapshot.js';
 import { CompactionSnapshotBuilder } from '../../../src/memory/compaction-snapshot-builder.js';
 import { EpisodicItem } from '../../../src/memory/models/episodic-item.js';
 import { RawTraceItem } from '../../../src/memory/models/raw-trace-item.js';
@@ -17,7 +17,7 @@ class FakeRenderer extends BasePromptRenderer {
 }
 
 class FakeMemoryManager {
-  activeTranscript = new ActiveTranscript();
+  workingContextSnapshot = new WorkingContextSnapshot();
   compactionPolicy = new CompactionPolicy();
   compactor: { selectCompactionWindow: () => string[]; compact: (turns: string[]) => void } = {
     selectCompactionWindow: () => [],
@@ -41,12 +41,12 @@ class FakeMemoryManager {
     this.compactionRequired = false;
   }
 
-  getTranscriptMessages(): Message[] {
-    return this.activeTranscript.buildMessages();
+  getWorkingContextMessages(): Message[] {
+    return this.workingContextSnapshot.buildMessages();
   }
 
-  resetTranscript(snapshotMessages: Iterable<Message>): void {
-    this.activeTranscript.reset(snapshotMessages);
+  resetWorkingContextSnapshot(snapshotMessages: Iterable<Message>): void {
+    this.workingContextSnapshot.reset(snapshotMessages);
   }
 
   getRawTail(_tailTurns: number, excludeTurnId?: string | null): RawTraceItem[] {
@@ -66,10 +66,10 @@ describe('LLMRequestAssembler', () => {
 
     expect(request.didCompact).toBe(false);
     expect(request.messages.map((message) => message.role)).toEqual([MessageRole.SYSTEM, MessageRole.USER]);
-    expect(memoryManager.activeTranscript.buildMessages()).toEqual(request.messages);
+    expect(memoryManager.workingContextSnapshot.buildMessages()).toEqual(request.messages);
   });
 
-  it('prepareRequest compacts and resets transcript when requested', async () => {
+  it('prepareRequest compacts and resets working context snapshot when requested', async () => {
     const rawTail = [
       new RawTraceItem({
         id: 'rt_1',
@@ -115,8 +115,8 @@ describe('LLMRequestAssembler', () => {
     const request = await assembler.prepareRequest('new input', 'turn_0002', 'System prompt');
 
     expect(request.didCompact).toBe(true);
-    expect(memoryManager.activeTranscript.epochId).toBe(2);
-    expect(memoryManager.activeTranscript.lastCompactionTs).not.toBeNull();
+    expect(memoryManager.workingContextSnapshot.epochId).toBe(2);
+    expect(memoryManager.workingContextSnapshot.lastCompactionTs).not.toBeNull();
     expect(request.messages.map((message) => message.role)).toEqual([
       MessageRole.SYSTEM,
       MessageRole.USER,

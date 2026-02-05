@@ -103,6 +103,7 @@ tests/integration/agent/tool-approval-flow.test.ts
 tests/integration/agent/agent-single-flow.test.ts
 tests/integration/agent/agent-single-flow-xml.test.ts
 tests/integration/agent/agent-dual-flow.test.ts
+tests/integration/agent/working-context-snapshot-restore-flow.test.ts
 tests/integration/agent/handlers/gemini-tool-call-handler-live.test.ts
 tests/integration/agent/handlers/mistral-tool-call-handler-live.test.ts
 tests/integration/agent/handlers/claude-tool-call-handler-live.test.ts
@@ -115,6 +116,7 @@ tests/integration/multimedia/image/api/openai-image-client.test.ts
 tests/integration/agent/streaming/json-tool-styles-integration.test.ts
 tests/integration/agent/streaming/parser/streaming-parser.test.ts
 tests/integration/agent/runtime/agent-runtime.test.ts
+tests/integration/memory/working-context-snapshot-restore.test.ts
 tests/integration/multimedia/audio/autobyteus-audio-provider.test.ts
 tests/integration/multimedia/audio/api/openai-audio-client.test.ts
 tests/integration/multimedia/audio/api/gemini-audio-client.test.ts
