@@ -3,6 +3,7 @@ import fsPromises from 'node:fs/promises';
 import https from 'node:https';
 import { URL } from 'node:url';
 import axios, { AxiosError, AxiosInstance } from 'axios';
+import { mediaSourceToDataUri } from '../llm/utils/media-payload-formatter.js';
 
 export class CertificateError extends Error {}
 
@@ -185,13 +186,16 @@ export class AutobyteusClient {
     videoUrls?: string[] | null
   ): Promise<JsonRecord> {
     try {
+      const normalizedImageUrls = await this.normalizeMediaSources(imageUrls);
+      const normalizedAudioUrls = await this.normalizeMediaSources(audioUrls);
+      const normalizedVideoUrls = await this.normalizeMediaSources(videoUrls);
       const payload = {
         conversation_id: conversationId,
         model_name: modelName,
         user_message: userMessage,
-        image_urls: imageUrls ?? [],
-        audio_urls: audioUrls ?? [],
-        video_urls: videoUrls ?? []
+        image_urls: normalizedImageUrls,
+        audio_urls: normalizedAudioUrls,
+        video_urls: normalizedVideoUrls
       };
       const response = await this.asyncClient.post(joinUrl(this.serverUrl, '/send-message'), payload);
       return response.data;
@@ -208,13 +212,16 @@ export class AutobyteusClient {
     audioUrls?: string[] | null,
     videoUrls?: string[] | null
   ): AsyncGenerator<JsonRecord, void, void> {
+    const normalizedImageUrls = await this.normalizeMediaSources(imageUrls);
+    const normalizedAudioUrls = await this.normalizeMediaSources(audioUrls);
+    const normalizedVideoUrls = await this.normalizeMediaSources(videoUrls);
     const payload = {
       conversation_id: conversationId,
       model_name: modelName,
       user_message: userMessage,
-      image_urls: imageUrls ?? [],
-      audio_urls: audioUrls ?? [],
-      video_urls: videoUrls ?? []
+      image_urls: normalizedImageUrls,
+      audio_urls: normalizedAudioUrls,
+      video_urls: normalizedVideoUrls
     };
 
     try {
@@ -257,11 +264,13 @@ export class AutobyteusClient {
     sessionId?: string | null
   ): Promise<JsonRecord> {
     try {
+      const normalizedInputImageUrls = await this.normalizeMediaSources(inputImageUrls);
+      const normalizedMaskUrl = await this.normalizeSingleMediaSource(maskUrl);
       const payload = {
         model_name: modelName,
         prompt,
-        input_image_urls: inputImageUrls ?? [],
-        mask_url: maskUrl ?? null,
+        input_image_urls: normalizedInputImageUrls,
+        mask_url: normalizedMaskUrl,
         generation_config: generationConfig ?? {},
         session_id: sessionId ?? null
       };
@@ -346,5 +355,35 @@ export class AutobyteusClient {
       return new Error(error.message);
     }
     return new Error(`${logPrefix}: ${String(error)}`);
+  }
+
+  private async normalizeMediaSources(mediaSources?: string[] | null): Promise<string[]> {
+    if (!Array.isArray(mediaSources) || mediaSources.length === 0) {
+      return [];
+    }
+
+    const normalized: string[] = [];
+    for (const source of mediaSources) {
+      if (typeof source !== 'string') {
+        continue;
+      }
+      const trimmed = source.trim();
+      if (!trimmed) {
+        continue;
+      }
+      normalized.push(await mediaSourceToDataUri(trimmed));
+    }
+    return normalized;
+  }
+
+  private async normalizeSingleMediaSource(mediaSource?: string | null): Promise<string | null> {
+    if (typeof mediaSource !== 'string') {
+      return null;
+    }
+    const trimmed = mediaSource.trim();
+    if (!trimmed) {
+      return null;
+    }
+    return mediaSourceToDataUri(trimmed);
   }
 }

@@ -48,6 +48,15 @@ export async function isValidMediaPath(filePath: string): Promise<boolean> {
   }
 }
 
+async function isExistingFilePath(filePath: string): Promise<boolean> {
+  try {
+    const stat = await fs.stat(filePath);
+    return stat.isFile();
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Create properly structured data URI object for API.
  */
@@ -108,4 +117,49 @@ export async function mediaSourceToBase64(mediaSource: string): Promise<string> 
   }
 
   throw new Error("Invalid media source: not a valid file path, URL, or base64 string.");
+}
+
+/**
+ * Converts a media source (data URI, local path, URL, or raw base64) into a data URI.
+ */
+export async function mediaSourceToDataUri(mediaSource: string): Promise<string> {
+  if (mediaSource.startsWith('data:')) {
+    return mediaSource;
+  }
+
+  if (mediaSource.startsWith('http://') || mediaSource.startsWith('https://')) {
+    try {
+      const response = await axios.get(mediaSource, { responseType: 'arraybuffer' });
+      const headerContentType = response.headers?.['content-type'];
+      const mimeTypeFromHeader = typeof headerContentType === 'string'
+        ? headerContentType.split(';')[0].trim()
+        : '';
+      const parsedUrlPath = (() => {
+        try {
+          return new URL(mediaSource).pathname;
+        } catch {
+          return mediaSource;
+        }
+      })();
+      const mimeTypeFromPath = mime.lookup(parsedUrlPath) || '';
+      const mimeType = mimeTypeFromHeader || mimeTypeFromPath || 'application/octet-stream';
+      const base64Data = Buffer.from(response.data).toString('base64');
+      return `data:${mimeType};base64,${base64Data}`;
+    } catch (error) {
+      console.error(`Failed to convert URL to data URI ${mediaSource}: ${error}`);
+      throw error;
+    }
+  }
+
+  if (await isExistingFilePath(mediaSource)) {
+    const base64Data = await fileToBase64(mediaSource);
+    const mimeType = getMimeType(mediaSource);
+    return `data:${mimeType};base64,${base64Data}`;
+  }
+
+  if (isBase64(mediaSource)) {
+    return `data:application/octet-stream;base64,${mediaSource}`;
+  }
+
+  throw new Error("Invalid media source: not a valid file path, URL, base64 string, or data URI.");
 }

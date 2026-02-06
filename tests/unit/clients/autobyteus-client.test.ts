@@ -2,10 +2,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
+import { Readable } from 'node:stream';
 import axios from 'axios';
 import { AutobyteusClient } from '../../../src/clients/autobyteus-client.js';
 
 const createMock = vi.fn();
+const mediaSourceToDataUriMock = vi.fn();
 
 vi.mock('axios', async () => {
   return {
@@ -16,12 +18,22 @@ vi.mock('axios', async () => {
   };
 });
 
+vi.mock('../../../src/llm/utils/media-payload-formatter.js', async () => {
+  const actual = await vi.importActual('../../../src/llm/utils/media-payload-formatter.js');
+  return {
+    ...(actual as Record<string, unknown>),
+    mediaSourceToDataUri: (...args: any[]) => mediaSourceToDataUriMock(...args)
+  };
+});
+
 describe('AutobyteusClient', () => {
   const originalEnv = { ...process.env };
 
   beforeEach(() => {
     process.env = { ...originalEnv, AUTOBYTEUS_API_KEY: 'test-key' };
     createMock.mockImplementation((config: any) => ({ config, get: vi.fn(), post: vi.fn() }));
+    mediaSourceToDataUriMock.mockReset();
+    mediaSourceToDataUriMock.mockImplementation(async (value: string) => `data:mock/type;base64,${value}`);
     vi.spyOn(console, 'warn').mockImplementation(() => {});
   });
 
@@ -69,5 +81,56 @@ describe('AutobyteusClient', () => {
 
     await client.exit();
     expect(closeSpy).toHaveBeenCalled();
+  });
+
+  it('normalizes media to data URIs for sendMessage', async () => {
+    const client = new AutobyteusClient();
+    const postMock = vi.fn().mockResolvedValue({ data: { ok: true } });
+    (client.asyncClient.post as any) = postMock;
+
+    await client.sendMessage(
+      'conversation-1',
+      'model-1',
+      'hello',
+      ['/tmp/image.png'],
+      ['https://example.com/audio.mp3'],
+      ['data:image/png;base64,abc']
+    );
+
+    const payload = postMock.mock.calls[0][1];
+    expect(payload.image_urls).toEqual(['data:mock/type;base64,/tmp/image.png']);
+    expect(payload.audio_urls).toEqual(['data:mock/type;base64,https://example.com/audio.mp3']);
+    expect(payload.video_urls).toEqual(['data:mock/type;base64,data:image/png;base64,abc']);
+  });
+
+  it('normalizes media to data URIs for streamMessage', async () => {
+    const client = new AutobyteusClient();
+    const stream = Readable.from(['data: {"content":"ok","is_complete":true}\n']);
+    const postMock = vi.fn().mockResolvedValue({ data: stream });
+    (client.asyncClient.post as any) = postMock;
+
+    const iterator = client.streamMessage('conversation-1', 'model-1', 'hello', ['/tmp/image.png']);
+    await iterator.next();
+
+    const payload = postMock.mock.calls[0][1];
+    expect(payload.image_urls).toEqual(['data:mock/type;base64,/tmp/image.png']);
+  });
+
+  it('normalizes media to data URIs for generateImage including mask', async () => {
+    const client = new AutobyteusClient();
+    const postMock = vi.fn().mockResolvedValue({ data: { image_urls: ['http://server/image.png'] } });
+    (client.asyncClient.post as any) = postMock;
+
+    await client.generateImage(
+      'image-model-1',
+      'make image',
+      ['/tmp/input.png'],
+      '/tmp/mask.png',
+      { size: '1024x1024' }
+    );
+
+    const payload = postMock.mock.calls[0][1];
+    expect(payload.input_image_urls).toEqual(['data:mock/type;base64,/tmp/input.png']);
+    expect(payload.mask_url).toBe('data:mock/type;base64,/tmp/mask.png');
   });
 });

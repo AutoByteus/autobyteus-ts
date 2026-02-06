@@ -8,7 +8,8 @@ import {
   isBase64,
   fileToBase64,
   urlToBase64,
-  mediaSourceToBase64
+  mediaSourceToBase64,
+  mediaSourceToDataUri
 } from '../../../../src/llm/utils/media-payload-formatter.js';
 
 vi.mock('axios');
@@ -95,5 +96,40 @@ describe('media_payload_formatter', () => {
     expect(fromBase64).toBe(VALID_BASE64_IMAGE);
 
     await expect(mediaSourceToBase64('this is not a valid source')).rejects.toBeTruthy();
+  });
+
+  it('mediaSourceToDataUri returns data URI input unchanged', async () => {
+    const dataUri = `data:image/gif;base64,${VALID_BASE64_IMAGE}`;
+    const result = await mediaSourceToDataUri(dataUri);
+    expect(result).toBe(dataUri);
+  });
+
+  it('mediaSourceToDataUri converts local files to data URI', async () => {
+    const result = await mediaSourceToDataUri(imageFile);
+    expect(result).toBe(`data:image/png;base64,${VALID_BASE64_IMAGE}`);
+  });
+
+  it('mediaSourceToDataUri converts remote URLs to data URI', async () => {
+    const mockedAxios = axios as any;
+    mockedAxios.get.mockResolvedValue({
+      data: IMAGE_BYTES,
+      headers: { 'content-type': 'image/jpeg; charset=utf-8' }
+    });
+
+    const result = await mediaSourceToDataUri(USER_PROVIDED_IMAGE_URL);
+    expect(result).toBe(`data:image/jpeg;base64,${VALID_BASE64_IMAGE}`);
+  });
+
+  it('mediaSourceToDataUri wraps raw base64 input with default mime', async () => {
+    const result = await mediaSourceToDataUri(VALID_BASE64_IMAGE);
+    expect(result).toBe(`data:application/octet-stream;base64,${VALID_BASE64_IMAGE}`);
+  });
+
+  it('mediaSourceToDataUri accepts existing local files with uncommon extensions', async () => {
+    const oddFile = path.join(tempDir, 'sample.custombin');
+    await fs.writeFile(oddFile, IMAGE_BYTES);
+
+    const result = await mediaSourceToDataUri(oddFile);
+    expect(result).toBe(`data:application/octet-stream;base64,${VALID_BASE64_IMAGE}`);
   });
 });
