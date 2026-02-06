@@ -407,6 +407,31 @@ export class LLMFactory {
     return null;
   }
 
+  static async getProvider(modelIdentifier: string): Promise<LLMProvider | null> {
+    await LLMFactory.ensureInitialized();
+
+    const model = LLMFactory.modelsByIdentifier.get(modelIdentifier);
+    if (model) {
+      return model.provider;
+    }
+
+    const foundByName = Array.from(LLMFactory.modelsByIdentifier.values()).filter(
+      (entry) => entry.name === modelIdentifier
+    );
+    if (foundByName.length === 1) {
+      return foundByName[0]?.provider ?? null;
+    }
+    if (foundByName.length > 1) {
+      const identifiers = foundByName.map((entry) => entry.modelIdentifier);
+      throw new Error(
+        `The model name '${modelIdentifier}' is ambiguous. Please use one of the unique model identifiers: ${identifiers}`
+      );
+    }
+
+    console.warn(`Could not find model with identifier '${modelIdentifier}' to get its provider.`);
+    return null;
+  }
+
   static async reloadModels(provider: LLMProvider): Promise<number> {
     await LLMFactory.ensureInitialized();
 
