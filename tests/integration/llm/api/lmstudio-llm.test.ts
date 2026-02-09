@@ -28,6 +28,10 @@ const resetRegistry = () => {
   registerWriteFileTool();
 };
 
+const resolveLmstudioHost = () =>
+  process.env.LMSTUDIO_HOSTS?.split(',').map((host) => host.trim()).find(Boolean) ??
+  LMStudioModelProvider.DEFAULT_LMSTUDIO_HOST;
+
 const createLmstudioLLM = (modelId: string) => {
   const llmModel = new LLMModel({
     name: modelId,
@@ -36,7 +40,7 @@ const createLmstudioLLM = (modelId: string) => {
     llmClass: LMStudioLLM,
     canonicalName: modelId,
     runtime: LLMRuntime.LMSTUDIO,
-    hostUrl: process.env.LMSTUDIO_HOST ?? LMStudioModelProvider.DEFAULT_LMSTUDIO_HOST,
+    hostUrl: resolveLmstudioHost(),
     defaultConfig: new LLMConfig({
       pricingConfig: new TokenPricingConfig({ inputTokenPricing: 0.0, outputTokenPricing: 0.0 })
     })

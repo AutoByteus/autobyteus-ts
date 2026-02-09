@@ -17,11 +17,6 @@ export class AutobyteusModelProvider {
       return hostsStr.split(',').map((host) => host.trim()).filter(Boolean);
     }
 
-    const legacyHost = process.env.AUTOBYTEUS_LLM_SERVER_URL;
-    if (legacyHost) {
-      return [legacyHost];
-    }
-
     return [];
   }
 

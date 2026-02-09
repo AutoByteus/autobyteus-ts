@@ -3,7 +3,7 @@ import { AutobyteusImageModelProvider } from '../../../../../src/multimedia/imag
 import { ImageClientFactory } from '../../../../../src/multimedia/image/image-client-factory.js';
 import { MultimediaRuntime } from '../../../../../src/multimedia/runtimes.js';
 
-const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
+const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS);
 const hasKey = Boolean(process.env.AUTOBYTEUS_API_KEY);
 const forcedModelId = process.env.AUTOBYTEUS_IMAGE_MODEL_ID;
 const runIntegration = hasHosts && hasKey ? describe : describe.skip;

@@ -7,7 +7,7 @@ import { MultimediaRuntime } from '../../../../src/multimedia/runtimes.js';
 import { AutobyteusAudioClient } from '../../../../src/multimedia/audio/api/autobyteus-audio-client.js';
 import { AutobyteusClient } from '../../../../src/clients/autobyteus-client.js';
 
-const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
+const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS);
 const hasKey = Boolean(process.env.AUTOBYTEUS_API_KEY);
 const runIntegration = hasHosts && hasKey ? describe : describe.skip;
 

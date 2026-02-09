@@ -15,11 +15,6 @@ export class OllamaModelProvider {
       return hostsStr.split(',').map((host) => host.trim()).filter(Boolean);
     }
 
-    const legacyHost = process.env.DEFAULT_OLLAMA_HOST;
-    if (legacyHost) {
-      return [legacyHost];
-    }
-
     return [OllamaModelProvider.DEFAULT_OLLAMA_HOST];
   }
 

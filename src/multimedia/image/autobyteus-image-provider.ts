@@ -14,11 +14,6 @@ function parseHosts(): string[] {
     return hosts.split(',').map((host) => host.trim()).filter(Boolean);
   }
 
-  const legacyHost = process.env.AUTOBYTEUS_LLM_SERVER_URL;
-  if (legacyHost) {
-    return [legacyHost];
-  }
-
   return [];
 }
 

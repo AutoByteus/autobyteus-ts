@@ -49,7 +49,7 @@ describe('AutobyteusClient', () => {
   });
 
   it('uses explicit server URL and disables TLS verification when no cert is provided', () => {
-    process.env.AUTOBYTEUS_LLM_SERVER_URL = 'https://env-host';
+    process.env.AUTOBYTEUS_LLM_SERVER_HOSTS = 'https://env-host-1,https://env-host-2';
     delete process.env.AUTOBYTEUS_SSL_CERT_FILE;
 
     const client = new AutobyteusClient('https://override-host');
@@ -58,6 +58,14 @@ describe('AutobyteusClient', () => {
 
     const asyncConfig = createMock.mock.calls[0][0];
     expect(asyncConfig.httpsAgent.options.rejectUnauthorized).toBe(false);
+  });
+
+  it('uses the first host from AUTOBYTEUS_LLM_SERVER_HOSTS when server URL is not provided', () => {
+    process.env.AUTOBYTEUS_LLM_SERVER_HOSTS = 'https://first-host,https://second-host';
+    delete process.env.AUTOBYTEUS_SSL_CERT_FILE;
+
+    const client = new AutobyteusClient();
+    expect(client.serverUrl).toBe('https://first-host');
   });
 
   it('uses custom cert path for TLS verification', async () => {

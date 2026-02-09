@@ -13,6 +13,16 @@ function joinUrl(baseUrl: string, path: string): string {
   return new URL(path, baseUrl).toString();
 }
 
+function getDefaultServerUrlFromEnv(): string {
+  const hosts = process.env.AUTOBYTEUS_LLM_SERVER_HOSTS;
+  if (!hosts) {
+    return AutobyteusClient.DEFAULT_SERVER_URL;
+  }
+
+  const firstHost = hosts.split(',').map((host) => host.trim()).find(Boolean);
+  return firstHost ?? AutobyteusClient.DEFAULT_SERVER_URL;
+}
+
 function formatHttpError(error: AxiosError): Error {
   const response = error.response;
   const status = response?.status;
@@ -60,8 +70,7 @@ export class AutobyteusClient {
   constructor(serverUrl?: string) {
     this.serverUrl =
       serverUrl ??
-      process.env.AUTOBYTEUS_LLM_SERVER_URL ??
-      AutobyteusClient.DEFAULT_SERVER_URL;
+      getDefaultServerUrlFromEnv();
     this.apiKey = process.env[AutobyteusClient.API_KEY_ENV_VAR] ?? '';
 
     if (!this.apiKey) {

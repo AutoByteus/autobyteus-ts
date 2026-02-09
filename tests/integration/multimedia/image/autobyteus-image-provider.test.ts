@@ -7,7 +7,7 @@ import { MultimediaRuntime } from '../../../../src/multimedia/runtimes.js';
 import { AutobyteusImageClient } from '../../../../src/multimedia/image/api/autobyteus-image-client.js';
 import { AutobyteusClient } from '../../../../src/clients/autobyteus-client.js';
 
-const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS || process.env.AUTOBYTEUS_LLM_SERVER_URL);
+const hasHosts = Boolean(process.env.AUTOBYTEUS_LLM_SERVER_HOSTS);
 const hasKey = Boolean(process.env.AUTOBYTEUS_API_KEY);
 const runIntegration = hasHosts && hasKey ? describe : describe.skip;
 

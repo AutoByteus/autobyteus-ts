@@ -14,11 +14,6 @@ export class LMStudioModelProvider {
       return hostsStr.split(',').map((host) => host.trim()).filter(Boolean);
     }
 
-    const legacyHost = process.env.LMSTUDIO_HOST;
-    if (legacyHost) {
-      return [legacyHost];
-    }
-
     return [LMStudioModelProvider.DEFAULT_LMSTUDIO_HOST];
   }
 

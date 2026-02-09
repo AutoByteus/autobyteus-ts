@@ -8,7 +8,7 @@ const MODEL_ENV_VAR = 'LMSTUDIO_MODEL_ID';
 let cachedModelId: string | null = null;
 
 export const hasLmstudioConfig = (): boolean =>
-  Boolean(process.env.LMSTUDIO_HOST || process.env[MODEL_ENV_VAR]);
+  Boolean(process.env.LMSTUDIO_HOSTS || process.env[MODEL_ENV_VAR]);
 
 const resolveModelId = async (): Promise<string | null> => {
   if (cachedModelId) {
