@@ -4,7 +4,7 @@ import { SearchProvider } from '../../../../src/tools/search/providers.js';
 describe('SearchProvider', () => {
   it('exposes provider string values', () => {
     expect(SearchProvider.SERPER).toBe('serper');
-    expect(SearchProvider.GOOGLE_CSE).toBe('google_cse');
     expect(SearchProvider.SERPAPI).toBe('serpapi');
+    expect(SearchProvider.VERTEX_AI_SEARCH).toBe('vertex_ai_search');
   });
 });

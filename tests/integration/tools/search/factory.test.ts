@@ -9,7 +9,14 @@ const resetFactory = () => {
 
 describe('SearchClientFactory (integration)', () => {
   beforeEach(() => {
-    process.env = { ...originalEnv, SERPER_API_KEY: 'serper-key' };
+    process.env = {
+      ...originalEnv,
+      DEFAULT_SEARCH_PROVIDER: '',
+      SERPER_API_KEY: 'serper-key',
+      SERPAPI_API_KEY: '',
+      VERTEX_AI_SEARCH_API_KEY: '',
+      VERTEX_AI_SEARCH_SERVING_CONFIG: ''
+    };
     resetFactory();
   });
 

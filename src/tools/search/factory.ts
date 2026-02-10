@@ -3,7 +3,7 @@ import { SearchProvider } from './providers.js';
 import { SearchClient } from './client.js';
 import { SerperSearchStrategy } from './serper-strategy.js';
 import { SerpApiSearchStrategy } from './serpapi-strategy.js';
-import { GoogleCSESearchStrategy } from './google-cse-strategy.js';
+import { VertexAISearchStrategy } from './vertex-ai-search-strategy.js';
 
 export class SearchClientFactory extends Singleton {
   protected static instance?: SearchClientFactory;
@@ -26,22 +26,31 @@ export class SearchClientFactory extends Singleton {
     const providerName = (process.env.DEFAULT_SEARCH_PROVIDER || '').toLowerCase();
     const serperKey = process.env.SERPER_API_KEY;
     const serpapiKey = process.env.SERPAPI_API_KEY;
-    const googleApiKey = process.env.GOOGLE_CSE_API_KEY;
-    const googleCseId = process.env.GOOGLE_CSE_ID;
+    const vertexApiKey = process.env.VERTEX_AI_SEARCH_API_KEY;
+    const vertexServingConfig = process.env.VERTEX_AI_SEARCH_SERVING_CONFIG;
 
     const isSerperConfigured = Boolean(serperKey);
     const isSerpapiConfigured = Boolean(serpapiKey);
-    const isGoogleCseConfigured = Boolean(googleApiKey && googleCseId);
+    const isVertexAiSearchConfigured = Boolean(vertexApiKey && vertexServingConfig);
 
-    let strategy: SerperSearchStrategy | SerpApiSearchStrategy | GoogleCSESearchStrategy | null = null;
+    let strategy:
+      | SerperSearchStrategy
+      | SerpApiSearchStrategy
+      | VertexAISearchStrategy
+      | null = null;
 
-    if (providerName === SearchProvider.GOOGLE_CSE) {
-      if (isGoogleCseConfigured) {
-        strategy = new GoogleCSESearchStrategy();
+    if (providerName === 'google_cse') {
+      throw new Error(
+        "DEFAULT_SEARCH_PROVIDER 'google_cse' is no longer supported. " +
+        "Use 'serper', 'serpapi', or 'vertex_ai_search'."
+      );
+    } else if (providerName === SearchProvider.VERTEX_AI_SEARCH) {
+      if (isVertexAiSearchConfigured) {
+        strategy = new VertexAISearchStrategy();
       } else {
         throw new Error(
-          "DEFAULT_SEARCH_PROVIDER is 'google_cse', but Google CSE is not configured. " +
-          'Set GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID.'
+          "DEFAULT_SEARCH_PROVIDER is 'vertex_ai_search', but Vertex AI Search is not configured. " +
+          'Set VERTEX_AI_SEARCH_API_KEY and VERTEX_AI_SEARCH_SERVING_CONFIG.'
         );
       }
     } else if (providerName === SearchProvider.SERPAPI) {
@@ -63,12 +72,12 @@ export class SearchClientFactory extends Singleton {
       }
     } else if (isSerpapiConfigured) {
       strategy = new SerpApiSearchStrategy();
-    } else if (isGoogleCseConfigured) {
-      strategy = new GoogleCSESearchStrategy();
+    } else if (isVertexAiSearchConfigured) {
+      strategy = new VertexAISearchStrategy();
     } else {
       throw new Error(
         'No search provider is configured. Please set either SERPER_API_KEY, SERPAPI_API_KEY, ' +
-        'or both GOOGLE_CSE_API_KEY and GOOGLE_CSE_ID environment variables.'
+        'or both VERTEX_AI_SEARCH_API_KEY and VERTEX_AI_SEARCH_SERVING_CONFIG environment variables.'
       );
     }
 

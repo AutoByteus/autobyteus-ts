@@ -5,7 +5,7 @@ describe('SearchProvider (integration)', () => {
   it('matches expected provider names', () => {
     const values = Object.values(SearchProvider);
     expect(values).toContain('serper');
-    expect(values).toContain('google_cse');
     expect(values).toContain('serpapi');
+    expect(values).toContain('vertex_ai_search');
   });
 });

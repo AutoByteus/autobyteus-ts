@@ -18,7 +18,7 @@ tests/integration/tools/terminal/background-process-manager.test.ts
 tests/integration/tools/terminal/pty-session.test.ts
 tests/integration/tools/search/client.test.ts
 tests/integration/tools/search/factory.test.ts
-tests/integration/tools/search/google-cse-strategy.test.ts
+tests/integration/tools/search/vertex-ai-search-strategy.test.ts
 tests/integration/tools/search/providers.test.ts
 tests/integration/tools/search/serpapi-strategy.test.ts
 tests/integration/tools/search/serper-strategy.test.ts

@@ -1,5 +1,5 @@
 export enum SearchProvider {
   SERPER = 'serper',
-  GOOGLE_CSE = 'google_cse',
-  SERPAPI = 'serpapi'
+  SERPAPI = 'serpapi',
+  VERTEX_AI_SEARCH = 'vertex_ai_search'
 }

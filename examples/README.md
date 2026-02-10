@@ -52,6 +52,13 @@ To exit the single-agent CLI, type `/quit` or `/exit`. For the team TUI, press `
     --llm-model qwen/qwen3-next-80b:lmstudio@192.168.2.158:1234 \
     --workspace-path ./agent_workspace
   ```
+- Deep research agent (search + URL reading + paper download + report writing):
+  ```bash
+  pnpm exec ts-node --esm examples/run-deep-research-agent.ts \
+    --llm-model qwen/qwen3-next-80b:lmstudio@192.168.2.158:1234 \
+    --workspace-path ./deep_research_workspace \
+    --topic "Compare retrieval-augmented generation evaluation methods in 2024-2026"
+  ```
 - Browser MCP agent (uses `npx @browsermcp/mcp@latest`):
   ```bash
   pnpm exec ts-node --esm examples/run_browser_agent.ts \
@@ -85,6 +92,12 @@ MCP-backed examples require additional variables:
 - `run_sqlite_agent.ts`: `TEST_SQLITE_MCP_SCRIPT_PATH`, `TEST_SQLITE_DB_PATH`
 - `run_google_slides_agent.ts`: `TEST_GOOGLE_SLIDES_MCP_SCRIPT_PATH`, `GOOGLE_CLIENT_ID`,
   `GOOGLE_CLIENT_SECRET`, `GOOGLE_REFRESH_TOKEN`
+
+Search-backed examples (for example `run-deep-research-agent.ts`) require one search provider:
+
+- `SERPER_API_KEY`, or
+- `SERPAPI_API_KEY`, or
+- both `VERTEX_AI_SEARCH_API_KEY` and `VERTEX_AI_SEARCH_SERVING_CONFIG`
 
 To reduce console noise, set `AUTOBYTEUS_LOG_LEVEL` to `warn`, `error`, or `silent`:
 
