@@ -3,9 +3,11 @@ import {
   AgentErrorEvent,
   UserMessageReceivedEvent,
   ToolResultEvent,
-  GenericEvent
+  GenericEvent,
+  LLMCompleteResponseReceivedEvent
 } from '../../../../src/agent/events/agent-events.js';
 import { AgentInputUserMessage } from '../../../../src/agent/message/agent-input-user-message.js';
+import { CompleteResponse } from '../../../../src/llm/utils/response-types.js';
 
 
 describe('Agent events', () => {
@@ -33,5 +35,15 @@ describe('Agent events', () => {
     const event = new GenericEvent({ value: 1 }, 'custom');
     expect(event.payload).toEqual({ value: 1 });
     expect(event.typeName).toBe('custom');
+  });
+
+  it('stores completion turn id when provided', () => {
+    const event = new LLMCompleteResponseReceivedEvent(
+      new CompleteResponse({ content: 'done' }),
+      false,
+      'turn_123'
+    );
+    expect(event.turnId).toBe('turn_123');
+    expect(event.isError).toBe(false);
   });
 });

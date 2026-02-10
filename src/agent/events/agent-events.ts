@@ -98,11 +98,17 @@ export class LLMUserMessageReadyEvent extends AgentOperationalEvent {
 export class LLMCompleteResponseReceivedEvent extends AgentOperationalEvent {
   completeResponse: CompleteResponse;
   isError: boolean;
+  turnId: string | null;
 
-  constructor(completeResponse: CompleteResponse, isError: boolean = false) {
+  constructor(
+    completeResponse: CompleteResponse,
+    isError: boolean = false,
+    turnId: string | null = null,
+  ) {
     super();
     this.completeResponse = completeResponse;
     this.isError = isError;
+    this.turnId = turnId;
   }
 }
 

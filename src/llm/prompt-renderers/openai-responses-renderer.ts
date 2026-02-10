@@ -66,7 +66,9 @@ export class OpenAIResponsesRenderer extends BasePromptRenderer {
         }
 
         if (msg.audio_urls.length) {
-          console.warn('OpenAI Responses input does not yet support audio; skipping.');
+          // The OpenAI Responses API in this codebase path does not currently accept input_audio
+          // as message content; keep graceful degradation instead of sending invalid payloads.
+          console.warn('OpenAI Responses input audio is not supported in this runtime path; skipping.');
         }
         if (msg.video_urls.length) {
           console.warn('OpenAI Responses input does not yet support video; skipping.');

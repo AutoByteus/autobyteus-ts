@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { LLMUserMessageReadyEventHandler } from '../../../../src/agent/handlers/llm-user-message-ready-event-handler.js';
-import { LLMUserMessageReadyEvent } from '../../../../src/agent/events/agent-events.js';
+import {
+  LLMCompleteResponseReceivedEvent,
+  LLMUserMessageReadyEvent
+} from '../../../../src/agent/events/agent-events.js';
 import { LLMUserMessage } from '../../../../src/llm/user-message.js';
 import { ChunkResponse } from '../../../../src/llm/utils/response-types.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
@@ -130,6 +133,10 @@ describe('LLMUserMessageReadyEventHandler', () => {
     expect(combined).toContain('World');
     expect(combined).not.toContain('<wr');
     expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledOnce();
+    const completionEvent = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
+    expect(completionEvent).toBeInstanceOf(LLMCompleteResponseReceivedEvent);
+    expect(typeof completionEvent.turnId).toBe('string');
+    expect(completionEvent.turnId).not.toBeNull();
   });
 
   it('uses provider-aware JSON parsing for tool invocations', async () => {
@@ -224,5 +231,29 @@ describe('LLMUserMessageReadyEventHandler', () => {
 
     expect(schemaSpy).toHaveBeenCalledOnce();
     expect(toolsPassed.value).toEqual(toolsSchema);
+  });
+
+  it('propagates active turn id on error completion events', async () => {
+    const handler = new LLMUserMessageReadyEventHandler();
+    const { context, inputQueues } = makeContext(LLMProvider.OPENAI, []);
+
+    const mockLLM = {
+      model: { provider: LLMProvider.OPENAI },
+      config: { systemMessage: 'system' },
+      streamMessages: async function* () {
+        throw new Error('simulated stream failure');
+      }
+    };
+    context.state.llmInstance = mockLLM as any;
+
+    const event = new LLMUserMessageReadyEvent(new LLMUserMessage({ content: 'prompt' }));
+    await handler.handle(event, context);
+
+    expect(inputQueues.enqueueInternalSystemEvent).toHaveBeenCalledOnce();
+    const completionEvent = inputQueues.enqueueInternalSystemEvent.mock.calls[0][0];
+    expect(completionEvent).toBeInstanceOf(LLMCompleteResponseReceivedEvent);
+    expect(completionEvent.isError).toBe(true);
+    expect(typeof completionEvent.turnId).toBe('string');
+    expect(completionEvent.turnId).not.toBeNull();
   });
 });

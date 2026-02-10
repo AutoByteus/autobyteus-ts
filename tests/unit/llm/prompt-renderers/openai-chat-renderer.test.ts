@@ -55,4 +55,32 @@ describe('OpenAIChatRenderer', () => {
       }
     ]);
   });
+
+  it('renders user audio inputs as input_audio content parts', async () => {
+    const renderer = new OpenAIChatRenderer();
+    const messages = [
+      new Message(MessageRole.USER, {
+        content: 'please transcribe',
+        audio_urls: ['data:audio/wav;base64,ZmFrZQ==']
+      })
+    ];
+
+    const rendered = await renderer.render(messages);
+
+    expect(rendered).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'please transcribe' },
+          {
+            type: 'input_audio',
+            input_audio: {
+              data: 'ZmFrZQ==',
+              format: 'wav'
+            }
+          }
+        ]
+      }
+    ]);
+  });
 });
