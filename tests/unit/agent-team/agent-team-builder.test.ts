@@ -51,7 +51,7 @@ describe('AgentTeamBuilder', () => {
     mocks.teamInstance = {} as any;
   });
 
-  it('builds a team with coordinator and dependency', () => {
+  it('builds a team with coordinator and member', () => {
     const coordinatorConfig = makeAgentConfig('Coordinator');
     const memberConfig = makeAgentConfig('Member');
     const description = 'Test team description';
@@ -62,7 +62,7 @@ describe('AgentTeamBuilder', () => {
     const builder = new AgentTeamBuilder(name, description);
     const team = builder
       .setCoordinator(coordinatorConfig)
-      .addAgentNode(memberConfig, [coordinatorConfig])
+      .addAgentNode(memberConfig)
       .build();
 
     expect(team).toBe(mocks.teamInstance);
@@ -78,8 +78,6 @@ describe('AgentTeamBuilder', () => {
 
     expect(finalCoordNode.nodeDefinition).toBe(coordinatorConfig);
     expect(finalMemberNode.nodeDefinition).toBe(memberConfig);
-    expect(finalMemberNode.dependencies.length).toBe(1);
-    expect(finalMemberNode.dependencies[0]).toBe(finalCoordNode);
   });
 
   it('fails to build without coordinator', () => {
@@ -99,14 +97,4 @@ describe('AgentTeamBuilder', () => {
     expect(() => builder.addAgentNode(node2)).toThrow("Duplicate node name 'DuplicateName' detected");
   });
 
-  it('rejects unknown dependency', () => {
-    const nodeConfig = makeAgentConfig('MyNode');
-    const dependencyConfig = makeAgentConfig('UnseenDependency');
-
-    const builder = new AgentTeamBuilder('Test', 'Test unknown dependency');
-
-    expect(() => builder.addAgentNode(nodeConfig, [dependencyConfig])).toThrow(
-      'must be added to the builder before being used'
-    );
-  });
 });

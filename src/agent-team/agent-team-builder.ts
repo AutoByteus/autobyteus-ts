@@ -10,7 +10,7 @@ export class AgentTeamBuilder {
   private name: string;
   private description: string;
   private role: string | null | undefined;
-  private nodes: Map<NodeDefinition, NodeDefinition[]> = new Map();
+  private nodes: Set<NodeDefinition> = new Set();
   private coordinatorConfig: AgentConfig | null = null;
   private addedNodeNames: Set<string> = new Set();
 
@@ -28,17 +28,17 @@ export class AgentTeamBuilder {
     console.info(`AgentTeamBuilder initialized for team: '${this.name}'.`);
   }
 
-  addAgentNode(agentConfig: AgentConfig, dependencies?: NodeDefinition[]): AgentTeamBuilder {
-    this.addNodeInternal(agentConfig, dependencies);
+  addAgentNode(agentConfig: AgentConfig): AgentTeamBuilder {
+    this.addNodeInternal(agentConfig);
     return this;
   }
 
-  addSubTeamNode(teamConfig: AgentTeamConfig, dependencies?: NodeDefinition[]): AgentTeamBuilder {
-    this.addNodeInternal(teamConfig, dependencies);
+  addSubTeamNode(teamConfig: AgentTeamConfig): AgentTeamBuilder {
+    this.addNodeInternal(teamConfig);
     return this;
   }
 
-  private addNodeInternal(nodeDefinition: NodeDefinition, dependencies?: NodeDefinition[]): void {
+  private addNodeInternal(nodeDefinition: NodeDefinition): void {
     if (!(nodeDefinition instanceof AgentConfig || nodeDefinition instanceof AgentTeamConfig)) {
       throw new TypeError('nodeDefinition must be an instance of AgentConfig or AgentTeamConfig.');
     }
@@ -56,23 +56,11 @@ export class AgentTeamBuilder {
       );
     }
 
-    if (dependencies && dependencies.length > 0) {
-      for (const depConfig of dependencies) {
-        if (!this.nodes.has(depConfig) && depConfig !== this.coordinatorConfig) {
-          throw new Error(
-            `Dependency node '${depConfig.name}' must be added to the builder before being used as a dependency.`
-          );
-        }
-      }
-    }
-
-    this.nodes.set(nodeDefinition, dependencies ?? []);
+    this.nodes.add(nodeDefinition);
     this.addedNodeNames.add(nodeName);
 
     const nodeType = nodeDefinition instanceof AgentTeamConfig ? 'Sub-Team' : 'Agent';
-    console.debug(
-      `Added ${nodeType} node '${nodeName}' to builder with ${(dependencies ?? []).length} dependencies.`
-    );
+    console.debug(`Added ${nodeType} node '${nodeName}' to builder.`);
   }
 
   setCoordinator(agentConfig: AgentConfig): AgentTeamBuilder {
@@ -104,26 +92,13 @@ export class AgentTeamBuilder {
     }
 
     const nodeMap = new Map<NodeDefinition, TeamNodeConfig>();
-    const allDefinitions = Array.from(this.nodes.keys());
+    const allDefinitions = Array.from(this.nodes);
     if (!allDefinitions.includes(this.coordinatorConfig)) {
       allDefinitions.push(this.coordinatorConfig);
     }
 
     for (const definition of allDefinitions) {
       nodeMap.set(definition, new TeamNodeConfig({ nodeDefinition: definition }));
-    }
-
-    for (const [nodeDef, depDefs] of this.nodes.entries()) {
-      if (depDefs && depDefs.length > 0) {
-        const currentNode = nodeMap.get(nodeDef);
-        if (!currentNode) {
-          continue;
-        }
-        const dependencyNodes = depDefs
-          .map((depDef) => nodeMap.get(depDef))
-          .filter(Boolean) as TeamNodeConfig[];
-        currentNode.dependencies = dependencyNodes;
-      }
     }
 
     const finalNodes = Array.from(nodeMap.values());
