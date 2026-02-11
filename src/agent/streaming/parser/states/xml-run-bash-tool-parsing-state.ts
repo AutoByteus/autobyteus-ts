@@ -9,12 +9,21 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
   private foundContentStart = false;
   private contentBuffering = '';
   private swallowingRemaining = false;
+  private extractedMetadata: Record<string, any> = {};
 
   constructor(context: ParserContext, openingTag: string) {
     super(context, openingTag);
+    this.extractMetadataFromAttributes(openingTag);
     if (this.toolName !== undefined && this.toolName !== 'run_bash') {
       // No-op: specialized state expects run_bash but falls back gracefully.
     }
+  }
+
+  protected _getStartMetadata(): Record<string, any> {
+    return {
+      ...super._getStartMetadata(),
+      ...this.extractedMetadata
+    };
   }
 
   run(): void {
@@ -36,6 +45,7 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
 
     if (!this.foundContentStart) {
       this.contentBuffering += chunk;
+      this.extractMetadataFromArgumentBuffer(this.contentBuffering);
       const match = /<arg\s+name=["']command["']>/i.exec(this.contentBuffering);
       if (match) {
         this.foundContentStart = true;
@@ -89,6 +99,7 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
 
   private handleSwallowing(): void {
     this.contentBuffering += this.context.consumeRemaining();
+    this.extractMetadataFromArgumentBuffer(this.contentBuffering);
 
     const closingTag = '</tool>';
     const idx = this.contentBuffering.indexOf(closingTag);
@@ -112,5 +123,65 @@ export class XmlRunBashToolParsingState extends XmlToolParsingState {
 
   protected _onSegmentComplete(): void {
     return;
+  }
+
+  private extractMetadataFromAttributes(openingTag: string): void {
+    const backgroundRaw = this.readAttribute(openingTag, 'background');
+    if (backgroundRaw !== null) {
+      const normalized = backgroundRaw.trim().toLowerCase();
+      if (['true', '1', 'yes'].includes(normalized)) {
+        this.extractedMetadata.background = true;
+      } else if (['false', '0', 'no'].includes(normalized)) {
+        this.extractedMetadata.background = false;
+      }
+    }
+
+    const timeoutRaw =
+      this.readAttribute(openingTag, 'timeout_seconds') ??
+      this.readAttribute(openingTag, 'timeoutSeconds');
+    if (timeoutRaw !== null) {
+      const parsed = Number.parseInt(timeoutRaw.trim(), 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        this.extractedMetadata.timeout_seconds = parsed;
+      }
+    }
+  }
+
+  private extractMetadataFromArgumentBuffer(buffer: string): void {
+    let updated = false;
+
+    const backgroundMatch = /<arg\s+name=["']background["']>([\s\S]*?)<\/arg>/i.exec(buffer);
+    if (backgroundMatch && this.extractedMetadata.background === undefined) {
+      const normalized = (backgroundMatch[1] ?? '').trim().toLowerCase();
+      if (['true', '1', 'yes'].includes(normalized)) {
+        this.extractedMetadata.background = true;
+        updated = true;
+      } else if (['false', '0', 'no'].includes(normalized)) {
+        this.extractedMetadata.background = false;
+        updated = true;
+      }
+    }
+
+    const timeoutMatch =
+      /<arg\s+name=["']timeout_seconds["']>([\s\S]*?)<\/arg>/i.exec(buffer) ??
+      /<arg\s+name=["']timeoutSeconds["']>([\s\S]*?)<\/arg>/i.exec(buffer);
+    if (timeoutMatch && this.extractedMetadata.timeout_seconds === undefined) {
+      const parsed = Number.parseInt((timeoutMatch[1] ?? '').trim(), 10);
+      if (Number.isFinite(parsed) && parsed > 0) {
+        this.extractedMetadata.timeout_seconds = parsed;
+        updated = true;
+      }
+    }
+
+    if (updated) {
+      this.context.updateCurrentSegmentMetadata(this.extractedMetadata);
+    }
+  }
+
+  private readAttribute(openingTag: string, attributeName: string): string | null {
+    const escapedName = attributeName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const pattern = new RegExp(`${escapedName}\\s*=\\s*["']([^"']+)["']`, 'i');
+    const match = pattern.exec(openingTag);
+    return match?.[1] ?? null;
   }
 }

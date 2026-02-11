@@ -13,6 +13,12 @@ ls -la
 
 <run_bash>
 python -m pytest tests/ -v
+</run_bash>
+
+### Example 3: Structured call with background handle
+
+<run_bash background="true">
+npm run dev
 </run_bash>`;
   }
 }

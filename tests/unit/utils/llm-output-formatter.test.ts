@@ -51,6 +51,14 @@ describe('formatToCleanString', () => {
     expect(formatToCleanString(obj)).toBe(expected);
   });
 
+  it('formats objects with toJSON', () => {
+    const obj = {
+      toJSON: () => ({ stdout: 'ok', exitCode: 0 })
+    };
+    const expected = 'stdout: ok\nexitCode: 0';
+    expect(formatToCleanString(obj)).toBe(expected);
+  });
+
   it('formats empty string explicitly', () => {
     expect(formatToCleanString('')).toBe('""');
   });

@@ -77,6 +77,78 @@ describe('ToolInvocationAdapter basics', () => {
     expect(invocations[0].arguments).toEqual({ command: 'ls -la' });
   });
 
+  it('creates run_bash invocation with background metadata', () => {
+    const adapter = new ToolInvocationAdapter();
+    const events = [
+      SegmentEvent.start('seg_3_bg', SegmentType.RUN_BASH, { background: true, timeout_seconds: 45 }),
+      SegmentEvent.content('seg_3_bg', 'npm run dev'),
+      SegmentEvent.end('seg_3_bg')
+    ];
+
+    const invocations = adapter.processEvents(events);
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0].name).toBe('run_bash');
+    expect(invocations[0].arguments).toEqual({
+      command: 'npm run dev',
+      background: true,
+      timeout_seconds: 45
+    });
+  });
+
+  it('creates run_bash invocation with timeoutSeconds metadata alias', () => {
+    const adapter = new ToolInvocationAdapter();
+    const events = [
+      SegmentEvent.start('seg_3_timeout_alias', SegmentType.RUN_BASH, { timeoutSeconds: 12 }),
+      SegmentEvent.content('seg_3_timeout_alias', 'echo alias'),
+      SegmentEvent.end('seg_3_timeout_alias')
+    ];
+
+    const invocations = adapter.processEvents(events);
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0].name).toBe('run_bash');
+    expect(invocations[0].arguments).toEqual({
+      command: 'echo alias',
+      timeout_seconds: 12
+    });
+  });
+
+  it('uses metadata.command when run_bash segment has empty body', () => {
+    const adapter = new ToolInvocationAdapter();
+    const events = [
+      SegmentEvent.start('seg_3_command_meta', SegmentType.RUN_BASH, { command: 'pwd' }),
+      SegmentEvent.end('seg_3_command_meta')
+    ];
+
+    const invocations = adapter.processEvents(events);
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0].arguments).toEqual({ command: 'pwd' });
+  });
+
+  it('uses metadata.cmd fallback when run_bash segment has empty body', () => {
+    const adapter = new ToolInvocationAdapter();
+    const events = [
+      SegmentEvent.start('seg_3_cmd_meta', SegmentType.RUN_BASH, { cmd: 'whoami' }),
+      SegmentEvent.end('seg_3_cmd_meta')
+    ];
+
+    const invocations = adapter.processEvents(events);
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0].arguments).toEqual({ command: 'whoami' });
+  });
+
+  it('content command takes precedence over metadata.command', () => {
+    const adapter = new ToolInvocationAdapter();
+    const events = [
+      SegmentEvent.start('seg_3_precedence', SegmentType.RUN_BASH, { command: 'metadata command' }),
+      SegmentEvent.content('seg_3_precedence', 'content command'),
+      SegmentEvent.end('seg_3_precedence')
+    ];
+
+    const invocations = adapter.processEvents(events);
+    expect(invocations).toHaveLength(1);
+    expect(invocations[0].arguments).toEqual({ command: 'content command' });
+  });
+
   it('parses JSON tool call', () => {
     const adapter = new ToolInvocationAdapter();
     const events = [

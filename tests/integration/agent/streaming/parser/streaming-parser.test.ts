@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { ParserConfig } from '../../../../../src/agent/streaming/parser/parser-context.js';
 import { StreamingParser, extractSegments } from '../../../../../src/agent/streaming/parser/streaming-parser.js';
 import { SegmentType } from '../../../../../src/agent/streaming/segments/segment-events.js';
+import { SegmentEventType } from '../../../../../src/agent/streaming/parser/events.js';
 
 const collectEvents = (chunks: string[], config?: ParserConfig) => {
   const parser = new StreamingParser(config);
@@ -56,6 +57,38 @@ describe('StreamingParser (integration)', () => {
     const segments = collectSegments(['Run this:<run_bash>ls -la</run_bash>']);
     const runBashSegments = segments.filter((segment) => segment.type === SegmentType.RUN_BASH);
     expect(runBashSegments.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('parses run_bash metadata from custom XML tag attributes', () => {
+    const segments = collectSegments([
+      "Run this:<run_bash background='true' timeout_seconds='7'>ls -la</run_bash>"
+    ]);
+    const runBashSegment = segments.find((segment) => segment.type === SegmentType.RUN_BASH);
+    expect(runBashSegment).toBeDefined();
+    expect(runBashSegment?.metadata).toMatchObject({
+      background: true,
+      timeout_seconds: 7
+    });
+  });
+
+  it('parses run_bash metadata from tool arguments', () => {
+    const config = new ParserConfig({ parseToolCalls: true, strategyOrder: ['xml_tag'] });
+    const events = collectEvents([
+      "<tool name='run_bash'><arguments><arg name='background'>true</arg><arg name='timeoutSeconds'>11</arg><arg name='command'>echo hi</arg></arguments></tool>"
+    ], config);
+    const startEvent = events.find(
+      (event) => event.event_type === SegmentEventType.START && event.segment_type === SegmentType.RUN_BASH
+    );
+    expect(startEvent).toBeDefined();
+    const endEvent = events.find(
+      (event) => event.event_type === SegmentEventType.END && event.segment_id === startEvent?.segment_id
+    );
+    expect(endEvent).toBeDefined();
+    expect(endEvent?.payload.metadata).toMatchObject({
+      tool_name: 'run_bash',
+      background: true,
+      timeout_seconds: 11
+    });
   });
 
   it('parses a tool tag when tool parsing is enabled', () => {

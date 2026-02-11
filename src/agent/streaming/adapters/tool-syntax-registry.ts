@@ -21,11 +21,20 @@ const buildWriteFileArgs: ToolArgsBuilder = (metadata, content) => {
 };
 
 const buildRunBashArgs: ToolArgsBuilder = (metadata, content) => {
-  const command = content || metadata.cmd || '';
+  const command = content || metadata.command || metadata.cmd || '';
   if (!command) {
     return null;
   }
-  return { command };
+
+  const args: Record<string, any> = { command };
+  if (metadata.background !== undefined) {
+    args.background = metadata.background;
+  }
+  const timeoutSeconds = metadata.timeout_seconds ?? metadata.timeoutSeconds;
+  if (timeoutSeconds !== undefined) {
+    args.timeout_seconds = timeoutSeconds;
+  }
+  return args;
 };
 
 const buildEditFileArgs: ToolArgsBuilder = (metadata, content) => {

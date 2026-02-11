@@ -23,13 +23,18 @@ await runBash(context, "npm install", 120);
 
 - `command` (string): Bash command to execute
 - `timeout_seconds` (number): Maximum wait time (default: 30)
+- `background` (boolean): Run asynchronously and return a process handle (default: false)
 
-**Returns:** `TerminalResult` with `stdout`, `stderr`, `exit_code`, `timed_out`
+**Returns:**
+
+- Foreground (`background=false`): `TerminalResult` with `stdout`, `stderr`, `exit_code`, `timed_out`
+- Background (`background=true`): `{ mode: "background", processId, command, status, startedAt }`
 
 **Key behavior:**
 
 - State persists between calls (`cd`, `export` work as expected)
 - Command is killed if timeout exceeded
+- Background mode returns a process handle for `get_process_output` and `stop_background_process`
 
 ---
 

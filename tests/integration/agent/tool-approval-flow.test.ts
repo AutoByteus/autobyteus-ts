@@ -352,4 +352,59 @@ describe('Tool approval integration flow', () => {
     expect(result.exitCode).toBe(0);
     expect(result.timedOut).toBe(false);
   });
+
+  runBashIntegration('executes run_bash background mode after approval', async () => {
+    const runBashTool = registerRunBashTool();
+    fixture = await createAgentFixture([runBashTool]);
+    const turnId = assignActiveTurn(fixture);
+
+    const invocationId = `bash-bg-${Date.now()}`;
+    const invocation = new ToolInvocation(
+      'run_bash',
+      { command: "printf 'bg_ok'", background: true, timeout_seconds: 5 },
+      invocationId,
+      turnId
+    );
+
+    await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
+      new PendingToolInvocationEvent(invocation)
+    );
+
+    await waitFor(
+      () => Boolean(fixture!.agent.context.state.pendingToolApprovals[invocationId]),
+      5000,
+      50,
+      'pending tool approval'
+    );
+
+    await fixture.agent.postToolExecutionApproval(invocationId, true, 'approved');
+
+    await waitFor(
+      () => {
+        const events = fixture!.agent.context.state.eventStore?.allEvents() ?? [];
+        return events.some(
+          (envelope) =>
+            envelope.event instanceof ToolResultEvent &&
+            envelope.event.toolInvocationId === invocationId
+        );
+      },
+      5000,
+      50,
+      'run_bash background tool result'
+    );
+
+    const events = fixture.agent.context.state.eventStore?.allEvents() ?? [];
+    const toolEvent = events.find(
+      (envelope) =>
+        envelope.event instanceof ToolResultEvent &&
+        envelope.event.toolInvocationId === invocationId
+    );
+
+    expect(toolEvent).toBeDefined();
+    const result = (toolEvent as { event: ToolResultEvent }).event.result as Record<string, unknown>;
+    expect(result.mode).toBe('background');
+    expect(result.status).toBe('started');
+    expect(result.command).toBe("printf 'bg_ok'");
+    expect(typeof result.processId).toBe('string');
+  });
 });

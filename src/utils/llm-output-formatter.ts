@@ -1,5 +1,6 @@
 type ModelDumpLike = { model_dump: () => Record<string, unknown> };
 type DictLike = { dict: () => Record<string, unknown> };
+type ToJsonLike = { toJSON: () => unknown };
 
 const hasModelDump = (value: unknown): value is ModelDumpLike =>
   Boolean(
@@ -13,6 +14,13 @@ const hasDict = (value: unknown): value is DictLike =>
     value &&
     typeof value === 'object' &&
     typeof (value as { dict?: unknown }).dict === 'function'
+  );
+
+const hasToJSON = (value: unknown): value is ToJsonLike =>
+  Boolean(
+    value &&
+    typeof value === 'object' &&
+    typeof (value as { toJSON?: unknown }).toJSON === 'function'
   );
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> => {
@@ -44,6 +52,9 @@ const isComplexValue = (value: unknown): boolean => {
   if (hasModelDump(value) || hasDict(value)) {
     return true;
   }
+  if (hasToJSON(value)) {
+    return true;
+  }
   return false;
 };
 
@@ -62,6 +73,8 @@ export function formatToCleanString(data: unknown, indent = 0): string {
     data = data.model_dump();
   } else if (hasDict(data)) {
     data = data.dict();
+  } else if (hasToJSON(data)) {
+    data = data.toJSON();
   }
 
   if (isPlainObject(data)) {

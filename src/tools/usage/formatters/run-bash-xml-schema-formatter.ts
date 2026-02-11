@@ -16,7 +16,14 @@ command_to_execute
 
 **Parameters:**
 - Content between tags: The shell command to execute.
+- Optional XML attributes:
+  - \`background="true|false"\` (default false)
+  - \`timeout_seconds="30"\` (foreground timeout)
 
-The command runs in the agent's configured working directory.`;
+The command runs in the agent's configured working directory.
+
+When using structured/native tool calling (not XML shorthand), you can also pass:
+- \`background\` (boolean, default false) to run asynchronously and get a process handle
+- \`timeout_seconds\` (integer, default 30) for foreground execution timeout`;
   }
 }

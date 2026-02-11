@@ -25,18 +25,75 @@ describe('CustomXmlTagRunBashParsingState basics', () => {
     expect(ctx.currentState).toBeInstanceOf(TextState);
   });
 
-  it('ignores tag attributes', () => {
+  it('extracts supported tag attributes into metadata', () => {
     const ctx = new ParserContext();
     ctx.append('ls -la</run_bash>');
 
-    const state = new CustomXmlTagRunBashParsingState(ctx, "<run_bash description='List files'>");
+    const state = new CustomXmlTagRunBashParsingState(
+      ctx,
+      "<run_bash description='List files' background='true' timeout_seconds='120'>"
+    );
     ctx.currentState = state;
     state.run();
 
     const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     const metadata = startEvents[0].payload.metadata;
-    expect(metadata === undefined || Object.keys(metadata).length === 0).toBe(true);
+    expect(metadata).toEqual({ background: true, timeout_seconds: 120 });
+  });
+
+  it('normalizes timeoutSeconds attribute alias to timeout_seconds metadata', () => {
+    const ctx = new ParserContext();
+    ctx.append('echo alias</run_bash>');
+
+    const state = new CustomXmlTagRunBashParsingState(
+      ctx,
+      "<run_bash timeoutSeconds='42'>"
+    );
+    ctx.currentState = state;
+    state.run();
+
+    const events = ctx.getAndClearEvents();
+    const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
+    const metadata = startEvents[0].payload.metadata;
+    expect(metadata).toEqual({ timeout_seconds: 42 });
+  });
+
+  it('ignores invalid background and timeout attribute values', () => {
+    const ctx = new ParserContext();
+    ctx.append('echo invalid</run_bash>');
+
+    const state = new CustomXmlTagRunBashParsingState(
+      ctx,
+      "<run_bash background='maybe' timeout_seconds='abc'>"
+    );
+    ctx.currentState = state;
+    state.run();
+
+    const events = ctx.getAndClearEvents();
+    const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
+    expect(startEvents).toHaveLength(1);
+    expect(startEvents[0].payload.metadata).toBeUndefined();
+  });
+
+  it('accepts yes/no background aliases', () => {
+    const yesCtx = new ParserContext();
+    yesCtx.append('echo yes</run_bash>');
+    const yesState = new CustomXmlTagRunBashParsingState(yesCtx, "<run_bash background='yes'>");
+    yesCtx.currentState = yesState;
+    yesState.run();
+    const yesEvents = yesCtx.getAndClearEvents();
+    const yesStart = yesEvents.find((e) => e.event_type === SegmentEventType.START);
+    expect(yesStart?.payload.metadata).toEqual({ background: true });
+
+    const noCtx = new ParserContext();
+    noCtx.append('echo no</run_bash>');
+    const noState = new CustomXmlTagRunBashParsingState(noCtx, "<run_bash background='no'>");
+    noCtx.currentState = noState;
+    noState.run();
+    const noEvents = noCtx.getAndClearEvents();
+    const noStart = noEvents.find((e) => e.event_type === SegmentEventType.START);
+    expect(noStart?.payload.metadata).toEqual({ background: false });
   });
 
   it('preserves comments in content', () => {
