@@ -1,5 +1,6 @@
 import { BaseSystemPromptProcessor } from './base-processor.js';
 import { SkillRegistry } from '../../skills/registry.js';
+import { SkillAccessMode, resolveSkillAccessMode } from '../context/skill-access-mode.js';
 import type { BaseTool } from '../../tools/base-tool.js';
 import type { AgentContextLike } from '../context/agent-context-like.js';
 
@@ -19,20 +20,48 @@ export class AvailableSkillsProcessor extends BaseSystemPromptProcessor {
     context: AgentContextLike
   ): string {
     const registry = new SkillRegistry();
+    const preloadedSkills = context?.config?.skills ?? [];
+    const skillAccessMode = resolveSkillAccessMode(
+      context?.config?.skillAccessMode,
+      preloadedSkills.length
+    );
+
+    if (skillAccessMode === SkillAccessMode.NONE) {
+      console.info(`Agent '${agentId}': Skill access mode is NONE. Skipping injection.`);
+      return systemPrompt;
+    }
+
     const allSkills = registry.listSkills();
+    const preloadedSkillSet = new Set(preloadedSkills);
 
     if (!allSkills.length) {
       console.info(`Agent '${agentId}': No skills found in registry. Skipping injection.`);
       return systemPrompt;
     }
 
-    const preloadedSkills = context?.config?.skills ?? [];
+    const catalogSkills =
+      skillAccessMode === SkillAccessMode.PRELOADED_ONLY
+        ? preloadedSkills
+            .map((skillName) => registry.getSkill(skillName))
+            .filter((skill): skill is NonNullable<typeof skill> => Boolean(skill))
+        : allSkills;
+
+    if (!catalogSkills.length) {
+      console.info(
+        `Agent '${agentId}': Skill access mode '${skillAccessMode}' produced no catalog entries. Skipping injection.`
+      );
+      return systemPrompt;
+    }
+
     const catalogEntries: string[] = [];
     const detailedSections: string[] = [];
 
-    for (const skill of allSkills) {
+    for (const skill of catalogSkills) {
       catalogEntries.push(`- **${skill.name}**: ${skill.description}`);
-      if (preloadedSkills.includes(skill.name)) {
+      if (
+        skillAccessMode === SkillAccessMode.PRELOADED_ONLY ||
+        preloadedSkillSet.has(skill.name)
+      ) {
         detailedSections.push(
           `#### ${skill.name}\n**Root Path:** \`${skill.rootPath}\`\n\n${skill.content}`
         );
@@ -71,7 +100,7 @@ export class AvailableSkillsProcessor extends BaseSystemPromptProcessor {
     }
 
     console.info(
-      `Agent '${agentId}': Injected ${catalogEntries.length} skills in catalog, ${detailedSections.length} with details.`
+      `Agent '${agentId}': Injected ${catalogEntries.length} skills in catalog, ${detailedSections.length} with details. mode='${skillAccessMode}'.`
     );
     return systemPrompt + skillsBlock;
   }

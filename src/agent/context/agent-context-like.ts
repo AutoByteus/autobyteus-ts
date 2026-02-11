@@ -1,4 +1,5 @@
 import type { LLMProvider } from '../../llm/providers.js';
+import type { SkillAccessMode } from './skill-access-mode.js';
 
 export type AgentContextLike = {
   agentId: string;
@@ -7,6 +8,7 @@ export type AgentContextLike = {
   config?: {
     name?: string;
     skills?: string[];
+    skillAccessMode?: SkillAccessMode | string;
   };
   llmInstance?: {
     model?: {

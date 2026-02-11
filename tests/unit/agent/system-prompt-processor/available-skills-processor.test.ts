@@ -2,8 +2,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { AvailableSkillsProcessor } from '../../../../src/agent/system-prompt-processor/available-skills-processor.js';
 import { SkillRegistry } from '../../../../src/skills/registry.js';
 import { Skill } from '../../../../src/skills/model.js';
+import { SkillAccessMode } from '../../../../src/agent/context/skill-access-mode.js';
 
-const makeContext = () => ({ agentId: 'agent-1', config: { skills: [] as string[] } });
+const makeContext = () => ({
+  agentId: 'agent-1',
+  config: { skills: [] as string[], skillAccessMode: undefined as SkillAccessMode | undefined }
+});
 
 describe('AvailableSkillsProcessor', () => {
   beforeEach(() => {
@@ -33,6 +37,40 @@ describe('AvailableSkillsProcessor', () => {
     expect(result).toContain('Skill Catalog');
     expect(result).toContain('- **test_skill**: desc');
     expect(result).not.toContain('body');
+  });
+
+  it('uses preloaded-only catalog mode when configured', () => {
+    const registry = new SkillRegistry();
+    const skillA = new Skill('preloaded', 'preloaded desc', 'PRELOADED_BODY', '/path/a');
+    const skillB = new Skill('other', 'other desc', 'OTHER_BODY', '/path/b');
+    (registry as any).skills.set('preloaded', skillA);
+    (registry as any).skills.set('other', skillB);
+
+    const context = makeContext();
+    context.config.skills = ['preloaded'];
+    context.config.skillAccessMode = SkillAccessMode.PRELOADED_ONLY;
+
+    const processor = new AvailableSkillsProcessor();
+    const result = processor.process('Original', {}, 'test_agent', context);
+
+    expect(result).toContain('- **preloaded**: preloaded desc');
+    expect(result).not.toContain('- **other**: other desc');
+    expect(result).toContain('PRELOADED_BODY');
+    expect(result).not.toContain('OTHER_BODY');
+  });
+
+  it('skips skills section when mode is NONE', () => {
+    const registry = new SkillRegistry();
+    const skill = new Skill('test_skill', 'desc', 'body', '/path');
+    (registry as any).skills.set('test_skill', skill);
+
+    const context = makeContext();
+    context.config.skillAccessMode = SkillAccessMode.NONE;
+
+    const processor = new AvailableSkillsProcessor();
+    const result = processor.process('Original', {}, 'test_agent', context);
+
+    expect(result).toBe('Original');
   });
 
   it('injects detailed section for preloaded skills', () => {

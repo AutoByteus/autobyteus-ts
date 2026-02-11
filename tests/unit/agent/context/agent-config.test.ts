@@ -8,6 +8,7 @@ import { LLMProvider } from '../../../../src/llm/providers.js';
 import { LLMConfig } from '../../../../src/llm/utils/llm-config.js';
 import { CompleteResponse, ChunkResponse } from '../../../../src/llm/utils/response-types.js';
 import { LLMUserMessage } from '../../../../src/llm/user-message.js';
+import { SkillAccessMode } from '../../../../src/agent/context/skill-access-mode.js';
 
 class DummyLLM extends BaseLLM {
   protected async _sendMessagesToLLM(_messages: any[]): Promise<CompleteResponse> {
@@ -77,5 +78,21 @@ describe('AgentConfig', () => {
 
     clone.skills.push('skill-b');
     expect(config.skills).toEqual(['skill-a']);
+    expect(clone.skillAccessMode).toBe(config.skillAccessMode);
+  });
+
+  it('defaults skillAccessMode to PRELOADED_ONLY when skills are configured', () => {
+    const config = new AgentConfig('name', 'role', 'desc', makeLLM(), null, null, true, null, null, null, null, null, null, null, null, ['skill-a']);
+    expect(config.skillAccessMode).toBe(SkillAccessMode.PRELOADED_ONLY);
+  });
+
+  it('defaults skillAccessMode to GLOBAL_DISCOVERY when no skills are configured', () => {
+    const config = new AgentConfig('name', 'role', 'desc', makeLLM());
+    expect(config.skillAccessMode).toBe(SkillAccessMode.GLOBAL_DISCOVERY);
+  });
+
+  it('respects explicit skillAccessMode', () => {
+    const config = new AgentConfig('name', 'role', 'desc', makeLLM(), null, null, true, null, null, null, null, null, null, null, null, ['skill-a'], null, SkillAccessMode.NONE);
+    expect(config.skillAccessMode).toBe(SkillAccessMode.NONE);
   });
 });
