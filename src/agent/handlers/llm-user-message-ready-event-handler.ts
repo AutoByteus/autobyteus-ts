@@ -10,7 +10,7 @@ import { ChunkResponse, CompleteResponse } from '../../llm/utils/response-types.
 import { BaseLLM } from '../../llm/base.js';
 import { StreamingResponseHandlerFactory } from '../streaming/handlers/streaming-handler-factory.js';
 import { SegmentEvent, SegmentType } from '../streaming/segments/segment-events.js';
-import { ToolInvocationTurn } from '../tool-invocation.js';
+import { ToolInvocationBatch } from '../tool-invocation.js';
 import { OpenAIChatRenderer } from '../../llm/prompt-renderers/openai-chat-renderer.js';
 import { LLMRequestAssembler } from '../llm-request-assembler.js';
 import { applyCompactionPolicy, resolveTokenBudget } from '../token-budget.js';
@@ -178,7 +178,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
       if (toolNames.length) {
         const toolInvocations = streamingHandler.getAllInvocations();
         if (toolInvocations.length) {
-          context.state.activeMultiToolCallTurn = new ToolInvocationTurn(toolInvocations);
+          context.state.activeToolInvocationBatch = new ToolInvocationBatch(toolInvocations);
           console.info(
             `Agent '${agentId}': Parsed ${toolInvocations.length} tool invocations from streaming parser.`
           );

@@ -33,7 +33,7 @@ export class ToolInvocation {
   }
 }
 
-export class ToolInvocationTurn {
+export class ToolInvocationBatch {
   invocations: ToolInvocation[];
   results: ToolResultEvent[];
 

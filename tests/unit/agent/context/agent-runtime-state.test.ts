@@ -35,7 +35,7 @@ describe('AgentRuntimeState', () => {
     expect(state.pendingToolApprovals).toEqual({});
     expect(state.customData).toEqual({});
     expect(state.workspace).toBeNull();
-    expect(state.activeMultiToolCallTurn).toBeNull();
+    expect(state.activeToolInvocationBatch).toBeNull();
     expect(state.todoList).toBeNull();
     expect(state.memoryManager).toBeNull();
     expect(state.activeTurnId).toBeNull();

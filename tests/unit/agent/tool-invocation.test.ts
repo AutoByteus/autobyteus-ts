@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { ToolInvocation, ToolInvocationTurn } from '../../../src/agent/tool-invocation.js';
+import { ToolInvocation, ToolInvocationBatch } from '../../../src/agent/tool-invocation.js';
 
 describe('ToolInvocation', () => {
   it('validates required fields', () => {
@@ -14,12 +14,12 @@ describe('ToolInvocation', () => {
   });
 });
 
-describe('ToolInvocationTurn', () => {
+describe('ToolInvocationBatch', () => {
   it('tracks completion based on results count', () => {
     const invocation = new ToolInvocation('tool', {}, 'id');
-    const turn = new ToolInvocationTurn([invocation]);
-    expect(turn.isComplete()).toBe(false);
-    turn.results.push({} as any);
-    expect(turn.isComplete()).toBe(true);
+    const batch = new ToolInvocationBatch([invocation]);
+    expect(batch.isComplete()).toBe(false);
+    batch.results.push({} as any);
+    expect(batch.isComplete()).toBe(true);
   });
 });

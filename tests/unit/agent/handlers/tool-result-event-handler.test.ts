@@ -5,7 +5,7 @@ import {
   UserMessageReceivedEvent,
   GenericEvent
 } from '../../../../src/agent/events/agent-events.js';
-import { ToolInvocation, ToolInvocationTurn } from '../../../../src/agent/tool-invocation.js';
+import { ToolInvocation, ToolInvocationBatch } from '../../../../src/agent/tool-invocation.js';
 import { SenderType } from '../../../../src/agent/sender-type.js';
 import { ContextFile } from '../../../../src/agent/message/context-file.js';
 import { AgentContext } from '../../../../src/agent/context/agent-context.js';
@@ -73,7 +73,7 @@ describe('ToolResultEventHandler', () => {
     const handler = new ToolResultEventHandler();
     const { context, inputQueues, notifier } = makeContext();
     const event = new ToolResultEvent('calculator', { sum: 15 }, 'calc-123');
-    context.state.activeMultiToolCallTurn = null;
+    context.state.activeToolInvocationBatch = null;
 
     await handler.handle(event, context);
 
@@ -105,7 +105,7 @@ describe('ToolResultEventHandler', () => {
     const handler = new ToolResultEventHandler();
     const { context, inputQueues, notifier } = makeContext();
     const event = new ToolResultEvent('write_file', null, 'fw-456', 'Permission denied');
-    context.state.activeMultiToolCallTurn = null;
+    context.state.activeToolInvocationBatch = null;
 
     await handler.handle(event, context);
 
@@ -131,7 +131,7 @@ describe('ToolResultEventHandler', () => {
     const { context, inputQueues, notifier } = makeContext();
     const invA = new ToolInvocation('tool_A', { arg: 'A' }, 'call_A');
     const invB = new ToolInvocation('tool_B', { arg: 'B' }, 'call_B');
-    context.state.activeMultiToolCallTurn = new ToolInvocationTurn([invA, invB]);
+    context.state.activeToolInvocationBatch = new ToolInvocationBatch([invA, invB]);
 
     const resB = new ToolResultEvent('tool_B', 'Result B', 'call_B');
     const resA = new ToolResultEvent('tool_A', 'Result A', 'call_A');
@@ -152,7 +152,7 @@ describe('ToolResultEventHandler', () => {
     expect(posB).toBeGreaterThanOrEqual(0);
     expect(posA).toBeLessThan(posB);
 
-    expect(context.state.activeMultiToolCallTurn).toBeNull();
+    expect(context.state.activeToolInvocationBatch).toBeNull();
   });
 
   it('handles multi-tool with error in sequence', async () => {
@@ -160,7 +160,7 @@ describe('ToolResultEventHandler', () => {
     const { context, inputQueues } = makeContext();
     const invA = new ToolInvocation('tool_A', { arg: 'A' }, 'call_A');
     const invB = new ToolInvocation('tool_B', { arg: 'B' }, 'call_B');
-    context.state.activeMultiToolCallTurn = new ToolInvocationTurn([invA, invB]);
+    context.state.activeToolInvocationBatch = new ToolInvocationBatch([invA, invB]);
 
     const resBError = new ToolResultEvent('tool_B', null, 'call_B', 'Failed B');
     const resASuccess = new ToolResultEvent('tool_A', 'Success A', 'call_A');
@@ -219,7 +219,7 @@ describe('ToolResultEventHandler', () => {
     const contextFile = new ContextFile('/path/to/image.png', undefined, 'image.png');
     const invA = new ToolInvocation('read_media_file', { path: '/path/to/image.png' }, 'media-1');
     const invB = new ToolInvocation('calculator', { op: 'add' }, 'calc-1');
-    context.state.activeMultiToolCallTurn = new ToolInvocationTurn([invA, invB]);
+    context.state.activeToolInvocationBatch = new ToolInvocationBatch([invA, invB]);
 
     const resA = new ToolResultEvent('read_media_file', contextFile, 'media-1');
     const resB = new ToolResultEvent('calculator', { sum: 5 }, 'calc-1');

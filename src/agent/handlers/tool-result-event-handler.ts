@@ -1,6 +1,6 @@
 import { AgentEventHandler } from './base-event-handler.js';
 import { ToolResultEvent, UserMessageReceivedEvent, BaseEvent } from '../events/agent-events.js';
-import { ToolInvocationTurn } from '../tool-invocation.js';
+import { ToolInvocationBatch } from '../tool-invocation.js';
 import { ContextFile } from '../message/context-file.js';
 import { AgentInputUserMessage } from '../message/agent-input-user-message.js';
 import { SenderType } from '../sender-type.js';
@@ -166,9 +166,9 @@ export class ToolResultEventHandler extends AgentEventHandler {
       }
     }
 
-    const activeTurn = context.state.activeMultiToolCallTurn as ToolInvocationTurn | null;
+    const activeBatch = context.state.activeToolInvocationBatch as ToolInvocationBatch | null;
 
-    if (!activeTurn) {
+    if (!activeBatch) {
       console.info(
         `Agent '${agentId}' handling single ToolResultEvent from tool: '${processedEvent.toolName}'.`
       );
@@ -176,26 +176,26 @@ export class ToolResultEventHandler extends AgentEventHandler {
       return;
     }
 
-    activeTurn.results.push(processedEvent);
-    const numResults = activeTurn.results.length;
-    const numExpected = activeTurn.invocations.length;
+    activeBatch.results.push(processedEvent);
+    const numResults = activeBatch.results.length;
+    const numExpected = activeBatch.invocations.length;
     console.info(
-      `Agent '${agentId}' handling ToolResultEvent for multi-tool call turn. Collected ${numResults}/${numExpected} results.`
+      `Agent '${agentId}' handling ToolResultEvent for multi-tool invocation batch. Collected ${numResults}/${numExpected} results.`
     );
 
-    if (!activeTurn.isComplete()) {
+    if (!activeBatch.isComplete()) {
       return;
     }
 
     console.info(
-      `Agent '${agentId}': All tool results for the turn collected. Re-ordering to match invocation sequence.`
+      `Agent '${agentId}': All tool results for the invocation batch collected. Re-ordering to match invocation sequence.`
     );
 
     const resultsById = new Map(
-      activeTurn.results.map((result) => [(result as ToolResultEvent).toolInvocationId, result])
+      activeBatch.results.map((result) => [(result as ToolResultEvent).toolInvocationId, result])
     );
     const sortedResults: ToolResultEvent[] = [];
-    for (const invocation of activeTurn.invocations) {
+    for (const invocation of activeBatch.invocations) {
       const result = resultsById.get(invocation.id);
       if (result) {
         sortedResults.push(result);
@@ -217,7 +217,7 @@ export class ToolResultEventHandler extends AgentEventHandler {
     }
 
     await this.dispatchResultsToInputPipeline(sortedResults, context);
-    context.state.activeMultiToolCallTurn = null;
-    console.info(`Agent '${agentId}': Multi-tool call turn state has been cleared.`);
+    context.state.activeToolInvocationBatch = null;
+    console.info(`Agent '${agentId}': Tool invocation batch state has been cleared.`);
   }
 }

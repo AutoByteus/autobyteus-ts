@@ -2,7 +2,7 @@ import { AgentInputEventQueueManager } from '../events/agent-input-event-queue-m
 import { AgentEventStore } from '../events/event-store.js';
 import { AgentStatus } from '../status/status-enum.js';
 import { BaseAgentWorkspace } from '../workspace/base-workspace.js';
-import { ToolInvocation, ToolInvocationTurn } from '../tool-invocation.js';
+import { ToolInvocation, ToolInvocationBatch } from '../tool-invocation.js';
 import { ToDoList } from '../../task-management/todo-list.js';
 import { BaseLLM } from '../../llm/base.js';
 import type { BaseTool } from '../../tools/base-tool.js';
@@ -25,9 +25,11 @@ export class AgentRuntimeState {
   workspace: BaseAgentWorkspace | null;
   pendingToolApprovals: Record<string, ToolInvocation>;
   customData: Record<string, any>;
-  activeMultiToolCallTurn: ToolInvocationTurn | null = null;
+  // Tracks only the currently pending tool-invocation batch emitted by the last LLM response.
+  activeToolInvocationBatch: ToolInvocationBatch | null = null;
   todoList: ToDoList | null = null;
   memoryManager: MemoryManager | null = null;
+  // Conversation/memory turn id shared across all traces for one user-originated turn.
   activeTurnId: string | null = null;
   restoreOptions: WorkingContextSnapshotBootstrapOptions | null = null;
   processedSystemPrompt: string | null = null;
@@ -88,14 +90,14 @@ export class AgentRuntimeState {
     const llmStatus = this.llmInstance ? 'Initialized' : 'Not Initialized';
     const toolsStatus = this.toolInstances ? `${Object.keys(this.toolInstances).length} Initialized` : 'Not Initialized';
     const inputQueuesStatus = this.inputEventQueues ? 'Initialized' : 'Not Initialized';
-    const activeTurnStatus = this.activeMultiToolCallTurn ? 'Active' : 'Inactive';
+    const activeBatchStatus = this.activeToolInvocationBatch ? 'Active' : 'Inactive';
 
     return (
       `AgentRuntimeState(agentId='${this.agentId}', currentStatus='${this.currentStatus}', ` +
       `llmStatus='${llmStatus}', toolsStatus='${toolsStatus}', ` +
       `inputQueuesStatus='${inputQueuesStatus}', ` +
       `pendingApprovals=${Object.keys(this.pendingToolApprovals).length}, ` +
-      `multiToolCallTurn='${activeTurnStatus}')`
+      `toolInvocationBatch='${activeBatchStatus}')`
     );
   }
 }
