@@ -95,6 +95,9 @@ describe('media_payload_formatter', () => {
     const fromBase64 = await mediaSourceToBase64(VALID_BASE64_IMAGE);
     expect(fromBase64).toBe(VALID_BASE64_IMAGE);
 
+    const fromDataUri = await mediaSourceToBase64(`data:image/gif;base64,${VALID_BASE64_IMAGE}`);
+    expect(fromDataUri).toBe(VALID_BASE64_IMAGE);
+
     await expect(mediaSourceToBase64('this is not a valid source')).rejects.toBeTruthy();
   });
 

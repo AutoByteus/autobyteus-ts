@@ -1,6 +1,7 @@
 import { BaseSystemPromptProcessor, ToolManifestInjectorProcessor, AvailableSkillsProcessor } from '../system-prompt-processor/index.js';
 import { resolveToolCallFormat } from '../../utils/tool-call-format.js';
 import { BaseLLM } from '../../llm/base.js';
+import { SkillAccessMode, resolveSkillAccessMode } from './skill-access-mode.js';
 import type { BaseTool } from '../../tools/base-tool.js';
 import type { BaseAgentWorkspace } from '../workspace/base-workspace.js';
 import type { BaseAgentUserInputMessageProcessor } from '../input-processor/base-user-input-processor.js';
@@ -42,6 +43,7 @@ export class AgentConfig {
   lifecycleProcessors: BaseLifecycleEventProcessor[];
   initialCustomData?: Record<string, any> | null;
   skills: string[];
+  skillAccessMode: SkillAccessMode;
   memoryDir?: string | null;
 
   constructor(
@@ -61,7 +63,8 @@ export class AgentConfig {
     lifecycleProcessors: BaseLifecycleEventProcessor[] | null = null,
     initialCustomData: Record<string, any> | null = null,
     skills: string[] | null = null,
-    memoryDir: string | null = null
+    memoryDir: string | null = null,
+    skillAccessMode: SkillAccessMode | null = null
   ) {
     this.name = name;
     this.role = role;
@@ -88,6 +91,7 @@ export class AgentConfig {
     this.lifecycleProcessors = lifecycleProcessors ?? [];
     this.initialCustomData = initialCustomData ?? undefined;
     this.skills = skills ?? [];
+    this.skillAccessMode = resolveSkillAccessMode(skillAccessMode, this.skills.length);
     this.memoryDir = memoryDir ?? undefined;
 
     const toolCallFormat = resolveToolCallFormat();
@@ -122,7 +126,8 @@ export class AgentConfig {
       this.lifecycleProcessors.slice(),
       deepClone(this.initialCustomData ?? null),
       this.skills.slice(),
-      this.memoryDir ?? null
+      this.memoryDir ?? null,
+      this.skillAccessMode
     );
   }
 
@@ -130,7 +135,8 @@ export class AgentConfig {
     return (
       `AgentConfig(name='${this.name}', role='${this.role}', ` +
       `llmInstance='${this.llmInstance.constructor.name}', ` +
-      `workspace_configured=${this.workspace !== null}, skills=${JSON.stringify(this.skills)})`
+      `workspace_configured=${this.workspace !== null}, skills=${JSON.stringify(this.skills)}, ` +
+      `skillAccessMode='${this.skillAccessMode}')`
     );
   }
 }

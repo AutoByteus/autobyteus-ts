@@ -1,5 +1,6 @@
 import { ContextFile } from './context-file.js';
 import { SenderType } from '../sender-type.js';
+import { parseAgentExternalSourceMetadata, type AgentExternalSourceMetadata } from './external-source-metadata.js';
 
 export class AgentInputUserMessage {
   content: string;
@@ -83,5 +84,9 @@ export class AgentInputUserMessage {
     const contextInfo = this.contextFiles ? `, contextFiles=[${contextCount} ContextFile(s)]` : '';
     const metaInfo = Object.keys(this.metadata).length > 0 ? `, metadata_keys=${Object.keys(this.metadata)}` : '';
     return `AgentInputUserMessage(senderType='${this.senderType}', content='${contentPreview}'${contextInfo}${metaInfo})`;
+  }
+
+  getExternalSourceMetadata(): AgentExternalSourceMetadata | null {
+    return parseAgentExternalSourceMetadata(this.metadata);
   }
 }

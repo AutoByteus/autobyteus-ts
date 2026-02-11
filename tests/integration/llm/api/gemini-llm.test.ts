@@ -13,13 +13,25 @@ import { ToolDefinition } from '../../../../src/tools/registry/tool-definition.j
 import { registerWriteFileTool } from '../../../../src/tools/file/write-file.js';
 
 const hasVertexApiKey = Boolean(process.env.VERTEX_AI_API_KEY);
-const hasVertex = hasVertexApiKey || Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const hasVertexProjectAndLocation = Boolean(process.env.VERTEX_AI_PROJECT && process.env.VERTEX_AI_LOCATION);
+const googleCredentialsPath = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+const hasExplicitGoogleCredentials = Boolean(
+  googleCredentialsPath && fs.existsSync(googleCredentialsPath),
+);
+const defaultGcloudAdcPath = path.join(
+  process.env.HOME ?? '',
+  '.config',
+  'gcloud',
+  'application_default_credentials.json',
+);
+const hasDefaultGoogleCredentials = fs.existsSync(defaultGcloudAdcPath);
+const hasVertex = hasVertexApiKey || (hasVertexProjectAndLocation && (hasExplicitGoogleCredentials || hasDefaultGoogleCredentials));
 const hasApiKey = Boolean(process.env.GEMINI_API_KEY);
 const runIntegration = hasVertex || hasApiKey ? describe : describe.skip;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '../../../../..');
+const repoRoot = path.resolve(__dirname, '../../../..');
 
 const imagePath = path.resolve(repoRoot, 'tests/assets/sample_image.png');
 const audioPath = path.resolve(repoRoot, 'tests/data/test_audio.mp3');

@@ -219,7 +219,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
 
       const errorResponse = new CompleteResponse({ content: errorMessage, usage: null });
       await context.inputEventQueues.enqueueInternalSystemEvent(
-        new LLMCompleteResponseReceivedEvent(errorResponse, true)
+        new LLMCompleteResponseReceivedEvent(errorResponse, true, activeTurnId)
       );
       console.info(`Agent '${agentId}' enqueued LLMCompleteResponseReceivedEvent with error details.`);
       return;
@@ -251,7 +251,7 @@ export class LLMUserMessageReadyEventHandler extends AgentEventHandler {
     }
 
     await context.inputEventQueues.enqueueInternalSystemEvent(
-      new LLMCompleteResponseReceivedEvent(completeResponse)
+      new LLMCompleteResponseReceivedEvent(completeResponse, false, activeTurnId)
     );
     console.info(
       `Agent '${agentId}' enqueued LLMCompleteResponseReceivedEvent from LLMUserMessageReadyEventHandler.`

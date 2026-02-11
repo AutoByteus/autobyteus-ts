@@ -16,14 +16,14 @@ This document focuses on the **agent-team** package and how it integrates with t
 
 ## 2. Core Concepts
 
-### 2.1 Team Graph (Nodes + Dependencies)
+### 2.1 Team Graph (Nodes)
 
 Teams are defined as graphs of **TeamNodeConfig** objects. Each node is either:
 
 - a single **AgentConfig** (agent node), or
 - a full **AgentTeamConfig** (sub-team node).
 
-Dependencies are explicit per-node, allowing teams to model execution ordering and coordination. Each node has a unique name enforced by the builder.
+Each node has a unique name enforced by the builder.
 
 ### 2.2 Team Facade vs Runtime
 
@@ -41,7 +41,6 @@ The facade forwards all calls to the runtime, ensuring concurrency and event-dri
 `AgentTeamBuilder` is the fluent API for constructing a team:
 
 - enforces unique node names,
-- captures dependencies,
 - sets the coordinator,
 - configures `TaskNotificationMode`.
 

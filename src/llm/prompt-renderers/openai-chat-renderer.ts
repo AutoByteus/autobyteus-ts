@@ -1,4 +1,8 @@
-import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions.mjs';
+import type {
+  ChatCompletionContentPart,
+  ChatCompletionContentPartInputAudio,
+  ChatCompletionMessageParam
+} from 'openai/resources/chat/completions.mjs';
 import { BasePromptRenderer } from './base-prompt-renderer.js';
 import {
   Message,
@@ -7,6 +11,7 @@ import {
 } from '../utils/messages.js';
 import {
   mediaSourceToBase64,
+  mediaSourceToDataUri,
   createDataUri,
   getMimeType,
   isValidMediaPath
@@ -22,7 +27,7 @@ export class OpenAIChatRenderer extends BasePromptRenderer {
       let content: any = msg.content;
 
       if (msg.image_urls.length || msg.audio_urls.length || msg.video_urls.length) {
-        const contentParts: Record<string, unknown>[] = [];
+        const contentParts: ChatCompletionContentPart[] = [];
 
         if (msg.content) {
           contentParts.push({ type: 'text', text: msg.content });
@@ -42,11 +47,18 @@ export class OpenAIChatRenderer extends BasePromptRenderer {
 
           const hasLocalPath = source ? await isValidMediaPath(source) : false;
           const mimeType = hasLocalPath ? getMimeType(source) : 'image/jpeg';
-          contentParts.push(createDataUri(mimeType, result.value));
+          const imagePart = createDataUri(mimeType, result.value);
+          contentParts.push({
+            type: 'image_url',
+            image_url: imagePart.image_url,
+          });
         }
 
-        if (msg.audio_urls.length) {
-          console.warn('OpenAI compatible layer does not yet support audio; skipping.');
+        for (const source of msg.audio_urls) {
+          const audioPart = await buildOpenAIInputAudioPart(source);
+          if (audioPart) {
+            contentParts.push(audioPart);
+          }
         }
         if (msg.video_urls.length) {
           console.warn('OpenAI compatible layer does not yet support video; skipping.');
@@ -94,6 +106,79 @@ export class OpenAIChatRenderer extends BasePromptRenderer {
     return rendered;
   }
 }
+
+type ParsedDataUri = {
+  mimeType: string;
+  data: string;
+  isBase64: boolean;
+};
+
+const parseDataUri = (input: string): ParsedDataUri | null => {
+  const matches = /^data:([^;,]+)?((?:;[^;,=]+=[^;,=]+)*)(;base64)?,(.*)$/i.exec(input);
+  if (!matches) {
+    return null;
+  }
+  return {
+    mimeType: (matches[1] ?? 'application/octet-stream').toLowerCase(),
+    data: matches[4] ?? '',
+    isBase64: Boolean(matches[3]),
+  };
+};
+
+const inferOpenAIAudioFormat = (mimeType: string, source: string): 'mp3' | 'wav' | null => {
+  const normalizedMime = mimeType.toLowerCase();
+  if (normalizedMime === 'audio/mpeg' || normalizedMime === 'audio/mp3') {
+    return 'mp3';
+  }
+  if (normalizedMime === 'audio/wav' || normalizedMime === 'audio/x-wav') {
+    return 'wav';
+  }
+
+  const normalizedSource = source.toLowerCase();
+  if (normalizedSource.endsWith('.mp3')) {
+    return 'mp3';
+  }
+  if (normalizedSource.endsWith('.wav')) {
+    return 'wav';
+  }
+  return null;
+};
+
+const buildOpenAIInputAudioPart = async (
+  source: string,
+): Promise<ChatCompletionContentPartInputAudio | null> => {
+  try {
+    const dataUri = await mediaSourceToDataUri(source);
+    const parsed = parseDataUri(dataUri);
+    if (!parsed) {
+      console.warn(`Unable to parse audio source as data URI: ${source}`);
+      return null;
+    }
+
+    const format = inferOpenAIAudioFormat(parsed.mimeType, source);
+    if (!format) {
+      console.warn(
+        `OpenAI chat input audio supports mp3/wav. Skipping unsupported audio source: ${source}`,
+      );
+      return null;
+    }
+
+    const base64Data = parsed.isBase64
+      ? parsed.data
+      : Buffer.from(decodeURIComponent(parsed.data), 'utf8').toString('base64');
+
+    return {
+      type: 'input_audio',
+      input_audio: {
+        data: base64Data,
+        format,
+      },
+    };
+  } catch (error) {
+    console.error(`Error processing audio ${source}: ${error}`);
+    return null;
+  }
+};
 
 function formatToolResult(payload: ToolResultPayload): string {
   if (payload.toolError) {

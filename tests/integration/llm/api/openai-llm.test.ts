@@ -35,6 +35,7 @@ runIntegration('OpenAILLM Integration', () => {
   const __dirname = path.dirname(__filename);
   const repoRoot = path.resolve(__dirname, '../../../../..');
   const imagePath = path.resolve(repoRoot, 'tests/assets/sample_image.png');
+  const audioPath = path.resolve(repoRoot, 'tests/data/test_audio.mp3');
 
   it('should successfully make a simple completion call', async function () {
     const llm = new OpenAILLM(buildModel());
@@ -76,6 +77,40 @@ runIntegration('OpenAILLM Integration', () => {
     } catch (error: any) {
       const message = String(error?.message || error);
       if (message.includes('model') || message.includes('not_found')) {
+        return;
+      }
+      throw error;
+    } finally {
+      await llm.cleanup();
+    }
+  }, 120000);
+
+  it('should attempt multimodal audio input when fixture is available', async () => {
+    if (!fs.existsSync(audioPath)) {
+      return;
+    }
+
+    const llm = new OpenAILLM(buildModel());
+    const userMessage = new LLMUserMessage({
+      content: 'Describe this audio briefly.',
+      audio_urls: [audioPath]
+    });
+
+    try {
+      const response = await llm.sendUserMessage(userMessage);
+      expect(response).toBeInstanceOf(CompleteResponse);
+      expect(typeof response.content).toBe('string');
+      expect(response.content.length).toBeGreaterThan(0);
+    } catch (error: any) {
+      const message = String(error?.message || error).toLowerCase();
+      // Some OpenAI models in this repo's defaults may not support audio input.
+      if (
+        message.includes('model') ||
+        message.includes('not_found') ||
+        message.includes('audio') ||
+        message.includes('unsupported') ||
+        message.includes('invalid')
+      ) {
         return;
       }
       throw error;

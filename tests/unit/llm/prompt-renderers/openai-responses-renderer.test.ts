@@ -56,4 +56,26 @@ describe('OpenAIResponsesRenderer', () => {
       }
     ]);
   });
+
+  it('degrades user audio input in responses renderer and keeps text content', async () => {
+    const renderer = new OpenAIResponsesRenderer();
+    const messages = [
+      new Message(MessageRole.USER, {
+        content: 'please transcribe',
+        audio_urls: ['data:audio/wav;base64,ZmFrZQ==']
+      })
+    ];
+
+    const rendered = await renderer.render(messages);
+
+    expect(rendered).toEqual([
+      {
+        type: 'message',
+        role: 'user',
+        content: [
+          { type: 'input_text', text: 'please transcribe' }
+        ]
+      }
+    ]);
+  });
 });

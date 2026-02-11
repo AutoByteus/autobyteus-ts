@@ -104,6 +104,20 @@ export async function fileToBase64(filePath: string): Promise<string> {
  * into a base64 encoded string by delegating to specialized functions.
  */
 export async function mediaSourceToBase64(mediaSource: string): Promise<string> {
+  if (mediaSource.startsWith('data:')) {
+    const commaIndex = mediaSource.indexOf(',');
+    if (commaIndex < 0) {
+      throw new Error('Invalid data URI media source: missing payload separator.');
+    }
+
+    const header = mediaSource.slice(0, commaIndex).toLowerCase();
+    const payload = mediaSource.slice(commaIndex + 1);
+    if (header.includes(';base64')) {
+      return payload;
+    }
+    return Buffer.from(decodeURIComponent(payload), 'utf8').toString('base64');
+  }
+
   if (mediaSource.startsWith('http://') || mediaSource.startsWith('https://')) {
     return await urlToBase64(mediaSource);
   }

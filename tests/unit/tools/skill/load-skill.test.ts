@@ -6,6 +6,7 @@ import { SkillRegistry } from '../../../../src/skills/registry.js';
 import { defaultToolRegistry, ToolRegistry } from '../../../../src/tools/registry/tool-registry.js';
 import { registerLoadSkillTool } from '../../../../src/tools/skill/load-skill.js';
 import { BaseTool } from '../../../../src/tools/base-tool.js';
+import { SkillAccessMode } from '../../../../src/agent/context/skill-access-mode.js';
 
 const TOOL_NAME = 'load_skill';
 
@@ -71,5 +72,35 @@ describe('load_skill tool', () => {
     await expect(toolInstance.execute({ agentId: 'test_agent' }, { skill_name: 'non_existent' }))
       .rejects
       .toThrow("Skill 'non_existent' not found");
+  });
+
+  it('blocks non-preloaded skill loads in PRELOADED_ONLY mode', async () => {
+    const tempDir = createTempDir();
+    const skillPath = path.join(tempDir, 'test_skill');
+    fs.mkdirSync(skillPath);
+    fs.writeFileSync(path.join(skillPath, 'SKILL.md'), '---\nname: test_skill\ndescription: A test skill\n---\nBody of the skill.');
+
+    const registry = new SkillRegistry();
+    registry.registerSkillFromPath(skillPath);
+
+    const toolInstance = defaultToolRegistry.createTool(TOOL_NAME) as BaseTool;
+    await expect(
+      toolInstance.execute(
+        { agentId: 'test_agent', config: { skills: ['other_skill'], skillAccessMode: SkillAccessMode.PRELOADED_ONLY } },
+        { skill_name: 'test_skill' }
+      )
+    ).rejects.toThrow("is not preloaded for this agent");
+
+    removeDir(tempDir);
+  });
+
+  it('blocks all skill loads when mode is NONE', async () => {
+    const toolInstance = defaultToolRegistry.createTool(TOOL_NAME) as BaseTool;
+    await expect(
+      toolInstance.execute(
+        { agentId: 'test_agent', config: { skills: ['test_skill'], skillAccessMode: SkillAccessMode.NONE } },
+        { skill_name: 'test_skill' }
+      )
+    ).rejects.toThrow('Skill loading is disabled');
   });
 });

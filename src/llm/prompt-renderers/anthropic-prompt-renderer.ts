@@ -38,6 +38,13 @@ export class AnthropicPromptRenderer extends BasePromptRenderer {
 
       const outputRole: 'user' | 'assistant' = role === MessageRole.ASSISTANT ? 'assistant' : 'user';
 
+      if (msg.audio_urls.length) {
+        console.warn('Anthropic Messages API prompt renderer does not support audio input; skipping.');
+      }
+      if (msg.video_urls.length) {
+        console.warn('Anthropic Messages API prompt renderer does not support video input; skipping.');
+      }
+
       if (msg.image_urls.length) {
         const contentBlocks: ContentBlockParam[] = [];
         const base64Images = await Promise.allSettled(
