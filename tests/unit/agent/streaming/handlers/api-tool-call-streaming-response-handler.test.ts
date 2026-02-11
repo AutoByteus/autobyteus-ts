@@ -125,7 +125,7 @@ describe('ApiToolCallStreamingResponseHandler parallel tool calls', () => {
 });
 
 describe('ApiToolCallStreamingResponseHandler file streaming', () => {
-  it('emits patch_file segments', () => {
+  it('emits edit_file segments', () => {
     const handler = new ApiToolCallStreamingResponseHandler();
 
     const events1 = handler.feed(
@@ -135,7 +135,7 @@ describe('ApiToolCallStreamingResponseHandler file streaming', () => {
           {
             index: 0,
             call_id: 'call_patch',
-            name: 'patch_file',
+            name: 'edit_file',
             arguments_delta: '{"path":"a.txt","patch":"@@ -1 +1 @@'
           }
         ]
@@ -150,7 +150,7 @@ describe('ApiToolCallStreamingResponseHandler file streaming', () => {
     );
 
     const startEvent = events1.find((event) => event.event_type === SegmentEventType.START);
-    expect(startEvent!.segment_type).toBe(SegmentType.PATCH_FILE);
+    expect(startEvent!.segment_type).toBe(SegmentType.EDIT_FILE);
     expect(startEvent!.payload.metadata.path).toBe('a.txt');
     const firstContent = events1.find((event) => event.event_type === SegmentEventType.CONTENT);
     expect(firstContent!.payload.delta).toBe('@@ -1 +1 @@');

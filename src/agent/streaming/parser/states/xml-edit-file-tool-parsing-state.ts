@@ -3,8 +3,8 @@ import type { ParserContext } from '../parser-context.js';
 import { SegmentType } from '../events.js';
 import { TextState } from './text-state.js';
 
-export class XmlPatchFileToolParsingState extends XmlToolParsingState {
-  static SEGMENT_TYPE = SegmentType.PATCH_FILE;
+export class XmlEditFileToolParsingState extends XmlToolParsingState {
+  static SEGMENT_TYPE = SegmentType.EDIT_FILE;
   static START_CONTENT_MARKER = '__START_PATCH__';
   static END_CONTENT_MARKER = '__END_PATCH__';
   static CONTENT_ARG_CLOSE_TAG = '</arg>';
@@ -20,8 +20,8 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
 
   constructor(context: ParserContext, openingTag: string) {
     super(context, openingTag);
-    if (this.toolName !== undefined && this.toolName !== 'patch_file') {
-      // No-op: specialized state expects patch_file but falls back gracefully.
+    if (this.toolName !== undefined && this.toolName !== 'edit_file') {
+      // No-op: specialized state expects edit_file but falls back gracefully.
     }
   }
 
@@ -46,7 +46,7 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
           this.capturedPath = pathMatch[1].trim();
           if (this.deferStart && !this.segmentStarted) {
             const meta = { ...this._getStartMetadata(), path: this.capturedPath };
-            this.context.emitSegmentStart((this.constructor as typeof XmlPatchFileToolParsingState).SEGMENT_TYPE, meta);
+            this.context.emitSegmentStart((this.constructor as typeof XmlEditFileToolParsingState).SEGMENT_TYPE, meta);
             this.segmentStarted = true;
             this.deferStart = false;
           }
@@ -59,7 +59,7 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
         const endOfTag = contentMatch.index + contentMatch[0].length;
 
         if (!this.segmentStarted) {
-          this.context.emitSegmentStart((this.constructor as typeof XmlPatchFileToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
+          this.context.emitSegmentStart((this.constructor as typeof XmlEditFileToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
           this.segmentStarted = true;
         }
 
@@ -79,7 +79,7 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
 
       if (this.contentBuffering.includes('</tool>')) {
         if (!this.segmentStarted) {
-          this.context.emitSegmentStart((this.constructor as typeof XmlPatchFileToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
+          this.context.emitSegmentStart((this.constructor as typeof XmlEditFileToolParsingState).SEGMENT_TYPE, this._getStartMetadata());
           this.segmentStarted = true;
         }
         this._onSegmentComplete();
@@ -114,7 +114,7 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
   private processSeekMarkerContent(chunk: string): void {
     this.contentSeekBuffer += chunk;
 
-    const startMarker = (this.constructor as typeof XmlPatchFileToolParsingState).START_CONTENT_MARKER;
+    const startMarker = (this.constructor as typeof XmlEditFileToolParsingState).START_CONTENT_MARKER;
     const startIdx = this.contentSeekBuffer.indexOf(startMarker);
     if (startIdx !== -1) {
       let afterStart = this.contentSeekBuffer.slice(startIdx + startMarker.length);
@@ -131,7 +131,7 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
       return;
     }
 
-    const closingIdx = this.contentSeekBuffer.indexOf((this.constructor as typeof XmlPatchFileToolParsingState).CONTENT_ARG_CLOSE_TAG);
+    const closingIdx = this.contentSeekBuffer.indexOf((this.constructor as typeof XmlEditFileToolParsingState).CONTENT_ARG_CLOSE_TAG);
     if (closingIdx !== -1) {
       const buffered = this.contentSeekBuffer;
       this.contentSeekBuffer = '';
@@ -152,7 +152,7 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
   }
 
   private processDefaultContent(chunk: string): void {
-    const closingTag = (this.constructor as typeof XmlPatchFileToolParsingState).CONTENT_ARG_CLOSE_TAG;
+    const closingTag = (this.constructor as typeof XmlEditFileToolParsingState).CONTENT_ARG_CLOSE_TAG;
     const combined = `${this.tail}${chunk}`;
 
     const idx = combined.indexOf(closingTag);
@@ -184,8 +184,8 @@ export class XmlPatchFileToolParsingState extends XmlToolParsingState {
 
   private processMarkerContent(chunk: string): void {
     const combined = `${this.markerTail}${chunk}`;
-    const endMarker = (this.constructor as typeof XmlPatchFileToolParsingState).END_CONTENT_MARKER;
-    const closingTag = (this.constructor as typeof XmlPatchFileToolParsingState).CONTENT_ARG_CLOSE_TAG;
+    const endMarker = (this.constructor as typeof XmlEditFileToolParsingState).END_CONTENT_MARKER;
+    const closingTag = (this.constructor as typeof XmlEditFileToolParsingState).CONTENT_ARG_CLOSE_TAG;
 
     let searchStart = 0;
     while (true) {

@@ -16,8 +16,8 @@ import { GeminiJsonSchemaFormatter } from '../formatters/gemini-json-schema-form
 import { GeminiJsonExampleFormatter } from '../formatters/gemini-json-example-formatter.js';
 import { WriteFileXmlSchemaFormatter } from '../formatters/write-file-xml-schema-formatter.js';
 import { WriteFileXmlExampleFormatter } from '../formatters/write-file-xml-example-formatter.js';
-import { PatchFileXmlSchemaFormatter } from '../formatters/patch-file-xml-schema-formatter.js';
-import { PatchFileXmlExampleFormatter } from '../formatters/patch-file-xml-example-formatter.js';
+import { EditFileXmlSchemaFormatter } from '../formatters/edit-file-xml-schema-formatter.js';
+import { EditFileXmlExampleFormatter } from '../formatters/edit-file-xml-example-formatter.js';
 
 export class ToolFormattingRegistry extends Singleton {
   protected static instance?: ToolFormattingRegistry;
@@ -57,8 +57,8 @@ export class ToolFormattingRegistry extends Singleton {
       new ToolFormatterPair(new WriteFileXmlSchemaFormatter(), new WriteFileXmlExampleFormatter())
     );
     this.toolPairs.set(
-      'patch_file',
-      new ToolFormatterPair(new PatchFileXmlSchemaFormatter(), new PatchFileXmlExampleFormatter())
+      'edit_file',
+      new ToolFormatterPair(new EditFileXmlSchemaFormatter(), new EditFileXmlExampleFormatter())
     );
 
     ToolFormattingRegistry.instance = this;

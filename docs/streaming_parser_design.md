@@ -180,7 +180,7 @@ The parser emits `SegmentEvent` objects with three lifecycle types:
 | `text`       | `{}`                              | Plain text                      | `{}`                  |
 | `tool_call`  | `{"tool_name": "..."}` (if known) | Raw XML/JSON tool content       | `{}`                  |
 | `write_file` | `{"path": "..."}` (deferred)      | File content only (no XML tags) | `{}`                  |
-| `patch_file` | `{"path": "..."}` (deferred)      | Unified diff only (no XML tags) | `{}`                  |
+| `edit_file` | `{"path": "..."}` (deferred)      | Unified diff only (no XML tags) | `{}`                  |
 | `run_bash`   | `{}`                              | Command text only               | `{}`                  |
 | `reasoning`  | `{}`                              | Reasoning text                  | `{}`                  |
 
@@ -192,7 +192,7 @@ The parser emits `SegmentEvent` objects with three lifecycle types:
 | `XmlToolParsingState`               | `tool_call`      | `tool_name` (from tag)        | Raw `<arguments>...</arguments>`     |
 | `JsonToolParsingState`              | `tool_call`      | `{}`                          | Raw JSON tool blob                   |
 | `XmlWriteFileToolParsingState`      | `write_file`     | `path` (deferred until found) | Content only (no XML tags)           |
-| `XmlPatchFileToolParsingState`      | `patch_file`     | `path` (deferred until found) | Unified diff only (no XML tags)      |
+| `XmlEditFileToolParsingState`      | `edit_file`     | `path` (deferred until found) | Unified diff only (no XML tags)      |
 | `XmlRunBashToolParsingState`        | `run_bash`       | `{}`                          | Command only (no XML tags)           |
 | `CustomXmlTagWriteFileParsingState` | `write_file`     | `path` (from tag)             | Content only                         |
 | `CustomXmlTagRunBashParsingState`   | `run_bash`       | `{}`                          | Command only                         |
@@ -205,7 +205,7 @@ export enum SegmentType {
   TEXT = 'text',
   TOOL_CALL = 'tool_call',
   WRITE_FILE = 'write_file',
-  PATCH_FILE = 'patch_file',
+  EDIT_FILE = 'edit_file',
   RUN_BASH = 'run_bash',
   REASONING = 'reasoning',
 }
@@ -338,7 +338,7 @@ Each strategy reports the next candidate marker; the earliest match wins.
 
 You can now register custom parsing states dynamically without modifying the core library.
 
-1. **Define your state class** (inherit from `XmlToolParsingState` or `XmlPatchFileToolParsingState` etc.):
+1. **Define your state class** (inherit from `XmlToolParsingState` or `XmlEditFileToolParsingState` etc.):
 
 ```ts
 import { XmlToolParsingState } from 'src/agent/streaming/parser';
@@ -404,7 +404,7 @@ src/agent/streaming/
         ├── custom-xml-tag-run-bash-parsing-state.ts
         ├── xml-tool-parsing-state.ts
         ├── xml-write-file-tool-parsing-state.ts
-        ├── xml-patch-file-tool-parsing-state.ts
+        ├── xml-edit-file-tool-parsing-state.ts
         ├── xml-run-bash-tool-parsing-state.ts
         └── json-tool-parsing-state.ts
 ```

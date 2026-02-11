@@ -4,22 +4,22 @@ import path from 'path';
 import { defaultToolRegistry, ToolRegistry } from '../../../../src/tools/registry/tool-registry.js';
 import { ToolDefinition } from '../../../../src/tools/registry/tool-definition.js';
 import { BaseTool } from '../../../../src/tools/base-tool.js';
-import { registerPatchFileTool } from '../../../../src/tools/file/patch-file.js';
+import { registerEditFileTool } from '../../../../src/tools/file/edit-file.js';
 
-const TOOL_NAME_PATCH_FILE = 'patch_file';
+const TOOL_NAME_EDIT_FILE = 'edit_file';
 
 type MockContext = { agentId: string; workspace: null };
 
-describe('patch_file tool (integration)', () => {
+describe('edit_file tool (integration)', () => {
   beforeEach(() => {
     defaultToolRegistry.clear();
-    registerPatchFileTool();
+    registerEditFileTool();
   });
 
-  const getPatchTool = (): BaseTool => defaultToolRegistry.createTool(TOOL_NAME_PATCH_FILE) as BaseTool;
+  const getPatchTool = (): BaseTool => defaultToolRegistry.createTool(TOOL_NAME_EDIT_FILE) as BaseTool;
 
-  it('patches file content on disk', async () => {
-    const tmpDir = await fs.mkdtemp(path.join(process.cwd(), 'tmp-patch-file-'));
+  it('edits file content on disk', async () => {
+    const tmpDir = await fs.mkdtemp(path.join(process.cwd(), 'tmp-edit-file-'));
     const filePath = path.join(tmpDir, 'sample.txt');
     await fs.writeFile(filePath, 'line1\nline2\nline3\n', 'utf-8');
 
@@ -34,7 +34,7 @@ describe('patch_file tool (integration)', () => {
     const context: MockContext = { agentId: 'agent', workspace: null };
     const result = await tool.execute(context, { path: filePath, patch });
 
-    expect(result).toBe(`File patched successfully at ${filePath}`);
+    expect(result).toBe(`File edited successfully at ${filePath}`);
     const content = await fs.readFile(filePath, 'utf-8');
     expect(content).toBe('line1\nline2 updated\nline3\n');
   });

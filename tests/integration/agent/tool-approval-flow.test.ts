@@ -18,7 +18,7 @@ import { Message } from '../../../src/llm/utils/messages.js';
 import { defaultToolRegistry } from '../../../src/tools/registry/tool-registry.js';
 import { registerWriteFileTool } from '../../../src/tools/file/write-file.js';
 import { registerReadFileTool } from '../../../src/tools/file/read-file.js';
-import { registerPatchFileTool } from '../../../src/tools/file/patch-file.js';
+import { registerEditFileTool } from '../../../src/tools/file/edit-file.js';
 import { registerRunBashTool } from '../../../src/tools/terminal/tools/run-bash.js';
 import { TerminalResult } from '../../../src/tools/terminal/types.js';
 
@@ -247,8 +247,8 @@ describe('Tool approval integration flow', () => {
     expect(lastToolTrace).toBeDefined();
   });
 
-  it('executes patch_file after approval', async () => {
-    const patchTool = registerPatchFileTool();
+  it('executes edit_file after approval', async () => {
+    const patchTool = registerEditFileTool();
     fixture = await createAgentFixture([patchTool]);
     const turnId = assignActiveTurn(fixture);
 
@@ -265,7 +265,7 @@ describe('Tool approval integration flow', () => {
 `;
 
     const invocationId = `patch-${Date.now()}`;
-    const invocation = new ToolInvocation('patch_file', { path: relativePath, patch }, invocationId, turnId);
+    const invocation = new ToolInvocation('edit_file', { path: relativePath, patch }, invocationId, turnId);
 
     await fixture.agent.context.inputEventQueues.enqueueInternalSystemEvent(
       new PendingToolInvocationEvent(invocation)
@@ -291,7 +291,7 @@ describe('Tool approval integration flow', () => {
       },
       5000,
       50,
-      'patch_file execution'
+      'edit_file execution'
     );
 
     const patchedContent = await fs.readFile(targetPath, 'utf-8');

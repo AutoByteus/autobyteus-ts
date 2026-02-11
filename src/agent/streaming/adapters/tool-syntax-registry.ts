@@ -28,7 +28,7 @@ const buildRunBashArgs: ToolArgsBuilder = (metadata, content) => {
   return { command };
 };
 
-const buildPatchFileArgs: ToolArgsBuilder = (metadata, content) => {
+const buildEditFileArgs: ToolArgsBuilder = (metadata, content) => {
   const path = metadata.path;
   if (!path) {
     return null;
@@ -39,7 +39,7 @@ const buildPatchFileArgs: ToolArgsBuilder = (metadata, content) => {
 const TOOL_SYNTAX_REGISTRY = new Map<SegmentType, ToolSyntaxSpec>([
   [SegmentType.WRITE_FILE, new ToolSyntaxSpec('write_file', buildWriteFileArgs)],
   [SegmentType.RUN_BASH, new ToolSyntaxSpec('run_bash', buildRunBashArgs)],
-  [SegmentType.PATCH_FILE, new ToolSyntaxSpec('patch_file', buildPatchFileArgs)]
+  [SegmentType.EDIT_FILE, new ToolSyntaxSpec('edit_file', buildEditFileArgs)]
 ]);
 
 export const getToolSyntaxSpec = (segmentType: SegmentType): ToolSyntaxSpec | undefined => {

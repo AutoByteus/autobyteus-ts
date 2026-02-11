@@ -2,7 +2,7 @@ export enum SegmentType {
   TEXT = 'text',
   TOOL_CALL = 'tool_call',
   WRITE_FILE = 'write_file',
-  PATCH_FILE = 'patch_file',
+  EDIT_FILE = 'edit_file',
   RUN_BASH = 'run_bash',
   REASONING = 'reasoning',
   MEDIA = 'media'

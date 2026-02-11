@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { WriteFileContentStreamer, PatchFileContentStreamer } from '../../../../../src/agent/streaming/api-tool-call/file-content-streamer.js';
+import { WriteFileContentStreamer, EditFileContentStreamer } from '../../../../../src/agent/streaming/api-tool-call/file-content-streamer.js';
 
 describe('FileContentStreamers', () => {
   it('write_file streamer emits content and path', () => {
@@ -20,8 +20,8 @@ describe('FileContentStreamers', () => {
     expect(streamer.content).toBe('hi\nthere');
   });
 
-  it('patch_file streamer emits patch content', () => {
-    const streamer = new PatchFileContentStreamer();
+  it('edit_file streamer emits patch content', () => {
+    const streamer = new EditFileContentStreamer();
 
     const update1 = streamer.feed('{"patch":"@@ -1 +1 @@');
     expect(update1.contentDelta).toBe('@@ -1 +1 @@');

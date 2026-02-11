@@ -6,7 +6,7 @@ describe('SegmentType', () => {
     expect(SegmentType.TEXT).toBe('text');
     expect(SegmentType.TOOL_CALL).toBe('tool_call');
     expect(SegmentType.WRITE_FILE).toBe('write_file');
-    expect(SegmentType.PATCH_FILE).toBe('patch_file');
+    expect(SegmentType.EDIT_FILE).toBe('edit_file');
     expect(SegmentType.RUN_BASH).toBe('run_bash');
     expect(SegmentType.REASONING).toBe('reasoning');
     expect(SegmentType.MEDIA).toBe('media');

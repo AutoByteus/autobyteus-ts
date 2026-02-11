@@ -1,11 +1,11 @@
 import { BaseExampleFormatter } from './base-formatter.js';
 import { ToolDefinition } from '../../registry/tool-definition.js';
 
-export class PatchFileXmlExampleFormatter implements BaseExampleFormatter {
+export class EditFileXmlExampleFormatter implements BaseExampleFormatter {
   provide(_toolDefinition: ToolDefinition): string {
     return `### Example 1: Modify a function in a Python file
 
-<tool name="patch_file">
+<tool name="edit_file">
     <arguments>
         <arg name="path">/path/to/utils.py</arg>
         <arg name="patch">
@@ -27,7 +27,7 @@ __END_PATCH__
 
 ### Example 2: Add new lines to a configuration file
 
-<tool name="patch_file">
+<tool name="edit_file">
     <arguments>
         <arg name="path">config/settings.yaml</arg>
         <arg name="patch">

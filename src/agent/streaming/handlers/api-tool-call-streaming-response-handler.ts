@@ -1,7 +1,7 @@
 import { StreamingResponseHandler } from './streaming-response-handler.js';
 import { SegmentEvent, SegmentEventType, SegmentType } from '../segments/segment-events.js';
 import { ToolInvocationAdapter } from '../adapters/invocation-adapter.js';
-import { WriteFileContentStreamer, PatchFileContentStreamer } from '../api-tool-call/file-content-streamer.js';
+import { WriteFileContentStreamer, EditFileContentStreamer } from '../api-tool-call/file-content-streamer.js';
 import { ToolInvocation } from '../../tool-invocation.js';
 import { ChunkResponse } from '../../../llm/utils/response-types.js';
 import type { ToolCallDelta } from '../../../llm/utils/tool-call-delta.js';
@@ -12,7 +12,7 @@ type ToolCallState = {
   name: string;
   accumulatedArgs: string;
   segmentType: SegmentType;
-  streamer?: WriteFileContentStreamer | PatchFileContentStreamer | null;
+  streamer?: WriteFileContentStreamer | EditFileContentStreamer | null;
   path?: string;
   segmentStarted: boolean;
   pendingContent: string;
@@ -49,8 +49,8 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
     if (toolName === 'write_file') {
       return { segmentType: SegmentType.WRITE_FILE, streamer: new WriteFileContentStreamer() };
     }
-    if (toolName === 'patch_file') {
-      return { segmentType: SegmentType.PATCH_FILE, streamer: new PatchFileContentStreamer() };
+    if (toolName === 'edit_file') {
+      return { segmentType: SegmentType.EDIT_FILE, streamer: new EditFileContentStreamer() };
     }
     return { segmentType: SegmentType.TOOL_CALL, streamer: null };
   }
@@ -222,7 +222,7 @@ export class ApiToolCallStreamingResponseHandler extends StreamingResponseHandle
     }
 
     for (const state of this.activeTools.values()) {
-      if (state.segmentType === SegmentType.WRITE_FILE || state.segmentType === SegmentType.PATCH_FILE) {
+      if (state.segmentType === SegmentType.WRITE_FILE || state.segmentType === SegmentType.EDIT_FILE) {
         if (!state.segmentStarted) {
           const metadata: Record<string, any> = { tool_name: state.name };
           if (state.path) {

@@ -1,12 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { ParserContext } from '../../../../../../src/agent/streaming/parser/parser-context.js';
-import { XmlPatchFileToolParsingState } from '../../../../../../src/agent/streaming/parser/states/xml-patch-file-tool-parsing-state.js';
+import { XmlEditFileToolParsingState } from '../../../../../../src/agent/streaming/parser/states/xml-edit-file-tool-parsing-state.js';
 import { SegmentEventType, SegmentType } from '../../../../../../src/agent/streaming/parser/events.js';
 
-describe('XmlPatchFileToolParsingState', () => {
-  it('parses patch_file tool', () => {
+describe('XmlEditFileToolParsingState', () => {
+  it('parses edit_file tool', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const content =
       "<arguments>" +
       "<arg name='path'>/tmp/test.py</arg>" +
@@ -15,14 +15,14 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature + content);
 
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
     state.run();
 
     const events = ctx.getAndClearEvents();
     const startEvents = events.filter((e) => e.event_type === SegmentEventType.START);
     expect(startEvents).toHaveLength(1);
-    expect(startEvents[0].segment_type).toBe(SegmentType.PATCH_FILE);
+    expect(startEvents[0].segment_type).toBe(SegmentType.EDIT_FILE);
     expect(startEvents[0].payload.metadata?.path).toBe('/tmp/test.py');
 
     const contentEvents = events.filter((e) => e.event_type === SegmentEventType.CONTENT);
@@ -35,16 +35,16 @@ describe('XmlPatchFileToolParsingState', () => {
     expect(endEvents).toHaveLength(1);
   });
 
-  it('uses PATCH_FILE segment type', () => {
+  it('uses EDIT_FILE segment type', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
-    expect((state.constructor as typeof XmlPatchFileToolParsingState).SEGMENT_TYPE).toBe(SegmentType.PATCH_FILE);
+    const signature = '<tool name="edit_file">';
+    const state = new XmlEditFileToolParsingState(ctx, signature);
+    expect((state.constructor as typeof XmlEditFileToolParsingState).SEGMENT_TYPE).toBe(SegmentType.EDIT_FILE);
   });
 
   it('handles fragmented streaming', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const chunks = [
       '<argu',
       'ments><arg name',
@@ -57,7 +57,7 @@ describe('XmlPatchFileToolParsingState', () => {
     ];
 
     ctx.append(signature);
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
 
     for (const chunk of chunks) {
@@ -80,11 +80,11 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('defers start event until path is available', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const signature = '<tool name="edit_file">';
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
 
-    ctx.append('<tool name="patch_file"><arguments>');
+    ctx.append('<tool name="edit_file"><arguments>');
     state.run();
 
     expect(ctx.getEvents()).toHaveLength(0);
@@ -107,8 +107,8 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('swallows closing tags and preserves following text', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const signature = '<tool name="edit_file">';
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
 
     let fullText =
@@ -136,7 +136,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('streams raw patch content between markers', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const content =
       "<arguments>" +
       "<arg name='path'>/tmp/marker.py</arg>" +
@@ -153,7 +153,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature + content);
 
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
     state.run();
 
@@ -173,7 +173,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('handles patch markers split across chunks', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const chunks = [
       "<arguments><arg name='path'>/tmp/chunk.py</arg><arg name='patch'>__STAR",
       'T_PATCH__--- file.py\n+new\n__END',
@@ -181,7 +181,7 @@ describe('XmlPatchFileToolParsingState', () => {
     ];
 
     ctx.append(signature);
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
 
     for (const chunk of chunks) {
@@ -204,7 +204,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('preserves special characters in unified diff', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const content =
       "<arguments>" +
       "<arg name='path'>/tmp/special.py</arg>" +
@@ -221,7 +221,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature + content);
 
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
     state.run();
 
@@ -238,7 +238,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('keeps nested end marker not followed by arg close', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const content =
       "<arguments>" +
       "<arg name='path'>/tmp/nested.py</arg>" +
@@ -256,7 +256,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
     ctx.append(signature + content);
 
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
     state.run();
 
@@ -275,7 +275,7 @@ describe('XmlPatchFileToolParsingState', () => {
 
   it('handles nested end patch marker with fragmented streaming', () => {
     const ctx = new ParserContext();
-    const signature = '<tool name="patch_file">';
+    const signature = '<tool name="edit_file">';
     const chunks = [
       "<arguments><arg name='path'>/tmp/frag.py</arg><arg name='patch'>",
       '__START_PATCH__\n',
@@ -289,7 +289,7 @@ describe('XmlPatchFileToolParsingState', () => {
     ];
 
     ctx.append(signature);
-    const state = new XmlPatchFileToolParsingState(ctx, signature);
+    const state = new XmlEditFileToolParsingState(ctx, signature);
     ctx.currentState = state;
 
     for (const chunk of chunks) {

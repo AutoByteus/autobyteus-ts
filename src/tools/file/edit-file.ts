@@ -57,7 +57,7 @@ function resolveFilePath(context: AgentContextLike, path: string): string {
   return pathModule.normalize(pathModule.join(basePath, path));
 }
 
-export async function patchFile(
+export async function editFile(
   context: AgentContextLike,
   path: string,
   patch: string
@@ -102,27 +102,27 @@ export async function patchFile(
     }
 
     await fs.writeFile(finalPath, patchedLines.join(''), 'utf-8');
-    return `File patched successfully at ${returnPath}`;
+    return `File edited successfully at ${returnPath}`;
   } catch (error) {
     if (error instanceof PatchApplicationError) {
       throw error;
     }
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Could not patch file at '${finalPath}': ${message}`);
+    throw new Error(`Could not edit file at '${finalPath}': ${message}`);
   }
 }
 
-const TOOL_NAME = 'patch_file';
+const TOOL_NAME = 'edit_file';
 let cachedTool: BaseTool | null = null;
 
-export function registerPatchFileTool(): BaseTool {
+export function registerEditFileTool(): BaseTool {
   if (!defaultToolRegistry.getToolDefinition(TOOL_NAME)) {
     cachedTool = tool({
       name: TOOL_NAME,
       description: DESCRIPTION,
       argumentSchema,
       category: ToolCategory.FILE_SYSTEM
-    })(patchFile) as BaseTool;
+    })(editFile) as BaseTool;
     return cachedTool;
   }
 

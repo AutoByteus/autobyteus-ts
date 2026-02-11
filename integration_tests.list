@@ -32,7 +32,7 @@ tests/integration/tools/mcp/stdio-managed-mcp-server.test.ts
 tests/integration/tools/tool-origin.test.ts
 tests/integration/tools/tool-category.test.ts
 tests/integration/tools/file/read-file.test.ts
-tests/integration/tools/file/patch-file.test.ts
+tests/integration/tools/file/edit-file.test.ts
 tests/integration/tools/file/write-file.test.ts
 tests/integration/tools/usage/providers/tool-manifest-provider.test.ts
 tests/integration/tools/usage/providers/tool-schema-provider.test.ts
@@ -51,7 +51,7 @@ tests/integration/tools/usage/formatters/google-json-example-formatter.test.ts
 tests/integration/tools/usage/formatters/mistral-json-schema-formatter.test.ts
 tests/integration/tools/usage/formatters/default-json-schema-formatter.test.ts
 tests/integration/tools/usage/formatters/write-file-xml-formatter.test.ts
-tests/integration/tools/usage/formatters/patch-file-xml-formatter.test.ts
+tests/integration/tools/usage/formatters/edit-file-xml-formatter.test.ts
 tests/integration/tools/usage/registries/tool-formatting-registry.test.ts
 tests/integration/tools/multimedia/download-media-tool.test.ts
 tests/integration/tools/multimedia/media-reader-tool.test.ts

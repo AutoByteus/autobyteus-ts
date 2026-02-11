@@ -1,9 +1,9 @@
 import { BaseXmlSchemaFormatter } from './base-formatter.js';
 import { ToolDefinition } from '../../registry/tool-definition.js';
 
-export class PatchFileXmlSchemaFormatter extends BaseXmlSchemaFormatter {
+export class EditFileXmlSchemaFormatter extends BaseXmlSchemaFormatter {
   provide(_toolDefinition: ToolDefinition): string {
-    return `<tool name="patch_file">
+    return `<tool name="edit_file">
     <arguments>
         <arg name="path" type="string" description="The absolute or relative path to the file to patch." required="true" />
         <arg name="patch" type="string" description="The unified diff patch to apply to the file." required="true">

@@ -105,7 +105,7 @@ export class SentinelInitializationState extends BaseState {
       tool: SegmentType.TOOL_CALL,
       tool_call: SegmentType.TOOL_CALL,
       write_file: SegmentType.WRITE_FILE,
-      patch_file: SegmentType.PATCH_FILE,
+      edit_file: SegmentType.EDIT_FILE,
       run_bash: SegmentType.RUN_BASH,
       run_terminal_cmd: SegmentType.RUN_BASH
     };

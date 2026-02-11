@@ -48,7 +48,7 @@ export class WriteFileContentStreamer extends BaseFileContentStreamer {
   }
 }
 
-export class PatchFileContentStreamer extends BaseFileContentStreamer {
+export class EditFileContentStreamer extends BaseFileContentStreamer {
   constructor() {
     super('patch');
   }

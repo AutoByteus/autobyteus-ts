@@ -2,7 +2,7 @@ import { defaultToolRegistry } from './registry/tool-registry.js';
 import { registerToolClass } from './tool-meta.js';
 import { registerReadFileTool } from './file/read-file.js';
 import { registerWriteFileTool } from './file/write-file.js';
-import { registerPatchFileTool } from './file/patch-file.js';
+import { registerEditFileTool } from './file/edit-file.js';
 import { registerLoadSkillTool } from './skill/load-skill.js';
 import { registerRunBashTool } from './terminal/tools/run-bash.js';
 import { registerStartBackgroundProcessTool } from './terminal/tools/start-background-process.js';
@@ -33,7 +33,7 @@ export function registerTools(): void {
 
   registerReadFileTool();
   registerWriteFileTool();
-  registerPatchFileTool();
+  registerEditFileTool();
   registerLoadSkillTool();
   registerRunBashTool();
   registerStartBackgroundProcessTool();
