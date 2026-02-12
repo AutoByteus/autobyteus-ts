@@ -1,11 +1,11 @@
 import { AgentEventHandler } from './base-event-handler.js';
 import {
   ToolExecutionApprovalEvent,
-  ApprovedToolInvocationEvent,
-  LLMUserMessageReadyEvent,
+  ExecuteToolInvocationEvent,
+  ToolResultEvent,
   BaseEvent
 } from '../events/agent-events.js';
-import { LLMUserMessage } from '../../llm/user-message.js';
+import { buildToolLifecyclePayloadFromInvocation } from './tool-lifecycle-payload.js';
 import type { AgentContext } from '../context/agent-context.js';
 
 export class ToolExecutionApprovalEventHandler extends AgentEventHandler {
@@ -23,56 +23,57 @@ export class ToolExecutionApprovalEventHandler extends AgentEventHandler {
       return;
     }
 
-    console.info(
-      `Agent '${context.agentId}' handling ToolExecutionApprovalEvent for ` +
-        `tool_invocation_id '${event.toolInvocationId}': Approved=${event.isApproved}, ` +
-        `Reason='${event.reason ? event.reason : 'N/A'}'.`
-    );
-
     const retrievedInvocation = context.state.retrievePendingToolInvocation(event.toolInvocationId);
     if (!retrievedInvocation) {
       console.warn(
-        `Agent '${context.agentId}': No pending tool invocation found for ID '${event.toolInvocationId}'. ` +
-          'Cannot proceed with approval/denial.'
+        `Agent '${context.agentId}': No pending tool invocation found for ID '${event.toolInvocationId}'. Ignoring stale approval.`
       );
       return;
     }
+
+    const notifier = context.statusManager?.notifier;
 
     if (event.isApproved) {
-      console.info(
-        `Agent '${context.agentId}': Tool invocation '${retrievedInvocation.name}' ` +
-          `(ID: ${event.toolInvocationId}) was APPROVED. Reason: '${event.reason ? event.reason : 'None'}'. ` +
-          'Enqueuing ApprovedToolInvocationEvent for execution.'
-      );
-      const approvedEvent = new ApprovedToolInvocationEvent(retrievedInvocation);
-      await context.inputEventQueues.enqueueInternalSystemEvent(approvedEvent);
-      console.debug(
-        `Agent '${context.agentId}': Enqueued ApprovedToolInvocationEvent for '${retrievedInvocation.name}' ` +
-          `(ID: ${event.toolInvocationId}).`
+      if (notifier?.notifyAgentToolApproved) {
+        try {
+          notifier.notifyAgentToolApproved({
+            ...buildToolLifecyclePayloadFromInvocation(context.agentId, retrievedInvocation),
+            reason: event.reason ?? null
+          });
+        } catch (error) {
+          console.error(`Agent '${context.agentId}': Error notifying tool approved event: ${error}`);
+        }
+      }
+
+      await context.inputEventQueues.enqueueInternalSystemEvent(
+        new ExecuteToolInvocationEvent(retrievedInvocation)
       );
       return;
     }
 
-    console.warn(
-      `Agent '${context.agentId}': Tool invocation '${retrievedInvocation.name}' ` +
-        `(ID: ${event.toolInvocationId}) was DENIED. Reason: '${event.reason ? event.reason : 'None'}'. ` +
-        'Informing LLM.'
-    );
+    const denialReason = event.reason ?? 'Tool execution was denied by user/system.';
 
-    const denialReason = event.reason ?? 'No specific reason provided.';
-    const denialContent = `Tool execution denied by user/system. Reason: ${denialReason}`;
+    if (notifier?.notifyAgentToolDenied) {
+      try {
+        notifier.notifyAgentToolDenied({
+          ...buildToolLifecyclePayloadFromInvocation(context.agentId, retrievedInvocation),
+          reason: denialReason,
+          error: denialReason
+        });
+      } catch (error) {
+        console.error(`Agent '${context.agentId}': Error notifying tool denied event: ${error}`);
+      }
+    }
 
-    const promptContentForLlm =
-      `The request to use the tool '${retrievedInvocation.name}' ` +
-      `(with arguments: ${JSON.stringify(retrievedInvocation.arguments ?? {})}) was denied. ` +
-      `Denial reason: '${denialReason}'. ` +
-      'Please analyze this outcome and the conversation history, then decide on the next course of action.';
-    const llmUserMessage = new LLMUserMessage({ content: promptContentForLlm });
-    const llmUserMessageReadyEvent = new LLMUserMessageReadyEvent(llmUserMessage);
-    await context.inputEventQueues.enqueueInternalSystemEvent(llmUserMessageReadyEvent);
-    console.debug(
-      `Agent '${context.agentId}': Enqueued LLMUserMessageReadyEvent to inform LLM of tool denial for ` +
-        `'${retrievedInvocation.name}' (ID: ${event.toolInvocationId}).`
+    const resultEvent = new ToolResultEvent(
+      retrievedInvocation.name,
+      null,
+      retrievedInvocation.id,
+      denialReason,
+      retrievedInvocation.arguments,
+      retrievedInvocation.turnId ?? context.state.activeTurnId ?? undefined,
+      true
     );
+    await context.inputEventQueues.enqueueToolResult(resultEvent);
   }
 }

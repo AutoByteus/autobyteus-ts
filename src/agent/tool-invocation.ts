@@ -1,5 +1,3 @@
-import type { ToolResultEvent } from './events/agent-events.js';
-
 export class ToolInvocation {
   name: string;
   arguments: Record<string, unknown>;
@@ -30,19 +28,5 @@ export class ToolInvocation {
   toString(): string {
     const turnSegment = this.turnId ? `, turnId='${this.turnId}'` : '';
     return `ToolInvocation(id='${this.id}', name='${this.name}', arguments=${JSON.stringify(this.arguments)}${turnSegment})`;
-  }
-}
-
-export class ToolInvocationBatch {
-  invocations: ToolInvocation[];
-  results: ToolResultEvent[];
-
-  constructor(invocations: ToolInvocation[], results: ToolResultEvent[] = []) {
-    this.invocations = invocations;
-    this.results = results;
-  }
-
-  isComplete(): boolean {
-    return this.results.length >= this.invocations.length;
   }
 }

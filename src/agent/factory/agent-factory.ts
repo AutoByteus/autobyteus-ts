@@ -14,7 +14,7 @@ import {
   GenericEvent,
   ToolExecutionApprovalEvent,
   LLMUserMessageReadyEvent,
-  ApprovedToolInvocationEvent,
+  ExecuteToolInvocationEvent,
   BootstrapStartedEvent,
   BootstrapStepRequestedEvent,
   BootstrapStepCompletedEvent,
@@ -35,7 +35,7 @@ import { ToolResultEventHandler } from '../handlers/tool-result-event-handler.js
 import { GenericEventHandler } from '../handlers/generic-event-handler.js';
 import { ToolExecutionApprovalEventHandler } from '../handlers/tool-execution-approval-event-handler.js';
 import { LLMUserMessageReadyEventHandler } from '../handlers/llm-user-message-ready-event-handler.js';
-import { ApprovedToolInvocationEventHandler } from '../handlers/approved-tool-invocation-event-handler.js';
+import { ToolInvocationExecutionEventHandler } from '../handlers/tool-invocation-execution-event-handler.js';
 import { BootstrapEventHandler } from '../handlers/bootstrap-event-handler.js';
 import { LifecycleEventLogger } from '../handlers/lifecycle-event-logger.js';
 import { SkillRegistry } from '../../skills/registry.js';
@@ -74,7 +74,7 @@ export class AgentFactory extends Singleton {
     registry.register(GenericEvent, new GenericEventHandler());
     registry.register(ToolExecutionApprovalEvent, new ToolExecutionApprovalEventHandler());
     registry.register(LLMUserMessageReadyEvent, new LLMUserMessageReadyEventHandler());
-    registry.register(ApprovedToolInvocationEvent, new ApprovedToolInvocationEventHandler());
+    registry.register(ExecuteToolInvocationEvent, new ToolInvocationExecutionEventHandler());
 
     const bootstrapHandler = new BootstrapEventHandler();
     registry.register(BootstrapStartedEvent, bootstrapHandler);

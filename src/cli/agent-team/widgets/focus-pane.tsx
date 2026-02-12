@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { AgentStatus } from '../../../agent/status/status-enum.js';
 import { AgentTeamStatus } from '../../../agent-team/status/agent-team-status.js';
-import { ToolInvocationApprovalRequestedData } from '../../../agent/streaming/events/stream-event-payloads.js';
+import { ToolApprovalRequestedData } from '../../../agent/streaming/events/stream-event-payloads.js';
 import type { HistoryEvent } from '../state-store.js';
 import type { Task } from '../../../task-management/task.js';
 import { TaskStatus } from '../../../task-management/base-task-plan.js';
@@ -25,7 +25,7 @@ export const FocusPane: React.FC<{
   teamStatuses: Record<string, AgentTeamStatus>;
   history: HistoryEvent[];
   lastUserMessage: string | null;
-  pendingApproval: ToolInvocationApprovalRequestedData | null;
+  pendingApproval: ToolApprovalRequestedData | null;
   tasks: Task[] | null;
   taskStatuses: Record<string, TaskStatus> | null;
   availableHeight: number;

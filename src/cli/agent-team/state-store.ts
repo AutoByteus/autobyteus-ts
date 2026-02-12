@@ -7,7 +7,7 @@ import {
   type AgentTeamStreamEvent
 } from '../../agent-team/streaming/agent-team-stream-events.js';
 import { StreamEventType } from '../../agent/streaming/events/stream-events.js';
-import { ToolInvocationApprovalRequestedData } from '../../agent/streaming/events/stream-event-payloads.js';
+import { ToolApprovalRequestedData } from '../../agent/streaming/events/stream-event-payloads.js';
 import type { StreamEvent } from '../../agent/streaming/stream-events.js';
 import { AgentStatus } from '../../agent/status/status-enum.js';
 import type { Task } from '../../task-management/task.js';
@@ -79,7 +79,7 @@ export class TuiStateStore {
   teamStatuses: Record<string, AgentTeamStatus>;
   agentEventHistory: Record<string, HistoryEvent[]> = {};
   teamEventHistory: Record<string, AgentTeamStreamEvent[]> = {};
-  pendingApprovals: Record<string, ToolInvocationApprovalRequestedData> = {};
+  pendingApprovals: Record<string, ToolApprovalRequestedData> = {};
   speakingAgents: Record<string, boolean> = {};
   taskPlans: Record<string, Task[]> = {};
   taskStatuses: Record<string, Record<string, TaskStatus>> = {};
@@ -118,7 +118,7 @@ export class TuiStateStore {
     return [];
   }
 
-  getPendingApprovalForAgent(agentName: string): ToolInvocationApprovalRequestedData | null {
+  getPendingApprovalForAgent(agentName: string): ToolApprovalRequestedData | null {
     return this.pendingApprovals[agentName] ?? null;
   }
 
@@ -257,8 +257,13 @@ export class TuiStateStore {
         this.speakingAgents[agentName] = true;
       } else if (agentEvent.event_type === StreamEventType.ASSISTANT_COMPLETE_RESPONSE) {
         this.speakingAgents[agentName] = false;
-      } else if (agentEvent.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED) {
-        this.pendingApprovals[agentName] = agentEvent.data as ToolInvocationApprovalRequestedData;
+      } else if (agentEvent.event_type === StreamEventType.TOOL_APPROVAL_REQUESTED) {
+        this.pendingApprovals[agentName] = agentEvent.data as ToolApprovalRequestedData;
+      } else if (
+        agentEvent.event_type === StreamEventType.TOOL_APPROVED ||
+        agentEvent.event_type === StreamEventType.TOOL_DENIED
+      ) {
+        delete this.pendingApprovals[agentName];
       }
       return;
     }

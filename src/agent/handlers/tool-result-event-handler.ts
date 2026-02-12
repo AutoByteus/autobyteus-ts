@@ -1,10 +1,10 @@
 import { AgentEventHandler } from './base-event-handler.js';
 import { ToolResultEvent, UserMessageReceivedEvent, BaseEvent } from '../events/agent-events.js';
-import { ToolInvocationBatch } from '../tool-invocation.js';
 import { ContextFile } from '../message/context-file.js';
 import { AgentInputUserMessage } from '../message/agent-input-user-message.js';
 import { SenderType } from '../sender-type.js';
 import { formatToCleanString } from '../../utils/llm-output-formatter.js';
+import { buildToolLifecyclePayloadFromResult } from './tool-lifecycle-payload.js';
 import type { AgentContext } from '../context/agent-context.js';
 
 type ToolResultProcessorLike = {
@@ -41,6 +41,15 @@ export class ToolResultEventHandler extends AgentEventHandler {
 
     for (const processedEvent of processedEvents) {
       const toolInvocationId = processedEvent.toolInvocationId ?? 'N/A';
+
+      if (processedEvent.isDenied) {
+        aggregatedContentParts.push(
+          `Tool: ${processedEvent.toolName} (ID: ${toolInvocationId})\n` +
+            `Status: Denied\n` +
+            `Details: ${processedEvent.error ?? 'Tool execution denied.'}`
+        );
+        continue;
+      }
 
       let resultIsMedia = false;
       if (processedEvent.result instanceof ContextFile) {
@@ -111,6 +120,32 @@ export class ToolResultEventHandler extends AgentEventHandler {
     );
   }
 
+  private emitTerminalLifecycle(processedEvent: ToolResultEvent, context: AgentContext): void {
+    if (processedEvent.isDenied) {
+      return;
+    }
+
+    const notifier = context.statusManager?.notifier;
+    if (!notifier) {
+      return;
+    }
+
+    const payloadBase = buildToolLifecyclePayloadFromResult(context.agentId, processedEvent);
+
+    if (processedEvent.error) {
+      notifier.notifyAgentToolExecutionFailed?.({
+        ...payloadBase,
+        error: processedEvent.error
+      });
+      return;
+    }
+
+    notifier.notifyAgentToolExecutionSucceeded?.({
+      ...payloadBase,
+      result: processedEvent.result ?? null
+    });
+  }
+
   async handle(event: BaseEvent, context: AgentContext): Promise<void> {
     if (!(event instanceof ToolResultEvent)) {
       const eventType = event?.constructor?.name ?? typeof event;
@@ -146,7 +181,9 @@ export class ToolResultEventHandler extends AgentEventHandler {
     const toolInvocationId = processedEvent.toolInvocationId ?? 'N/A';
     if (notifier) {
       let logMessage = '';
-      if (processedEvent.error) {
+      if (processedEvent.isDenied) {
+        logMessage = `[TOOL_RESULT_DENIED] Agent_ID: ${agentId}, Tool: ${processedEvent.toolName}, Invocation_ID: ${toolInvocationId}, Reason: ${processedEvent.error ?? 'Denied'}`;
+      } else if (processedEvent.error) {
         logMessage = `[TOOL_RESULT_ERROR_PROCESSED] Agent_ID: ${agentId}, Tool: ${processedEvent.toolName}, Invocation_ID: ${toolInvocationId}, Error: ${processedEvent.error}`;
       } else {
         logMessage = `[TOOL_RESULT_SUCCESS_PROCESSED] Agent_ID: ${agentId}, Tool: ${processedEvent.toolName}, Invocation_ID: ${toolInvocationId}, Result: ${formatToCleanString(processedEvent.result)}`;
@@ -158,66 +195,75 @@ export class ToolResultEventHandler extends AgentEventHandler {
           tool_invocation_id: toolInvocationId,
           tool_name: processedEvent.toolName
         });
-        console.debug(
-          `Agent '${agentId}': Notified individual tool result for '${processedEvent.toolName}'.`
-        );
       } catch (error) {
         console.error(`Agent '${agentId}': Error notifying tool result log: ${error}`);
       }
     }
 
-    const activeBatch = context.state.activeToolInvocationBatch as ToolInvocationBatch | null;
+    const activeTurn = context.state.activeToolInvocationTurn;
+    const invocationId = processedEvent.toolInvocationId;
 
-    if (!activeBatch) {
-      console.info(
-        `Agent '${agentId}' handling single ToolResultEvent from tool: '${processedEvent.toolName}'.`
-      );
+    if (!activeTurn) {
+      if (invocationId && context.state.recentSettledInvocationIds.has(invocationId)) {
+        console.warn(
+          `Agent '${agentId}': Dropping late duplicate tool result for invocation '${invocationId}' after turn cleanup.`
+        );
+        return;
+      }
+
+      this.emitTerminalLifecycle(processedEvent, context);
       await this.dispatchResultsToInputPipeline([processedEvent], context);
       return;
     }
 
-    activeBatch.results.push(processedEvent);
-    const numResults = activeBatch.results.length;
-    const numExpected = activeBatch.invocations.length;
-    console.info(
-      `Agent '${agentId}' handling ToolResultEvent for multi-tool invocation batch. Collected ${numResults}/${numExpected} results.`
-    );
-
-    if (!activeBatch.isComplete()) {
+    if (!invocationId) {
+      console.warn(`Agent '${agentId}': ToolResultEvent missing invocation ID. Ignoring.`);
       return;
     }
 
-    console.info(
-      `Agent '${agentId}': All tool results for the invocation batch collected. Re-ordering to match invocation sequence.`
-    );
-
-    const resultsById = new Map(
-      activeBatch.results.map((result) => [(result as ToolResultEvent).toolInvocationId, result])
-    );
-    const sortedResults: ToolResultEvent[] = [];
-    for (const invocation of activeBatch.invocations) {
-      const result = resultsById.get(invocation.id);
-      if (result) {
-        sortedResults.push(result);
-      } else {
-        console.error(
-          `Agent '${agentId}': Missing result for invocation ID '${invocation.id}' during re-ordering.`
-        );
-        sortedResults.push(
-          new ToolResultEvent(
-            invocation.name,
-            null,
-            invocation.id,
-            'Critical Error: Result for this tool call was lost.',
-            undefined,
-            invocation.turnId ?? context.state.activeTurnId ?? undefined
-          )
-        );
-      }
+    if (context.state.recentSettledInvocationIds.has(invocationId)) {
+      console.warn(
+        `Agent '${agentId}': Dropping recently settled duplicate tool result for invocation '${invocationId}'.`
+      );
+      return;
     }
 
+    if (!activeTurn.expectsInvocation(invocationId)) {
+      console.warn(
+        `Agent '${agentId}': Ignoring unknown invocation '${invocationId}' for active turn settlement.`
+      );
+      return;
+    }
+
+    if (
+      processedEvent.turnId &&
+      activeTurn.turnId &&
+      processedEvent.turnId !== activeTurn.turnId
+    ) {
+      console.warn(
+        `Agent '${agentId}': Ignoring turn-mismatched result for invocation '${invocationId}'. ` +
+          `Expected turn '${activeTurn.turnId}', got '${processedEvent.turnId}'.`
+      );
+      return;
+    }
+
+    const isNewSettlement = activeTurn.settleResult(processedEvent);
+    if (!isNewSettlement) {
+      console.warn(
+        `Agent '${agentId}': Duplicate in-turn result for invocation '${invocationId}' received; replacing without progressing completion.`
+      );
+      return;
+    }
+
+    this.emitTerminalLifecycle(processedEvent, context);
+
+    if (!activeTurn.isComplete()) {
+      return;
+    }
+
+    const sortedResults = activeTurn.getOrderedSettledResults();
     await this.dispatchResultsToInputPipeline(sortedResults, context);
-    context.state.activeToolInvocationBatch = null;
-    console.info(`Agent '${agentId}': Tool invocation batch state has been cleared.`);
+    context.state.recentSettledInvocationIds.addMany(activeTurn.getSettledInvocationIds());
+    context.state.activeToolInvocationTurn = null;
   }
 }

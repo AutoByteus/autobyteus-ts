@@ -13,7 +13,7 @@ import {
   LLMCompleteResponseReceivedEvent,
   PendingToolInvocationEvent,
   ToolExecutionApprovalEvent,
-  ApprovedToolInvocationEvent,
+  ExecuteToolInvocationEvent,
   ToolResultEvent,
   BaseEvent
 } from '../events/agent-events.js';
@@ -89,7 +89,7 @@ export class AgentStatusDeriver {
       }
       return AgentStatus.EXECUTING_TOOL;
     }
-    if (event instanceof ApprovedToolInvocationEvent) {
+    if (event instanceof ExecuteToolInvocationEvent) {
       return AgentStatus.EXECUTING_TOOL;
     }
     if (event instanceof ToolExecutionApprovalEvent) {

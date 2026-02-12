@@ -75,8 +75,8 @@ export class AgentInputEventQueueManager {
     this.queuePriority = [
       'userMessageInputQueue',
       'interAgentMessageInputQueue',
-      'toolInvocationRequestQueue',
       'toolResultInputQueue',
+      'toolInvocationRequestQueue',
       'toolExecutionApprovalQueue',
       'internalSystemEventQueue'
     ];

@@ -2,7 +2,7 @@ import { AgentStatus } from './status-enum.js';
 import {
   AgentErrorEvent,
   PendingToolInvocationEvent,
-  ApprovedToolInvocationEvent,
+  ExecuteToolInvocationEvent,
   ToolExecutionApprovalEvent,
   ToolResultEvent,
   BaseEvent
@@ -22,7 +22,7 @@ export function buildStatusUpdateData(
     let toolName: string | undefined;
     if (event instanceof PendingToolInvocationEvent) {
       toolName = event.toolInvocation.name;
-    } else if (event instanceof ApprovedToolInvocationEvent) {
+    } else if (event instanceof ExecuteToolInvocationEvent) {
       toolName = event.toolInvocation.name;
     } else if (event instanceof ToolExecutionApprovalEvent) {
       const pending = context.state.pendingToolApprovals[event.toolInvocationId];

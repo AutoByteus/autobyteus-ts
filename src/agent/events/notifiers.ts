@@ -119,12 +119,28 @@ export class AgentExternalEventNotifier extends EventEmitter {
     this.emitEvent(EventType.AGENT_DATA_TOOL_LOG_STREAM_END);
   }
 
-  notifyAgentRequestToolInvocationApproval(approvalData: Record<string, any>): void {
-    this.emitEvent(EventType.AGENT_REQUEST_TOOL_INVOCATION_APPROVAL, approvalData);
+  notifyAgentToolApprovalRequested(approvalData: Record<string, any>): void {
+    this.emitEvent(EventType.AGENT_TOOL_APPROVAL_REQUESTED, approvalData);
   }
 
-  notifyAgentToolInvocationAutoExecuting(autoExecData: Record<string, any>): void {
-    this.emitEvent(EventType.AGENT_TOOL_INVOCATION_AUTO_EXECUTING, autoExecData);
+  notifyAgentToolApproved(approvalData: Record<string, any>): void {
+    this.emitEvent(EventType.AGENT_TOOL_APPROVED, approvalData);
+  }
+
+  notifyAgentToolDenied(denialData: Record<string, any>): void {
+    this.emitEvent(EventType.AGENT_TOOL_DENIED, denialData);
+  }
+
+  notifyAgentToolExecutionStarted(startData: Record<string, any>): void {
+    this.emitEvent(EventType.AGENT_TOOL_EXECUTION_STARTED, startData);
+  }
+
+  notifyAgentToolExecutionSucceeded(successData: Record<string, any>): void {
+    this.emitEvent(EventType.AGENT_TOOL_EXECUTION_SUCCEEDED, successData);
+  }
+
+  notifyAgentToolExecutionFailed(errorData: Record<string, any>): void {
+    this.emitEvent(EventType.AGENT_TOOL_EXECUTION_FAILED, errorData);
   }
 
   notifyAgentDataSystemTaskNotificationReceived(notificationData: Record<string, any>): void {

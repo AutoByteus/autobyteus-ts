@@ -2,8 +2,11 @@ import {
   AssistantCompleteResponseData,
   ErrorEventData,
   ToolInteractionLogEntryData,
-  ToolInvocationApprovalRequestedData,
-  ToolInvocationAutoExecutingData,
+  ToolApprovalRequestedData,
+  ToolExecutionStartedData,
+  ToolDeniedData,
+  ToolExecutionSucceededData,
+  ToolExecutionFailedData,
   SystemTaskNotificationData
 } from '../../../agent/streaming/events/stream-event-payloads.js';
 import {
@@ -30,17 +33,17 @@ export const renderToolInteractionLog = (data: ToolInteractionLogEntryData): str
   return `${LOG_ICON} [tool-log] ${data.log_entry}`;
 };
 
-export const renderToolAutoExecuting = (data: ToolInvocationAutoExecutingData): string => {
+export const renderToolExecutionStarted = (data: ToolExecutionStartedData): string => {
   let argsStr = '';
   try {
-    argsStr = JSON.stringify(data.arguments, null, 2);
+    argsStr = JSON.stringify(data.arguments ?? {}, null, 2);
   } catch {
-    argsStr = String(data.arguments);
+    argsStr = String(data.arguments ?? {});
   }
   return `${TOOL_ICON} Executing tool '${data.tool_name}' with arguments:\n${argsStr}`;
 };
 
-export const renderToolApprovalRequest = (data: ToolInvocationApprovalRequestedData): string => {
+export const renderToolApprovalRequest = (data: ToolApprovalRequestedData): string => {
   let argsStr = '';
   try {
     argsStr = JSON.stringify(data.arguments, null, 2);
@@ -48,6 +51,19 @@ export const renderToolApprovalRequest = (data: ToolInvocationApprovalRequestedD
     argsStr = String(data.arguments);
   }
   return `${PROMPT_ICON} Requesting approval for tool '${data.tool_name}' with arguments:\n${argsStr}`;
+};
+
+export const renderToolDenied = (data: ToolDeniedData): string => {
+  const reason = data.reason ?? data.error ?? 'Tool execution denied.';
+  return `${ERROR_ICON} Tool '${data.tool_name}' denied: ${reason}`;
+};
+
+export const renderToolExecutionSucceeded = (data: ToolExecutionSucceededData): string => {
+  return `${TOOL_ICON} Tool '${data.tool_name}' completed successfully.`;
+};
+
+export const renderToolExecutionFailed = (data: ToolExecutionFailedData): string => {
+  return `${ERROR_ICON} Tool '${data.tool_name}' failed: ${data.error}`;
 };
 
 export const renderError = (data: ErrorEventData): string => {

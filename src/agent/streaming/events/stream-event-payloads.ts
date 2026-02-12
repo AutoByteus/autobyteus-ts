@@ -109,31 +109,101 @@ export class ErrorEventData extends BaseStreamPayload {
   }
 }
 
-export class ToolInvocationApprovalRequestedData extends BaseStreamPayload {
+export class ToolApprovalRequestedData extends BaseStreamPayload {
   invocation_id: string;
   tool_name: string;
+  turn_id?: string | null;
   arguments: Record<string, any>;
 
   constructor(data: Record<string, any>) {
-    assertRequiredKeys(data, ['invocation_id', 'tool_name', 'arguments'], 'ToolInvocationApprovalRequestedData');
+    assertRequiredKeys(data, ['invocation_id', 'tool_name', 'arguments'], 'ToolApprovalRequestedData');
     super(data);
     this.invocation_id = String(data.invocation_id ?? '');
     this.tool_name = String(data.tool_name ?? '');
+    this.turn_id = data.turn_id ?? undefined;
     this.arguments = data.arguments ?? {};
   }
 }
 
-export class ToolInvocationAutoExecutingData extends BaseStreamPayload {
+export class ToolApprovedData extends BaseStreamPayload {
   invocation_id: string;
   tool_name: string;
-  arguments: Record<string, any>;
+  turn_id?: string | null;
+  reason?: string | null;
 
   constructor(data: Record<string, any>) {
-    assertRequiredKeys(data, ['invocation_id', 'tool_name', 'arguments'], 'ToolInvocationAutoExecutingData');
+    assertRequiredKeys(data, ['invocation_id', 'tool_name'], 'ToolApprovedData');
     super(data);
     this.invocation_id = String(data.invocation_id ?? '');
     this.tool_name = String(data.tool_name ?? '');
-    this.arguments = data.arguments ?? {};
+    this.turn_id = data.turn_id ?? undefined;
+    this.reason = data.reason ?? undefined;
+  }
+}
+
+export class ToolDeniedData extends BaseStreamPayload {
+  invocation_id: string;
+  tool_name: string;
+  turn_id?: string | null;
+  reason?: string | null;
+  error?: string | null;
+
+  constructor(data: Record<string, any>) {
+    assertRequiredKeys(data, ['invocation_id', 'tool_name'], 'ToolDeniedData');
+    super(data);
+    this.invocation_id = String(data.invocation_id ?? '');
+    this.tool_name = String(data.tool_name ?? '');
+    this.turn_id = data.turn_id ?? undefined;
+    this.reason = data.reason ?? undefined;
+    this.error = data.error ?? undefined;
+  }
+}
+
+export class ToolExecutionStartedData extends BaseStreamPayload {
+  invocation_id: string;
+  tool_name: string;
+  turn_id?: string | null;
+  arguments?: Record<string, any>;
+
+  constructor(data: Record<string, any>) {
+    assertRequiredKeys(data, ['invocation_id', 'tool_name'], 'ToolExecutionStartedData');
+    super(data);
+    this.invocation_id = String(data.invocation_id ?? '');
+    this.tool_name = String(data.tool_name ?? '');
+    this.turn_id = data.turn_id ?? undefined;
+    this.arguments = data.arguments ?? undefined;
+  }
+}
+
+export class ToolExecutionSucceededData extends BaseStreamPayload {
+  invocation_id: string;
+  tool_name: string;
+  turn_id?: string | null;
+  result?: unknown;
+
+  constructor(data: Record<string, any>) {
+    assertRequiredKeys(data, ['invocation_id', 'tool_name'], 'ToolExecutionSucceededData');
+    super(data);
+    this.invocation_id = String(data.invocation_id ?? '');
+    this.tool_name = String(data.tool_name ?? '');
+    this.turn_id = data.turn_id ?? undefined;
+    this.result = data.result ?? undefined;
+  }
+}
+
+export class ToolExecutionFailedData extends BaseStreamPayload {
+  invocation_id: string;
+  tool_name: string;
+  turn_id?: string | null;
+  error: string;
+
+  constructor(data: Record<string, any>) {
+    assertRequiredKeys(data, ['invocation_id', 'tool_name', 'error'], 'ToolExecutionFailedData');
+    super(data);
+    this.invocation_id = String(data.invocation_id ?? '');
+    this.tool_name = String(data.tool_name ?? '');
+    this.turn_id = data.turn_id ?? undefined;
+    this.error = String(data.error ?? '');
   }
 }
 
@@ -255,8 +325,12 @@ export type StreamDataPayload =
   | ToolInteractionLogEntryData
   | AgentStatusUpdateData
   | ErrorEventData
-  | ToolInvocationApprovalRequestedData
-  | ToolInvocationAutoExecutingData
+  | ToolApprovalRequestedData
+  | ToolApprovedData
+  | ToolDeniedData
+  | ToolExecutionStartedData
+  | ToolExecutionSucceededData
+  | ToolExecutionFailedData
   | SegmentEventData
   | SystemTaskNotificationData
   | InterAgentMessageData
@@ -320,22 +394,54 @@ export const createErrorEventData = (errorData: unknown): ErrorEventData => {
   return new ErrorEventData(errorData);
 };
 
-export const createToolInvocationApprovalRequestedData = (
+export const createToolApprovalRequestedData = (
   approvalData: unknown
-): ToolInvocationApprovalRequestedData => {
+): ToolApprovalRequestedData => {
   if (!isRecord(approvalData)) {
-    throw new Error('Cannot create ToolInvocationApprovalRequestedData from non-object');
+    throw new Error('Cannot create ToolApprovalRequestedData from non-object');
   }
-  return new ToolInvocationApprovalRequestedData(approvalData);
+  return new ToolApprovalRequestedData(approvalData);
 };
 
-export const createToolInvocationAutoExecutingData = (
-  autoExecData: unknown
-): ToolInvocationAutoExecutingData => {
-  if (!isRecord(autoExecData)) {
-    throw new Error('Cannot create ToolInvocationAutoExecutingData from non-object');
+export const createToolApprovedData = (approvalData: unknown): ToolApprovedData => {
+  if (!isRecord(approvalData)) {
+    throw new Error('Cannot create ToolApprovedData from non-object');
   }
-  return new ToolInvocationAutoExecutingData(autoExecData);
+  return new ToolApprovedData(approvalData);
+};
+
+export const createToolDeniedData = (denialData: unknown): ToolDeniedData => {
+  if (!isRecord(denialData)) {
+    throw new Error('Cannot create ToolDeniedData from non-object');
+  }
+  return new ToolDeniedData(denialData);
+};
+
+export const createToolExecutionStartedData = (
+  startData: unknown
+): ToolExecutionStartedData => {
+  if (!isRecord(startData)) {
+    throw new Error('Cannot create ToolExecutionStartedData from non-object');
+  }
+  return new ToolExecutionStartedData(startData);
+};
+
+export const createToolExecutionSucceededData = (
+  successData: unknown
+): ToolExecutionSucceededData => {
+  if (!isRecord(successData)) {
+    throw new Error('Cannot create ToolExecutionSucceededData from non-object');
+  }
+  return new ToolExecutionSucceededData(successData);
+};
+
+export const createToolExecutionFailedData = (
+  failureData: unknown
+): ToolExecutionFailedData => {
+  if (!isRecord(failureData)) {
+    throw new Error('Cannot create ToolExecutionFailedData from non-object');
+  }
+  return new ToolExecutionFailedData(failureData);
 };
 
 export const createSegmentEventData = (eventData: unknown): SegmentEventData => {

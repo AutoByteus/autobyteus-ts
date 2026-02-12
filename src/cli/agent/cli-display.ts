@@ -3,8 +3,12 @@ import { StreamEvent, StreamEventType } from '../../agent/streaming/events/strea
 import {
   AssistantChunkData,
   AssistantCompleteResponseData,
-  ToolInvocationApprovalRequestedData,
-  ToolInvocationAutoExecutingData,
+  ToolApprovalRequestedData,
+  ToolApprovedData,
+  ToolExecutionStartedData,
+  ToolExecutionSucceededData,
+  ToolExecutionFailedData,
+  ToolDeniedData,
   ToolInteractionLogEntryData,
   AgentStatusUpdateData,
   ErrorEventData,
@@ -30,7 +34,7 @@ export class InteractiveCliDisplay {
   private onTurnComplete?: () => void;
   private currentLineEmpty = true;
   private agentHasSpokenThisTurn = false;
-  private pendingApprovalData: ToolInvocationApprovalRequestedData | null = null;
+  private pendingApprovalData: ToolApprovalRequestedData | null = null;
   private approvalPromptShown = false;
   private currentStatus: AgentStatus | null = null;
   private awaitingApproval = false;
@@ -83,7 +87,7 @@ export class InteractiveCliDisplay {
     this.approvalPromptShown = false;
   }
 
-  getPendingApprovalData(): ToolInvocationApprovalRequestedData | null {
+  getPendingApprovalData(): ToolApprovalRequestedData | null {
     return this.pendingApprovalData;
   }
 
@@ -110,8 +114,8 @@ export class InteractiveCliDisplay {
     }
 
     if (
-      event.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED &&
-      event.data instanceof ToolInvocationApprovalRequestedData
+      event.event_type === StreamEventType.TOOL_APPROVAL_REQUESTED &&
+      event.data instanceof ToolApprovalRequestedData
     ) {
       this.pendingApprovalData = event.data;
       if (this.awaitingApproval || this.currentStatus === AgentStatus.AWAITING_TOOL_APPROVAL) {
@@ -121,12 +125,53 @@ export class InteractiveCliDisplay {
     }
 
     if (
-      event.event_type === StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING &&
-      event.data instanceof ToolInvocationAutoExecutingData
+      event.event_type === StreamEventType.TOOL_EXECUTION_STARTED &&
+      event.data instanceof ToolExecutionStartedData
     ) {
       const toolName = event.data.tool_name;
       this.ensureNewLine();
-      this.write(`Agent: Automatically executing tool '${toolName}'...\n`);
+      this.write(`Agent: Executing tool '${toolName}'...\n`);
+      this.currentLineEmpty = true;
+      this.agentHasSpokenThisTurn = true;
+      return;
+    }
+
+    if (event.event_type === StreamEventType.TOOL_APPROVED && event.data instanceof ToolApprovedData) {
+      const toolName = event.data.tool_name;
+      this.ensureNewLine();
+      this.write(`Agent: Tool '${toolName}' approved. Preparing execution.\n`);
+      this.currentLineEmpty = true;
+      this.agentHasSpokenThisTurn = true;
+      return;
+    }
+
+    if (event.event_type === StreamEventType.TOOL_DENIED && event.data instanceof ToolDeniedData) {
+      const toolName = event.data.tool_name;
+      const reason = event.data.reason ?? event.data.error ?? 'Tool was denied.';
+      this.ensureNewLine();
+      this.write(`Agent: Tool '${toolName}' denied. Reason: ${reason}\n`);
+      this.currentLineEmpty = true;
+      this.agentHasSpokenThisTurn = true;
+      return;
+    }
+
+    if (
+      event.event_type === StreamEventType.TOOL_EXECUTION_SUCCEEDED &&
+      event.data instanceof ToolExecutionSucceededData
+    ) {
+      this.ensureNewLine();
+      this.write(`Agent: Tool '${event.data.tool_name}' completed.\n`);
+      this.currentLineEmpty = true;
+      this.agentHasSpokenThisTurn = true;
+      return;
+    }
+
+    if (
+      event.event_type === StreamEventType.TOOL_EXECUTION_FAILED &&
+      event.data instanceof ToolExecutionFailedData
+    ) {
+      this.ensureNewLine();
+      this.write(`Agent: Tool '${event.data.tool_name}' failed: ${event.data.error}\n`);
       this.currentLineEmpty = true;
       this.agentHasSpokenThisTurn = true;
       return;

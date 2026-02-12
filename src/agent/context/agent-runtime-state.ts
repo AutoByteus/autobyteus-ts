@@ -2,7 +2,9 @@ import { AgentInputEventQueueManager } from '../events/agent-input-event-queue-m
 import { AgentEventStore } from '../events/event-store.js';
 import { AgentStatus } from '../status/status-enum.js';
 import { BaseAgentWorkspace } from '../workspace/base-workspace.js';
-import { ToolInvocation, ToolInvocationBatch } from '../tool-invocation.js';
+import { ToolInvocation } from '../tool-invocation.js';
+import { ToolInvocationTurn } from '../tool-invocation-turn.js';
+import { RecentSettledInvocationCache } from './recent-settled-invocation-cache.js';
 import { ToDoList } from '../../task-management/todo-list.js';
 import { BaseLLM } from '../../llm/base.js';
 import type { BaseTool } from '../../tools/base-tool.js';
@@ -25,8 +27,8 @@ export class AgentRuntimeState {
   workspace: BaseAgentWorkspace | null;
   pendingToolApprovals: Record<string, ToolInvocation>;
   customData: Record<string, any>;
-  // Tracks only the currently pending tool-invocation batch emitted by the last LLM response.
-  activeToolInvocationBatch: ToolInvocationBatch | null = null;
+  activeToolInvocationTurn: ToolInvocationTurn | null = null;
+  recentSettledInvocationIds: RecentSettledInvocationCache;
   todoList: ToDoList | null = null;
   memoryManager: MemoryManager | null = null;
   // Conversation/memory turn id shared across all traces for one user-originated turn.
@@ -54,6 +56,7 @@ export class AgentRuntimeState {
     this.workspace = workspace;
     this.pendingToolApprovals = {};
     this.customData = customData ?? {};
+    this.recentSettledInvocationIds = new RecentSettledInvocationCache();
 
     console.info(
       `AgentRuntimeState initialized for agent_id '${this.agentId}'. Initial status: ${this.currentStatus}. Workspace linked. InputQueues pending initialization. Output data via notifier.`
@@ -90,14 +93,14 @@ export class AgentRuntimeState {
     const llmStatus = this.llmInstance ? 'Initialized' : 'Not Initialized';
     const toolsStatus = this.toolInstances ? `${Object.keys(this.toolInstances).length} Initialized` : 'Not Initialized';
     const inputQueuesStatus = this.inputEventQueues ? 'Initialized' : 'Not Initialized';
-    const activeBatchStatus = this.activeToolInvocationBatch ? 'Active' : 'Inactive';
+    const activeTurnStatus = this.activeToolInvocationTurn ? 'Active' : 'Inactive';
 
     return (
       `AgentRuntimeState(agentId='${this.agentId}', currentStatus='${this.currentStatus}', ` +
       `llmStatus='${llmStatus}', toolsStatus='${toolsStatus}', ` +
       `inputQueuesStatus='${inputQueuesStatus}', ` +
       `pendingApprovals=${Object.keys(this.pendingToolApprovals).length}, ` +
-      `toolInvocationBatch='${activeBatchStatus}')`
+      `toolInvocationTurn='${activeTurnStatus}')`
     );
   }
 }

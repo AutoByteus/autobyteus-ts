@@ -7,8 +7,12 @@ import {
   createToolInteractionLogEntryData,
   createAgentStatusUpdateData,
   createErrorEventData,
-  createToolInvocationApprovalRequestedData,
-  createToolInvocationAutoExecutingData,
+  createToolApprovalRequestedData,
+  createToolApprovedData,
+  createToolDeniedData,
+  createToolExecutionStartedData,
+  createToolExecutionSucceededData,
+  createToolExecutionFailedData,
   createSegmentEventData,
   createSystemTaskNotificationData,
   createInterAgentMessageData,
@@ -19,8 +23,12 @@ import {
   AssistantCompleteResponseData,
   ToolInteractionLogEntryData,
   AgentStatusUpdateData,
-  ToolInvocationApprovalRequestedData,
-  ToolInvocationAutoExecutingData,
+  ToolApprovalRequestedData,
+  ToolApprovedData,
+  ToolDeniedData,
+  ToolExecutionStartedData,
+  ToolExecutionSucceededData,
+  ToolExecutionFailedData,
   SegmentEventData,
   ErrorEventData,
   SystemTaskNotificationData,
@@ -108,13 +116,29 @@ export class AgentEventStream extends EventEmitter {
           typedPayload = createToolInteractionLogEntryData(payload);
           streamEventType = StreamEventType.TOOL_INTERACTION_LOG_ENTRY;
           break;
-        case EventType.AGENT_REQUEST_TOOL_INVOCATION_APPROVAL:
-          typedPayload = createToolInvocationApprovalRequestedData(payload);
-          streamEventType = StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED;
+        case EventType.AGENT_TOOL_APPROVAL_REQUESTED:
+          typedPayload = createToolApprovalRequestedData(payload);
+          streamEventType = StreamEventType.TOOL_APPROVAL_REQUESTED;
           break;
-        case EventType.AGENT_TOOL_INVOCATION_AUTO_EXECUTING:
-          typedPayload = createToolInvocationAutoExecutingData(payload);
-          streamEventType = StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING;
+        case EventType.AGENT_TOOL_APPROVED:
+          typedPayload = createToolApprovedData(payload);
+          streamEventType = StreamEventType.TOOL_APPROVED;
+          break;
+        case EventType.AGENT_TOOL_DENIED:
+          typedPayload = createToolDeniedData(payload);
+          streamEventType = StreamEventType.TOOL_DENIED;
+          break;
+        case EventType.AGENT_TOOL_EXECUTION_STARTED:
+          typedPayload = createToolExecutionStartedData(payload);
+          streamEventType = StreamEventType.TOOL_EXECUTION_STARTED;
+          break;
+        case EventType.AGENT_TOOL_EXECUTION_SUCCEEDED:
+          typedPayload = createToolExecutionSucceededData(payload);
+          streamEventType = StreamEventType.TOOL_EXECUTION_SUCCEEDED;
+          break;
+        case EventType.AGENT_TOOL_EXECUTION_FAILED:
+          typedPayload = createToolExecutionFailedData(payload);
+          streamEventType = StreamEventType.TOOL_EXECUTION_FAILED;
           break;
         case EventType.AGENT_DATA_SEGMENT_EVENT:
           typedPayload = createSegmentEventData(payload);
@@ -218,22 +242,22 @@ export class AgentEventStream extends EventEmitter {
     }
   }
 
-  async *streamToolApprovalRequests(): AsyncGenerator<ToolInvocationApprovalRequestedData, void, unknown> {
+  async *streamToolApprovalRequests(): AsyncGenerator<ToolApprovalRequestedData, void, unknown> {
     for await (const event of this.allEvents()) {
       if (
-        event.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED &&
-        event.data instanceof ToolInvocationApprovalRequestedData
+        event.event_type === StreamEventType.TOOL_APPROVAL_REQUESTED &&
+        event.data instanceof ToolApprovalRequestedData
       ) {
         yield event.data;
       }
     }
   }
 
-  async *streamToolAutoExecuting(): AsyncGenerator<ToolInvocationAutoExecutingData, void, unknown> {
+  async *streamToolExecutionStarted(): AsyncGenerator<ToolExecutionStartedData, void, unknown> {
     for await (const event of this.allEvents()) {
       if (
-        event.event_type === StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING &&
-        event.data instanceof ToolInvocationAutoExecutingData
+        event.event_type === StreamEventType.TOOL_EXECUTION_STARTED &&
+        event.data instanceof ToolExecutionStartedData
       ) {
         yield event.data;
       }

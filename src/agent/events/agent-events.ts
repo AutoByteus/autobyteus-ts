@@ -128,6 +128,7 @@ export class ToolResultEvent extends AgentOperationalEvent {
   error?: string;
   toolArgs?: Record<string, unknown>;
   turnId?: string;
+  isDenied: boolean;
 
   constructor(
     toolName: string,
@@ -135,7 +136,8 @@ export class ToolResultEvent extends AgentOperationalEvent {
     toolInvocationId?: string,
     error?: string,
     toolArgs?: Record<string, unknown>,
-    turnId?: string
+    turnId?: string,
+    isDenied: boolean = false
   ) {
     super();
     this.toolName = toolName;
@@ -144,6 +146,7 @@ export class ToolResultEvent extends AgentOperationalEvent {
     this.error = error;
     this.toolArgs = toolArgs;
     this.turnId = turnId;
+    this.isDenied = isDenied;
   }
 }
 
@@ -160,7 +163,7 @@ export class ToolExecutionApprovalEvent extends AgentOperationalEvent {
   }
 }
 
-export class ApprovedToolInvocationEvent extends AgentOperationalEvent {
+export class ExecuteToolInvocationEvent extends AgentOperationalEvent {
   toolInvocation: ToolInvocation;
 
   constructor(toolInvocation: ToolInvocation) {

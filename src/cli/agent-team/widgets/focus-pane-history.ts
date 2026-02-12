@@ -5,8 +5,11 @@ import type {
   SegmentEventData,
   AssistantCompleteResponseData,
   ToolInteractionLogEntryData,
-  ToolInvocationApprovalRequestedData,
-  ToolInvocationAutoExecutingData,
+  ToolApprovalRequestedData,
+  ToolExecutionStartedData,
+  ToolDeniedData,
+  ToolExecutionSucceededData,
+  ToolExecutionFailedData,
   SystemTaskNotificationData,
   ErrorEventData
 } from '../../../agent/streaming/events/stream-event-payloads.js';
@@ -15,7 +18,10 @@ import {
   renderAssistantCompleteResponse,
   renderToolInteractionLog,
   renderToolApprovalRequest,
-  renderToolAutoExecuting,
+  renderToolExecutionStarted,
+  renderToolDenied,
+  renderToolExecutionSucceeded,
+  renderToolExecutionFailed,
   renderSystemTaskNotification,
   renderError
 } from './renderables.js';
@@ -174,16 +180,34 @@ export const buildHistoryLines = (history: HistoryEvent[]): string[] => {
       lines.push(renderToolInteractionLog(event.data as ToolInteractionLogEntryData));
       continue;
     }
-    if (event.event_type === StreamEventType.TOOL_INVOCATION_APPROVAL_REQUESTED) {
+    if (event.event_type === StreamEventType.TOOL_APPROVAL_REQUESTED) {
       closeThinking();
       flushAssistant();
-      lines.push(renderToolApprovalRequest(event.data as ToolInvocationApprovalRequestedData));
+      lines.push(renderToolApprovalRequest(event.data as ToolApprovalRequestedData));
       continue;
     }
-    if (event.event_type === StreamEventType.TOOL_INVOCATION_AUTO_EXECUTING) {
+    if (event.event_type === StreamEventType.TOOL_EXECUTION_STARTED) {
       closeThinking();
       flushAssistant();
-      lines.push(renderToolAutoExecuting(event.data as ToolInvocationAutoExecutingData));
+      lines.push(renderToolExecutionStarted(event.data as ToolExecutionStartedData));
+      continue;
+    }
+    if (event.event_type === StreamEventType.TOOL_DENIED) {
+      closeThinking();
+      flushAssistant();
+      lines.push(renderToolDenied(event.data as ToolDeniedData));
+      continue;
+    }
+    if (event.event_type === StreamEventType.TOOL_EXECUTION_SUCCEEDED) {
+      closeThinking();
+      flushAssistant();
+      lines.push(renderToolExecutionSucceeded(event.data as ToolExecutionSucceededData));
+      continue;
+    }
+    if (event.event_type === StreamEventType.TOOL_EXECUTION_FAILED) {
+      closeThinking();
+      flushAssistant();
+      lines.push(renderToolExecutionFailed(event.data as ToolExecutionFailedData));
       continue;
     }
     if (event.event_type === StreamEventType.SYSTEM_TASK_NOTIFICATION) {
