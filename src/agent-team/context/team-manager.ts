@@ -5,9 +5,15 @@ import { TeamNodeNotFoundException } from '../exceptions.js';
 import { Agent } from '../../agent/agent.js';
 import { AgentTeam } from '../agent-team.js';
 import { AgentTeamConfig } from './agent-team-config.js';
+import type { TeamRoutingPort } from '../ports/team-routing-port.js';
 import type { AgentTeamRuntime } from '../runtime/agent-team-runtime.js';
 import type { AgentEventMultiplexer } from '../streaming/agent-event-multiplexer.js';
-import type { InterAgentMessageRequestEvent, ProcessUserMessageEvent } from '../events/agent-team-events.js';
+import type {
+  InterAgentMessageRequestEvent,
+  ProcessUserMessageEvent,
+  ToolApprovalTeamEvent,
+} from '../events/agent-team-events.js';
+import { createLocalTeamRoutingPortAdapter } from '../routing/local-team-routing-port-adapter.js';
 
 export type ManagedNode = Agent | AgentTeam;
 
@@ -16,6 +22,7 @@ export class TeamManager {
   private runtime: AgentTeamRuntime;
   private multiplexer: AgentEventMultiplexer;
   private agentFactory: AgentFactory;
+  private teamRoutingPort: TeamRoutingPort;
   private nodesCache: Map<string, ManagedNode> = new Map();
   private agentIdToNameMap: Map<string, string> = new Map();
   private coordinatorAgentRef: Agent | null = null;
@@ -25,6 +32,9 @@ export class TeamManager {
     this.runtime = runtime;
     this.multiplexer = multiplexer;
     this.agentFactory = new AgentFactory();
+    this.teamRoutingPort = createLocalTeamRoutingPortAdapter({
+      ensureNodeIsReady: this.ensureNodeIsReady.bind(this),
+    });
     console.info(`TeamManager created for team '${this.teamId}'.`);
   }
 
@@ -32,8 +42,29 @@ export class TeamManager {
     await this.runtime.submitEvent(event);
   }
 
+  setTeamRoutingPort(port: TeamRoutingPort): void {
+    this.teamRoutingPort = port;
+  }
+
+  async dispatchInterAgentMessage(event: InterAgentMessageRequestEvent): Promise<void> {
+    const result = await this.teamRoutingPort.dispatchInterAgentMessageRequest(event);
+    if (!result.accepted) {
+      throw new Error(result.errorMessage ?? result.errorCode ?? 'Inter-agent message rejected by routing port.');
+    }
+  }
+
   async dispatchUserMessageToAgent(event: ProcessUserMessageEvent): Promise<void> {
-    await this.runtime.submitEvent(event);
+    const result = await this.teamRoutingPort.dispatchUserMessage(event);
+    if (!result.accepted) {
+      throw new Error(result.errorMessage ?? result.errorCode ?? 'User message rejected by routing port.');
+    }
+  }
+
+  async dispatchToolApproval(event: ToolApprovalTeamEvent): Promise<void> {
+    const result = await this.teamRoutingPort.dispatchToolApproval(event);
+    if (!result.accepted) {
+      throw new Error(result.errorMessage ?? result.errorCode ?? 'Tool approval rejected by routing port.');
+    }
   }
 
   async ensureNodeIsReady(nameOrAgentId: string): Promise<ManagedNode> {

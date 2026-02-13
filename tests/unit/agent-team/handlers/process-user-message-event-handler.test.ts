@@ -38,22 +38,20 @@ describe('ProcessUserMessageEventHandler', () => {
   });
 
   it('routes user message to agent when node is ready', async () => {
-    const mockAgent = { postUserMessage: vi.fn(async () => undefined) };
     agentTeamContext.state.teamManager = {
-      ensureNodeIsReady: vi.fn(async () => mockAgent)
+      dispatchUserMessageToAgent: vi.fn(async () => undefined)
     } as any;
 
     await handler.handle(event, agentTeamContext);
 
-    expect(agentTeamContext.state.teamManager?.ensureNodeIsReady).toHaveBeenCalledWith('Coordinator');
-    expect(mockAgent.postUserMessage).toHaveBeenCalledWith(event.userMessage);
+    expect(agentTeamContext.state.teamManager?.dispatchUserMessageToAgent).toHaveBeenCalledWith(event);
     const enqueue = agentTeamContext.state.inputEventQueues?.enqueueInternalSystemEvent as any;
     expect(enqueue).not.toHaveBeenCalled();
   });
 
   it('enqueues error when agent not found', async () => {
     agentTeamContext.state.teamManager = {
-      ensureNodeIsReady: vi.fn(async () => { throw new Error('Not Found'); })
+      dispatchUserMessageToAgent: vi.fn(async () => { throw new Error('Not Found'); })
     } as any;
 
     await handler.handle(event, agentTeamContext);
