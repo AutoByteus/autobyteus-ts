@@ -4,7 +4,8 @@ export enum ExternalChannelProvider {
   WHATSAPP = 'WHATSAPP',
   WECOM = 'WECOM',
   WECHAT = 'WECHAT',
-  DISCORD = 'DISCORD'
+  DISCORD = 'DISCORD',
+  TELEGRAM = 'TELEGRAM'
 }
 
 export function parseExternalChannelProvider(input: unknown): ExternalChannelProvider {
@@ -24,6 +25,9 @@ export function parseExternalChannelProvider(input: unknown): ExternalChannelPro
   }
   if (normalized === ExternalChannelProvider.DISCORD) {
     return ExternalChannelProvider.DISCORD;
+  }
+  if (normalized === ExternalChannelProvider.TELEGRAM) {
+    return ExternalChannelProvider.TELEGRAM;
   }
 
   throwParseError('INVALID_PROVIDER', `Unsupported external channel provider: ${input}`, 'provider');

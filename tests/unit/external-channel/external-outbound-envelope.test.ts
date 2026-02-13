@@ -136,6 +136,37 @@ describe('parseExternalOutboundEnvelope', () => {
     ).toThrowError(ExternalChannelParseError);
   });
 
+  it('parses TELEGRAM business-api outbound envelope', () => {
+    const envelope = parseExternalOutboundEnvelope({
+      provider: 'TELEGRAM',
+      transport: 'BUSINESS_API',
+      accountId: 'telegram-acct-1',
+      peerId: 'chat-123456',
+      threadId: 'topic-42',
+      correlationMessageId: 'corr-1',
+      callbackIdempotencyKey: 'cb-1',
+      replyText: 'hello'
+    });
+
+    expect(envelope.provider).toBe(ExternalChannelProvider.TELEGRAM);
+    expect(envelope.transport).toBe(ExternalChannelTransport.BUSINESS_API);
+    expect(envelope.threadId).toBe('topic-42');
+  });
+
+  it('rejects TELEGRAM personal-session outbound envelope', () => {
+    expect(() =>
+      parseExternalOutboundEnvelope({
+        provider: 'TELEGRAM',
+        transport: 'PERSONAL_SESSION',
+        accountId: 'telegram-acct-1',
+        peerId: 'chat-123456',
+        correlationMessageId: 'corr-1',
+        callbackIdempotencyKey: 'cb-1',
+        replyText: 'hello'
+      })
+    ).toThrowError(ExternalChannelParseError);
+  });
+
   it('rejects DISCORD user peer with threadId', () => {
     expect(() =>
       parseExternalOutboundEnvelope({

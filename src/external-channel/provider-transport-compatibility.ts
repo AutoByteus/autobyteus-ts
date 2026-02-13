@@ -35,4 +35,15 @@ export function assertProviderTransportCompatibility(
       'transport'
     );
   }
+
+  if (
+    provider === ExternalChannelProvider.TELEGRAM &&
+    transport !== ExternalChannelTransport.BUSINESS_API
+  ) {
+    throwParseError(
+      'INCOMPATIBLE_TRANSPORT_PROVIDER',
+      `Transport ${transport} is incompatible with provider ${provider}.`,
+      'transport'
+    );
+  }
 }

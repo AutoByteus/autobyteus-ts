@@ -8,6 +8,7 @@ describe('ExternalChannelProvider', () => {
     expect(parseExternalChannelProvider('WECOM')).toBe(ExternalChannelProvider.WECOM);
     expect(parseExternalChannelProvider('WECHAT')).toBe(ExternalChannelProvider.WECHAT);
     expect(parseExternalChannelProvider('DISCORD')).toBe(ExternalChannelProvider.DISCORD);
+    expect(parseExternalChannelProvider('TELEGRAM')).toBe(ExternalChannelProvider.TELEGRAM);
   });
 
   it('throws on invalid provider', () => {

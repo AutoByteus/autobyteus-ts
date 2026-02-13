@@ -28,23 +28,7 @@ describe('parseExternalMessageEnvelope', () => {
     expect(envelope.routingKey).toBe('WHATSAPP:BUSINESS_API:acct-1:peer-1:direct');
   });
 
-  it('falls back to BUSINESS_API for replay payload without transport', () => {
-    const envelope = parseExternalMessageEnvelope({
-      provider: 'WHATSAPP',
-      accountId: 'acct-1',
-      peerId: 'peer-1',
-      peerType: 'USER',
-      externalMessageId: 'msg-1',
-      content: 'hello',
-      attachments: [],
-      receivedAt: '2026-02-08T00:00:00.000Z',
-      replayContext: true
-    });
-
-    expect(envelope.transport).toBe(ExternalChannelTransport.BUSINESS_API);
-  });
-
-  it('throws when transport is missing outside replay context', () => {
+  it('throws when transport is missing', () => {
     expect(() =>
       parseExternalMessageEnvelope({
         provider: 'WHATSAPP',
@@ -159,6 +143,39 @@ describe('parseExternalMessageEnvelope', () => {
         accountId: 'discord-acct-1',
         peerId: 'channel:1234567890',
         peerType: 'GROUP',
+        externalMessageId: 'msg-1',
+        content: 'hello',
+        receivedAt: '2026-02-08T00:00:00.000Z'
+      })
+    ).toThrowError(ExternalChannelParseError);
+  });
+
+  it('parses TELEGRAM business-api envelope', () => {
+    const envelope = parseExternalMessageEnvelope({
+      provider: 'TELEGRAM',
+      transport: 'BUSINESS_API',
+      accountId: 'telegram-acct-1',
+      peerId: 'chat-123456',
+      peerType: 'GROUP',
+      threadId: 'topic-42',
+      externalMessageId: 'msg-1',
+      content: 'hello',
+      receivedAt: '2026-02-08T00:00:00.000Z'
+    });
+
+    expect(envelope.provider).toBe(ExternalChannelProvider.TELEGRAM);
+    expect(envelope.transport).toBe(ExternalChannelTransport.BUSINESS_API);
+    expect(envelope.threadId).toBe('topic-42');
+  });
+
+  it('rejects TELEGRAM personal-session envelope', () => {
+    expect(() =>
+      parseExternalMessageEnvelope({
+        provider: 'TELEGRAM',
+        transport: 'PERSONAL_SESSION',
+        accountId: 'telegram-acct-1',
+        peerId: 'chat-123456',
+        peerType: 'USER',
         externalMessageId: 'msg-1',
         content: 'hello',
         receivedAt: '2026-02-08T00:00:00.000Z'
