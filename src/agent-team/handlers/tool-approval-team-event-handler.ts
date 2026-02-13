@@ -19,30 +19,23 @@ export class ToolApprovalTeamEventHandler extends BaseAgentTeamEventHandler {
       return;
     }
 
-    const targetNode = await teamManager.ensureNodeIsReady(event.agentName);
-    if (!targetNode || typeof (targetNode as { postToolExecutionApproval?: unknown }).postToolExecutionApproval !== 'function') {
-      const message = `Team '${teamId}': Target node '${event.agentName}' for approval is not an agent.`;
+    try {
+      console.info(
+        `Team '${teamId}': Routing tool approval (Approved: ${event.isApproved}) ` +
+        `to '${event.agentName}' for invocation '${event.toolInvocationId}'.`
+      );
+      await teamManager.dispatchToolApproval(event);
+    } catch (error) {
+      const message = `Team '${teamId}': Failed to route tool approval to '${event.agentName}'. Error: ${error}`;
       console.error(message);
       if (context.state.inputEventQueues) {
         await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(
             message,
-            `Node '${event.agentName}' is not an agent.`
+            `Routing failed for '${event.agentName}'.`
           )
         );
       }
-      return;
     }
-
-    console.info(
-      `Team '${teamId}': Posting tool approval (Approved: ${event.isApproved}) ` +
-      `to agent '${event.agentName}' for invocation '${event.toolInvocationId}'.`
-    );
-    await (targetNode as { postToolExecutionApproval: (id: string, approved: boolean, reason?: string) => Promise<void> })
-      .postToolExecutionApproval(
-        event.toolInvocationId,
-        event.isApproved,
-        event.reason
-      );
   }
 }

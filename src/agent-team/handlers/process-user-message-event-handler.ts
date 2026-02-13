@@ -17,45 +17,22 @@ export class ProcessUserMessageEventHandler extends BaseAgentTeamEventHandler {
       return;
     }
 
-    let targetNode: unknown;
     try {
-      targetNode = await teamManager.ensureNodeIsReady(event.targetAgentName);
+      await teamManager.dispatchUserMessageToAgent(event);
+      console.info(`Team '${teamId}': Routed user message to '${event.targetAgentName}'.`);
     } catch (error) {
       const message =
-        `Team '${teamId}': Node '${event.targetAgentName}' not found or failed to start. ` +
-        `Cannot route message. Error: ${error}`;
+        `Team '${teamId}': Failed to route user message to '${event.targetAgentName}'. ` +
+        `Error: ${error}`;
       console.error(message);
       if (context.state.inputEventQueues) {
         await context.state.inputEventQueues.enqueueInternalSystemEvent(
           new AgentTeamErrorEvent(
             message,
-            `Node '${event.targetAgentName}' not found or failed to start.`
+            `Routing failed for '${event.targetAgentName}'.`
           )
         );
       }
-      return;
-    }
-
-    if (targetNode && typeof (targetNode as { postUserMessage?: unknown }).postUserMessage === 'function') {
-      await (targetNode as { postUserMessage: (message: ProcessUserMessageEvent['userMessage']) => Promise<void> })
-        .postUserMessage(event.userMessage);
-      console.info(`Team '${teamId}': Routed user message to agent node '${event.targetAgentName}'.`);
-      return;
-    }
-
-    if (targetNode && typeof (targetNode as { postMessage?: unknown }).postMessage === 'function') {
-      await (targetNode as { postMessage: (message: ProcessUserMessageEvent['userMessage']) => Promise<void> })
-        .postMessage(event.userMessage);
-      console.info(`Team '${teamId}': Routed user message to sub-team node '${event.targetAgentName}'.`);
-      return;
-    }
-
-    const message = `Target node '${event.targetAgentName}' is of an unsupported type: ${typeof targetNode}`;
-    console.error(`Team '${teamId}': ${message}`);
-    if (context.state.inputEventQueues) {
-      await context.state.inputEventQueues.enqueueInternalSystemEvent(
-        new AgentTeamErrorEvent(message, '')
-      );
     }
   }
 }

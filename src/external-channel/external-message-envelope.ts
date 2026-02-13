@@ -19,7 +19,6 @@ export type ExternalMessageEnvelopeInput = {
   attachments?: unknown;
   receivedAt: unknown;
   metadata?: unknown;
-  replayContext?: unknown;
 };
 
 export type ExternalMessageEnvelope = {
@@ -90,9 +89,6 @@ export function parseExternalMessageEnvelope(input: unknown): ExternalMessageEnv
 
 function parseTransport(record: Record<string, unknown>): ExternalChannelTransport {
   if (record.transport === undefined || record.transport === null) {
-    if (record.replayContext === true) {
-      return ExternalChannelTransport.BUSINESS_API;
-    }
     throwParseError('MISSING_TRANSPORT', 'Transport is required for external message envelopes.', 'transport');
   }
   return parseExternalChannelTransport(record.transport);
