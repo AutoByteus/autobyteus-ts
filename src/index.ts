@@ -36,7 +36,6 @@ export * from './agent/tool-invocation-preprocessor/index.js';
 export * from './agent/utils/index.js';
 export * from './agent/workspace/index.js';
 export * from './agent-team/context/index.js';
-export * from './agent-team/ports/index.js';
 export * from './agent-team/factory/index.js';
 export * from './agent-team/runtime/index.js';
 export * from './agent-team/streaming/index.js';

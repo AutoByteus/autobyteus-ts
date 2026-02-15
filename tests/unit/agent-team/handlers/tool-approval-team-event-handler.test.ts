@@ -39,20 +39,24 @@ describe('ToolApprovalTeamEventHandler', () => {
   });
 
   it('posts approval to agent', async () => {
+    const mockAgent = { postToolExecutionApproval: vi.fn(async () => undefined) };
     agentTeamContext.state.teamManager = {
-      dispatchToolApproval: vi.fn(async () => undefined)
+      ensureNodeIsReady: vi.fn(async () => mockAgent)
     } as any;
 
     await handler.handle(event, agentTeamContext);
 
-    expect(agentTeamContext.state.teamManager?.dispatchToolApproval).toHaveBeenCalledWith(event);
+    expect(agentTeamContext.state.teamManager?.ensureNodeIsReady).toHaveBeenCalledWith('ApproverAgent');
+    expect(mockAgent.postToolExecutionApproval).toHaveBeenCalledWith(
+      event.toolInvocationId,
+      event.isApproved,
+      event.reason
+    );
   });
 
   it('enqueues error when target agent not found', async () => {
     agentTeamContext.state.teamManager = {
-      dispatchToolApproval: vi.fn(async () => {
-        throw new Error('No target');
-      })
+      ensureNodeIsReady: vi.fn(async () => null)
     } as any;
 
     await handler.handle(event, agentTeamContext);

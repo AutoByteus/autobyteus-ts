@@ -31,7 +31,6 @@ import { TeamNodeNotFoundException } from '../../../../src/agent-team/exceptions
 import { Agent } from '../../../../src/agent/agent.js';
 import { AgentTeam } from '../../../../src/agent-team/agent-team.js';
 import { AgentConfig } from '../../../../src/agent/context/agent-config.js';
-import { InterAgentMessageRequestEvent } from '../../../../src/agent-team/events/agent-team-events.js';
 import { BaseLLM } from '../../../../src/llm/base.js';
 import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
@@ -235,57 +234,5 @@ describe('TeamManager', () => {
     await expect(manager.ensureNodeIsReady('forgotten_agent')).rejects.toThrow(
       'No pre-prepared agent configuration found'
     );
-  });
-
-  it('routes inter-agent messages via routing port when configured', async () => {
-    const runtime = makeRuntime();
-    const multiplexer = makeMultiplexer();
-    const manager = new TeamManager('test_team', runtime, multiplexer as any);
-    const event = new InterAgentMessageRequestEvent('sender', 'recipient', 'hello', 'TASK_ASSIGNMENT');
-    const port = {
-      dispatchInterAgentMessageRequest: vi.fn(async () => ({ accepted: true }))
-    } as any;
-
-    manager.setTeamRoutingPort(port);
-    await manager.dispatchInterAgentMessage(event);
-
-    expect(port.dispatchInterAgentMessageRequest).toHaveBeenCalledWith(event);
-  });
-
-  it('throws when routing port rejects message', async () => {
-    const runtime = makeRuntime();
-    const multiplexer = makeMultiplexer();
-    const manager = new TeamManager('test_team', runtime, multiplexer as any);
-    const event = new InterAgentMessageRequestEvent('sender', 'recipient', 'hello', 'TASK_ASSIGNMENT');
-    const port = {
-      dispatchInterAgentMessageRequest: vi.fn(async () => ({ accepted: false, errorMessage: 'Rejected' }))
-    } as any;
-
-    manager.setTeamRoutingPort(port);
-    await expect(manager.dispatchInterAgentMessage(event)).rejects.toThrow('Rejected');
-  });
-
-  it('uses default local routing adapter when no custom routing port is configured', async () => {
-    const runtime = makeRuntime();
-    const multiplexer = makeMultiplexer();
-    const manager = new TeamManager('test_team', runtime, multiplexer as any);
-    const event = new InterAgentMessageRequestEvent('sender', 'recipient', 'hello', 'TASK_ASSIGNMENT');
-
-    runtime.context.getNodeConfigByName.mockReturnValue(null);
-    await expect(manager.dispatchInterAgentMessage(event)).rejects.toThrow(
-      "Node 'recipient' not found in agent team 'test_team'."
-    );
-  });
-
-  it('propagates default local routing errors from adapter rejection payload', async () => {
-    const runtime = makeRuntime();
-    const multiplexer = makeMultiplexer();
-    const manager = new TeamManager('test_team', runtime, multiplexer as any);
-    const event = new InterAgentMessageRequestEvent('sender', 'recipient', 'hello', 'TASK_ASSIGNMENT');
-    runtime.context.getNodeConfigByName.mockImplementation(() => {
-      throw new Error('runtime unavailable');
-    });
-
-    await expect(manager.dispatchInterAgentMessage(event)).rejects.toThrow('runtime unavailable');
   });
 });
