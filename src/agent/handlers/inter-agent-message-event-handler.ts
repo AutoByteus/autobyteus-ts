@@ -5,6 +5,25 @@ import { AgentInputUserMessage } from '../message/agent-input-user-message.js';
 import { SenderType } from '../sender-type.js';
 import type { AgentContext } from '../context/agent-context.js';
 
+type TeamContextLike = {
+  teamManager?: {
+    resolveMemberNameByAgentId?: (agentId: string) => string | null;
+  } | null;
+};
+
+const resolveSenderDisplayName = (context: AgentContext, senderAgentId: string): string | null => {
+  const teamContext = context.customData?.teamContext as TeamContextLike | undefined;
+  const resolver = teamContext?.teamManager?.resolveMemberNameByAgentId;
+  if (typeof resolver !== 'function') {
+    return null;
+  }
+  const resolved = resolver(senderAgentId);
+  if (typeof resolved !== 'string' || !resolved.trim()) {
+    return null;
+  }
+  return resolved.trim();
+};
+
 export class InterAgentMessageReceivedEventHandler extends AgentEventHandler {
   constructor() {
     super();
@@ -21,6 +40,7 @@ export class InterAgentMessageReceivedEventHandler extends AgentEventHandler {
     }
 
     const interAgentMsg: InterAgentMessage = event.interAgentMessage;
+    const senderDisplayName = resolveSenderDisplayName(context, interAgentMsg.senderAgentId);
 
     console.info(
       `Agent '${context.agentId}' handling InterAgentMessageReceivedEvent from sender ` +
@@ -34,19 +54,18 @@ export class InterAgentMessageReceivedEventHandler extends AgentEventHandler {
         sender_agent_id: interAgentMsg.senderAgentId,
         recipient_role_name: interAgentMsg.recipientRoleName,
         content: interAgentMsg.content,
-        message_type: interAgentMsg.messageType.value
+        message_type: interAgentMsg.messageType.value,
       });
     }
 
+    const normalizedSenderName =
+      senderDisplayName && senderDisplayName.trim()
+        ? senderDisplayName.trim()
+        : interAgentMsg.senderAgentId;
+
     const contentForLlm =
-      'You have received a message from another agent.\n' +
-      `Sender Agent ID: ${interAgentMsg.senderAgentId}\n` +
-      `Message Type: ${interAgentMsg.messageType.value}\n` +
-      `Recipient Role Name (intended for you): ${interAgentMsg.recipientRoleName}\n` +
-      '--- Message Content ---\n' +
-      `${interAgentMsg.content}\n` +
-      '--- End of Message Content ---\n' +
-      'Please process this information and act accordingly.';
+      `You received a message from sender name: ${normalizedSenderName}, sender id: ${interAgentMsg.senderAgentId}\n` +
+      `message:\n${interAgentMsg.content}`;
 
     const agentInputUserMessage = new AgentInputUserMessage(
       contentForLlm,

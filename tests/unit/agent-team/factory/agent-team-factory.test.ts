@@ -116,4 +116,23 @@ describe('AgentTeamFactory', () => {
 
     expect(contextArg.state.teamManager).toBe(mocks.teamManagerInstance);
   });
+
+  it('creates team with explicit id', () => {
+    const factory = new AgentTeamFactory();
+    const config = makeTeamConfig();
+
+    const team = factory.createTeamWithId('team-explicit', config);
+
+    expect(team).toBeInstanceOf(AgentTeam);
+    expect(factory.getTeam('team-explicit')).toBe(team);
+    expect(factory.listActiveTeamIds()).toContain('team-explicit');
+  });
+
+  it('rejects empty explicit team id', () => {
+    const factory = new AgentTeamFactory();
+    const config = makeTeamConfig();
+    expect(() => factory.createTeamWithId('   ', config)).toThrow(
+      'createTeamWithId requires a non-empty string teamId'
+    );
+  });
 });

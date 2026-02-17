@@ -174,4 +174,34 @@ describe('AgentFactory', () => {
     expect(callArgs[2]).toBe('/tmp/memory');
     expect(callArgs[3]).not.toBeNull();
   });
+
+  it('creates agents with an explicit id', () => {
+    const factory = new AgentFactory();
+    const config = makeConfig();
+
+    const runtimeStub = Object.create(AgentRuntime.prototype) as AgentRuntime;
+    runtimeStub.context = { agentId: '' } as any;
+
+    const createRuntimeSpy = vi
+      .spyOn(factory as any, 'createRuntimeWithId')
+      .mockImplementation((...args: any[]) => {
+        const agentId = String(args[0] ?? '');
+        runtimeStub.context.agentId = agentId;
+        return runtimeStub;
+      });
+
+    const agent = factory.createAgentWithId('explicit-agent-id', config);
+
+    expect(agent.agentId).toBe('explicit-agent-id');
+    expect(createRuntimeSpy).toHaveBeenCalledWith('explicit-agent-id', config);
+    expect(factory.getAgent('explicit-agent-id')).toBe(agent);
+  });
+
+  it('rejects empty explicit id in createAgentWithId', () => {
+    const factory = new AgentFactory();
+    const config = makeConfig();
+    expect(() => factory.createAgentWithId('   ', config)).toThrow(
+      'createAgentWithId requires a non-empty string agentId'
+    );
+  });
 });

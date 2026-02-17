@@ -85,8 +85,7 @@ export const createLocalTeamRoutingPortAdapter = (deps: {
     dispatchToolApproval: async (event: ToolApprovalTeamEvent): Promise<TeamRoutingDispatchResult> => {
       try {
         const targetNode = await deps.ensureNodeIsReady(event.agentName);
-        const approvalHandler = targetNode.postToolExecutionApproval;
-        if (typeof approvalHandler !== "function") {
+        if (typeof targetNode.postToolExecutionApproval !== "function") {
           return rejected(
             "LOCAL_TOOL_APPROVAL_UNSUPPORTED_TARGET",
             `Target node '${event.agentName}' does not support tool approval dispatch.`,
@@ -95,18 +94,22 @@ export const createLocalTeamRoutingPortAdapter = (deps: {
 
         // Agent handles direct approval calls; sub-team acts as a proxy and requires agentName.
         if (typeof targetNode.agentId === "string" && targetNode.agentId.length > 0) {
-          await (approvalHandler as (toolInvocationId: string, isApproved: boolean, reason?: string) => Promise<void>)(
-            event.toolInvocationId,
-            event.isApproved,
-            event.reason,
-          );
+          await (
+            targetNode.postToolExecutionApproval as (
+              toolInvocationId: string,
+              isApproved: boolean,
+              reason?: string,
+            ) => Promise<void>
+          )(event.toolInvocationId, event.isApproved, event.reason);
         } else {
-          await (approvalHandler as (
-            agentName: string,
-            toolInvocationId: string,
-            isApproved: boolean,
-            reason?: string,
-          ) => Promise<void>)(event.agentName, event.toolInvocationId, event.isApproved, event.reason);
+          await (
+            targetNode.postToolExecutionApproval as (
+              agentName: string,
+              toolInvocationId: string,
+              isApproved: boolean,
+              reason?: string,
+            ) => Promise<void>
+          )(event.agentName, event.toolInvocationId, event.isApproved, event.reason);
         }
         return { accepted: true };
       } catch (error) {

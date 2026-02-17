@@ -31,7 +31,11 @@ import { TeamNodeNotFoundException } from '../../../../src/agent-team/exceptions
 import { Agent } from '../../../../src/agent/agent.js';
 import { AgentTeam } from '../../../../src/agent-team/agent-team.js';
 import { AgentConfig } from '../../../../src/agent/context/agent-config.js';
-import { InterAgentMessageRequestEvent } from '../../../../src/agent-team/events/agent-team-events.js';
+import { ToolExecutionApprovalEvent } from '../../../../src/agent/events/agent-events.js';
+import {
+  InterAgentMessageRequestEvent,
+  ToolApprovalTeamEvent,
+} from '../../../../src/agent-team/events/agent-team-events.js';
 import { BaseLLM } from '../../../../src/llm/base.js';
 import { LLMModel } from '../../../../src/llm/models.js';
 import { LLMProvider } from '../../../../src/llm/providers.js';
@@ -92,6 +96,7 @@ const makeMockAgentInstance = (agentId: string, running: boolean = false) => {
   const agent = Object.assign(Object.create(Agent.prototype), {
     agentId,
     start: vi.fn(),
+    stop: vi.fn(async () => undefined),
     setRunning: (value: boolean) => {
       isRunning = value;
     }
@@ -121,6 +126,20 @@ const makeMockTeamInstance = (running: boolean = false) => {
     configurable: true
   });
   return team;
+};
+
+const makeLiveAgentInstance = (agentId: string) => {
+  const submitEvent = vi.fn(async () => undefined);
+  const runtime = {
+    context: { agentId },
+    submitEvent,
+    isRunning: true,
+    currentStatus: 'IDLE',
+    start: vi.fn(),
+    stop: vi.fn(async () => undefined)
+  } as any;
+  const agent = new Agent(runtime);
+  return { agent, submitEvent };
 };
 
 describe('TeamManager', () => {
@@ -157,6 +176,110 @@ describe('TeamManager', () => {
     expect(multiplexer.startBridgingTeamEvents).not.toHaveBeenCalled();
     expect(mockAgent.start).toHaveBeenCalledOnce();
     expect(mocks.waitForAgent).toHaveBeenCalledWith(mockAgent, 60.0);
+  });
+
+  it('uses restoreAgent when teamRestore metadata is provided', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+
+    const restoredAgent = makeMockAgentInstance('ag_restore_001');
+    const mockAgentFactory = {
+      createAgent: vi.fn(),
+      restoreAgent: vi.fn(() => restoredAgent)
+    } as any;
+    (manager as any).agentFactory = mockAgentFactory;
+
+    const nodeName = 'test_agent';
+    const premadeConfig = makeAgentConfig(nodeName);
+    premadeConfig.initialCustomData = {
+      teamRestore: {
+        membersByRouteKey: {
+          [nodeName]: {
+            memberAgentId: 'ag_restore_001',
+            memoryDir: '/tmp/team-memory'
+          }
+        }
+      }
+    };
+    runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
+    runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+
+    const agent = await manager.ensureNodeIsReady(nodeName);
+
+    expect(agent).toBe(restoredAgent);
+    expect(mockAgentFactory.restoreAgent).toHaveBeenCalledWith(
+      'ag_restore_001',
+      premadeConfig,
+      '/tmp/team-memory'
+    );
+    expect(mockAgentFactory.createAgent).not.toHaveBeenCalled();
+    expect((manager as any).agentIdToNameMap.get('ag_restore_001')).toBe(nodeName);
+    expect(restoredAgent.start).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to createAgent when teamRestore metadata is malformed', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+
+    const mockAgent = makeMockAgentInstance('agent_123');
+    const mockAgentFactory = {
+      createAgent: vi.fn(() => mockAgent),
+      restoreAgent: vi.fn()
+    } as any;
+    (manager as any).agentFactory = mockAgentFactory;
+
+    const nodeName = 'test_agent';
+    const premadeConfig = makeAgentConfig(nodeName);
+    premadeConfig.initialCustomData = {
+      teamRestore: {
+        membersByRouteKey: {
+          [nodeName]: {
+            memoryDir: '/tmp/team-memory'
+          }
+        }
+      }
+    };
+    runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
+    runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+
+    const agent = await manager.ensureNodeIsReady(nodeName);
+
+    expect(agent).toBe(mockAgent);
+    expect(mockAgentFactory.createAgent).toHaveBeenCalledWith(premadeConfig);
+    expect(mockAgentFactory.restoreAgent).not.toHaveBeenCalled();
+  });
+
+  it('uses createAgentWithId when deterministic memberAgentId metadata is provided', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+
+    const deterministicAgent = makeMockAgentInstance('member_abcd1234');
+    const mockAgentFactory = {
+      createAgent: vi.fn(),
+      createAgentWithId: vi.fn(() => deterministicAgent),
+      restoreAgent: vi.fn()
+    } as any;
+    (manager as any).agentFactory = mockAgentFactory;
+
+    const nodeName = 'coordinator';
+    const premadeConfig = makeAgentConfig(nodeName);
+    premadeConfig.initialCustomData = {
+      teamMemberIdentity: {
+        memberAgentId: 'member_abcd1234'
+      }
+    };
+    runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
+    runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+
+    const agent = await manager.ensureNodeIsReady(nodeName);
+
+    expect(agent).toBe(deterministicAgent);
+    expect(mockAgentFactory.createAgentWithId).toHaveBeenCalledWith('member_abcd1234', premadeConfig);
+    expect(mockAgentFactory.createAgent).not.toHaveBeenCalled();
+    expect(mockAgentFactory.restoreAgent).not.toHaveBeenCalled();
   });
 
   it('creates and starts sub-team nodes', async () => {
@@ -287,5 +410,74 @@ describe('TeamManager', () => {
     });
 
     await expect(manager.dispatchInterAgentMessage(event)).rejects.toThrow('runtime unavailable');
+  });
+
+  it('dispatches tool approval through default local routing adapter to live agent instances', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+    const { agent, submitEvent } = makeLiveAgentInstance('agent_live_1');
+    const event = new ToolApprovalTeamEvent('recipient', 'tool-approval-1', true, 'approved');
+
+    (manager as any).nodesCache.set('recipient', agent);
+    (manager as any).agentIdToNameMap.set('agent_live_1', 'recipient');
+
+    await manager.dispatchToolApproval(event);
+
+    expect(submitEvent).toHaveBeenCalledTimes(1);
+    const submittedEvent = submitEvent.mock.calls[0][0];
+    expect(submittedEvent).toBeInstanceOf(ToolExecutionApprovalEvent);
+    expect(submittedEvent.toolInvocationId).toBe('tool-approval-1');
+    expect(submittedEvent.isApproved).toBe(true);
+    expect(submittedEvent.reason).toBe('approved');
+  });
+
+  it('shutdownManagedAgents removes managed agents from AgentFactory and clears caches', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+    const agentOne = makeMockAgentInstance('member_a', true);
+    const agentTwo = makeMockAgentInstance('member_b', false);
+
+    const mockAgentFactory = {
+      removeAgent: vi.fn(async () => true),
+    } as any;
+    (manager as any).agentFactory = mockAgentFactory;
+    (manager as any).nodesCache.set('professor', agentOne);
+    (manager as any).nodesCache.set('student', agentTwo);
+    (manager as any).agentIdToNameMap.set('member_a', 'professor');
+    (manager as any).agentIdToNameMap.set('member_b', 'student');
+
+    const result = await manager.shutdownManagedAgents(10.0);
+
+    expect(result).toBe(true);
+    expect(mockAgentFactory.removeAgent).toHaveBeenCalledWith('member_a', 10.0);
+    expect(mockAgentFactory.removeAgent).toHaveBeenCalledWith('member_b', 10.0);
+    expect((manager as any).nodesCache.has('professor')).toBe(false);
+    expect((manager as any).nodesCache.has('student')).toBe(false);
+    expect((manager as any).agentIdToNameMap.has('member_a')).toBe(false);
+    expect((manager as any).agentIdToNameMap.has('member_b')).toBe(false);
+  });
+
+  it('shutdownManagedAgents falls back to direct stop when an agent is missing from AgentFactory', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+    const agent = makeMockAgentInstance('member_missing', true);
+
+    const mockAgentFactory = {
+      removeAgent: vi.fn(async () => false),
+    } as any;
+    (manager as any).agentFactory = mockAgentFactory;
+    (manager as any).nodesCache.set('professor', agent);
+    (manager as any).agentIdToNameMap.set('member_missing', 'professor');
+
+    const result = await manager.shutdownManagedAgents(10.0);
+
+    expect(result).toBe(true);
+    expect(mockAgentFactory.removeAgent).toHaveBeenCalledWith('member_missing', 10.0);
+    expect(agent.stop).toHaveBeenCalledWith(10.0);
+    expect((manager as any).nodesCache.has('professor')).toBe(false);
+    expect((manager as any).agentIdToNameMap.has('member_missing')).toBe(false);
   });
 });

@@ -5,6 +5,7 @@ import { TeamNodeNotFoundException } from '../exceptions.js';
 import { Agent } from '../../agent/agent.js';
 import { AgentTeam } from '../agent-team.js';
 import { AgentTeamConfig } from './agent-team-config.js';
+import { AgentConfig } from '../../agent/context/agent-config.js';
 import type { TeamRoutingPort } from '../ports/team-routing-port.js';
 import type { AgentTeamRuntime } from '../runtime/agent-team-runtime.js';
 import type { AgentEventMultiplexer } from '../streaming/agent-event-multiplexer.js';
@@ -16,6 +17,11 @@ import type {
 import { createLocalTeamRoutingPortAdapter } from '../routing/local-team-routing-port-adapter.js';
 
 export type ManagedNode = Agent | AgentTeam;
+
+type TeamRestoreMemberMetadata = {
+  memberAgentId: string;
+  memoryDir: string | null;
+};
 
 export class TeamManager {
   teamId: string;
@@ -102,8 +108,28 @@ export class TeamManager {
           );
         }
 
-        console.info(`Lazily creating agent node '${uniqueName}' using pre-prepared configuration.`);
-        nodeInstance = this.agentFactory.createAgent(finalConfig);
+        const restoreMemberMetadata = this.resolveRestoreMemberMetadata(uniqueName, finalConfig);
+        if (restoreMemberMetadata) {
+          console.info(
+            `Lazily restoring agent node '${uniqueName}' using pre-prepared restore metadata (memberAgentId='${restoreMemberMetadata.memberAgentId}').`
+          );
+          nodeInstance = this.agentFactory.restoreAgent(
+            restoreMemberMetadata.memberAgentId,
+            finalConfig,
+            restoreMemberMetadata.memoryDir
+          );
+        } else {
+          const preferredMemberAgentId = this.resolvePreferredMemberAgentId(uniqueName, finalConfig);
+          if (preferredMemberAgentId) {
+            console.info(
+              `Lazily creating agent node '${uniqueName}' with deterministic memberAgentId='${preferredMemberAgentId}'.`
+            );
+            nodeInstance = this.agentFactory.createAgentWithId(preferredMemberAgentId, finalConfig);
+          } else {
+            console.info(`Lazily creating agent node '${uniqueName}' using pre-prepared configuration.`);
+            nodeInstance = this.agentFactory.createAgent(finalConfig);
+          }
+        }
       }
 
       this.nodesCache.set(uniqueName, nodeInstance);
@@ -130,6 +156,93 @@ export class TeamManager {
     return nodeInstance;
   }
 
+  private resolveRestoreMemberMetadata(
+    uniqueName: string,
+    finalConfig: AgentConfig
+  ): TeamRestoreMemberMetadata | null {
+    const rawRestore = finalConfig.initialCustomData?.teamRestore;
+    if (!rawRestore || typeof rawRestore !== 'object') {
+      return null;
+    }
+
+    const direct = this.toRestoreMemberMetadata((rawRestore as Record<string, unknown>)[uniqueName]);
+    if (direct) {
+      return direct;
+    }
+
+    const membersByRouteKey = this.toRecord((rawRestore as Record<string, unknown>).membersByRouteKey);
+    if (membersByRouteKey) {
+      const fromRouteKey = this.toRestoreMemberMetadata(membersByRouteKey[uniqueName]);
+      if (fromRouteKey) {
+        return fromRouteKey;
+      }
+    }
+
+    const membersByName = this.toRecord((rawRestore as Record<string, unknown>).membersByName);
+    if (membersByName) {
+      const fromName = this.toRestoreMemberMetadata(membersByName[uniqueName]);
+      if (fromName) {
+        return fromName;
+      }
+    }
+
+    return null;
+  }
+
+  private toRecord(value: unknown): Record<string, unknown> | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    return value as Record<string, unknown>;
+  }
+
+  private toRestoreMemberMetadata(value: unknown): TeamRestoreMemberMetadata | null {
+    if (!value || typeof value !== 'object') {
+      return null;
+    }
+    const record = value as Record<string, unknown>;
+    const memberAgentId =
+      typeof record.memberAgentId === 'string' && record.memberAgentId.trim().length > 0
+        ? record.memberAgentId.trim()
+        : null;
+    if (!memberAgentId) {
+      return null;
+    }
+    const memoryDir =
+      typeof record.memoryDir === 'string' && record.memoryDir.trim().length > 0
+        ? record.memoryDir.trim()
+        : null;
+    return {
+      memberAgentId,
+      memoryDir,
+    };
+  }
+
+  private resolvePreferredMemberAgentId(uniqueName: string, finalConfig: AgentConfig): string | null {
+    const customData = finalConfig.initialCustomData;
+    if (!customData || typeof customData !== 'object') {
+      return null;
+    }
+
+    const byNodeName = this.toRecord((customData as Record<string, unknown>).memberAgentIdsByNodeName);
+    if (byNodeName) {
+      const fromMap = byNodeName[uniqueName];
+      if (typeof fromMap === 'string' && fromMap.trim().length > 0) {
+        return fromMap.trim();
+      }
+    }
+
+    const identity = this.toRecord((customData as Record<string, unknown>).teamMemberIdentity);
+    if (!identity) {
+      return null;
+    }
+    const memberAgentId = identity.memberAgentId;
+    if (typeof memberAgentId !== 'string' || memberAgentId.trim().length === 0) {
+      return null;
+    }
+    return memberAgentId.trim();
+  }
+
   private async startNode(node: ManagedNode, name: string): Promise<void> {
     try {
       node.start();
@@ -148,8 +261,49 @@ export class TeamManager {
     return Array.from(this.nodesCache.values()).filter((node) => node instanceof Agent) as Agent[];
   }
 
+  async shutdownManagedAgents(shutdownTimeout: number = 10.0): Promise<boolean> {
+    const agentEntries = Array.from(this.nodesCache.entries()).filter(
+      (entry): entry is [string, Agent] => entry[1] instanceof Agent
+    );
+    if (agentEntries.length === 0) {
+      return true;
+    }
+
+    let allSuccessful = true;
+    for (const [nodeName, agent] of agentEntries) {
+      try {
+        const removed = await this.agentFactory.removeAgent(agent.agentId, shutdownTimeout);
+        if (!removed) {
+          if (agent.isRunning) {
+            await agent.stop(shutdownTimeout);
+          }
+          console.warn(
+            `Team '${this.teamId}': Agent '${agent.agentId}' was not registered in AgentFactory during shutdown cleanup.`
+          );
+        }
+      } catch (error) {
+        console.error(
+          `Team '${this.teamId}': Failed to remove managed agent '${agent.agentId}' during shutdown: ${error}`
+        );
+        allSuccessful = false;
+      } finally {
+        this.nodesCache.delete(nodeName);
+        this.agentIdToNameMap.delete(agent.agentId);
+      }
+    }
+
+    return allSuccessful;
+  }
+
   getAllSubTeams(): AgentTeam[] {
     return Array.from(this.nodesCache.values()).filter((node) => node instanceof AgentTeam) as AgentTeam[];
+  }
+
+  resolveMemberNameByAgentId(agentId: string): string | null {
+    if (!agentId || typeof agentId !== 'string') {
+      return null;
+    }
+    return this.agentIdToNameMap.get(agentId) ?? null;
   }
 
   get coordinatorAgent(): Agent | null {

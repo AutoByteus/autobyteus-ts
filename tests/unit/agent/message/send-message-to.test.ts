@@ -13,6 +13,7 @@ const makeTeamContext = (teamManager: any) => ({
 
 const makeAgentContext = (teamContext: any) => ({
   agentId: 'sender_agent_001',
+  config: { name: 'Professor' },
   customData: { teamContext: teamContext }
 });
 
@@ -30,18 +31,17 @@ describe('SendMessageTo tool', () => {
     expect(schema?.parameters.length).toBe(3);
     expect(schema?.getParameter('recipient_name')?.required).toBe(true);
     expect(schema?.getParameter('content')?.required).toBe(true);
-    expect(schema?.getParameter('message_type')?.required).toBe(true);
+    expect(schema?.getParameter('message_type')?.required).toBe(false);
   });
 
-  it('dispatches inter-agent message requests', async () => {
+  it('dispatches inter-agent message requests with default message type', async () => {
     const tool = new SendMessageTo();
     const teamManager = makeTeamManager();
     const context = makeAgentContext(makeTeamContext(teamManager));
 
     const result = await (tool as any)._execute(context, {
       recipient_name: 'Researcher',
-      content: 'Please find data on topic X.',
-      message_type: 'TASK_ASSIGNMENT'
+      content: 'Please find data on topic X.'
     });
 
     expect(result).toContain("Message dispatch for recipient 'Researcher' has been successfully requested.");
@@ -52,6 +52,21 @@ describe('SendMessageTo tool', () => {
     expect(event.senderAgentId).toBe('sender_agent_001');
     expect(event.recipientName).toBe('Researcher');
     expect(event.content).toBe('Please find data on topic X.');
+    expect(event.messageType).toBe('direct_message');
+  });
+
+  it('uses provided message_type when supplied', async () => {
+    const tool = new SendMessageTo();
+    const teamManager = makeTeamManager();
+    const context = makeAgentContext(makeTeamContext(teamManager));
+
+    await (tool as any)._execute(context, {
+      recipient_name: 'Researcher',
+      content: 'Please find data on topic X.',
+      message_type: 'TASK_ASSIGNMENT'
+    });
+
+    const [event] = teamManager.dispatchInterAgentMessageRequest.mock.calls[0];
     expect(event.messageType).toBe('TASK_ASSIGNMENT');
   });
 
@@ -61,8 +76,7 @@ describe('SendMessageTo tool', () => {
 
     const result = await (tool as any)._execute(context, {
       recipient_name: 'any',
-      content: 'any',
-      message_type: 'any'
+      content: 'any'
     });
 
     expect(result).toContain('Error: Critical error: send_message_to tool is not configured for team communication.');
@@ -74,9 +88,8 @@ describe('SendMessageTo tool', () => {
     const context = makeAgentContext(makeTeamContext(teamManager));
 
     const invalidSets = [
-      { recipient_name: '', content: 'valid', message_type: 'valid' },
-      { recipient_name: 'valid', content: '  ', message_type: 'valid' },
-      { recipient_name: 'valid', content: 'valid', message_type: '' }
+      { recipient_name: '', content: 'valid' },
+      { recipient_name: 'valid', content: '  ' }
     ];
 
     for (const invalid of invalidSets) {

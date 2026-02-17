@@ -14,26 +14,12 @@ export class AgentTeamShutdownStep extends BaseAgentTeamShutdownStep {
     }
 
     const allAgents = teamManager.getAllAgents();
-    const runningAgents = allAgents.filter((agent) => agent.isRunning);
-
-    if (!runningAgents.length) {
-      console.info(`Team '${teamId}': No running agents to shut down.`);
+    if (!allAgents.length) {
+      console.info(`Team '${teamId}': No managed agents to shut down.`);
       return true;
     }
 
-    console.info(`Team '${teamId}': Shutting down ${runningAgents.length} running agents.`);
-    const stopTasks = runningAgents.map((agent) => agent.stop(10.0));
-    const results = await Promise.allSettled(stopTasks);
-
-    let allSuccessful = true;
-    results.forEach((result, idx) => {
-      if (result.status === 'rejected') {
-        const agent = runningAgents[idx];
-        console.error(`Team '${teamId}': Error stopping agent '${agent.agentId}': ${result.reason}`);
-        allSuccessful = false;
-      }
-    });
-
-    return allSuccessful;
+    console.info(`Team '${teamId}': Shutting down ${allAgents.length} managed agents.`);
+    return teamManager.shutdownManagedAgents(10.0);
   }
 }

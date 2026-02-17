@@ -30,7 +30,7 @@ class DummyLLM extends BaseLLM {
   }
 }
 
-const makeContext = () => {
+const makeContext = (senderNameByAgentId: Record<string, string> = {}) => {
   const model = new LLMModel({
     name: 'dummy',
     value: 'dummy',
@@ -42,6 +42,13 @@ const makeContext = () => {
   const state = new AgentRuntimeState('agent-1');
   const inputQueues = { enqueueUserMessage: vi.fn(async () => undefined) } as any;
   state.inputEventQueues = inputQueues;
+  state.customData = {
+    teamContext: {
+      teamManager: {
+        resolveMemberNameByAgentId: (agentId: string) => senderNameByAgentId[agentId] ?? null,
+      },
+    },
+  };
   const notifier = {
     notifyAgentDataInterAgentMessageReceived: vi.fn()
   };
@@ -66,7 +73,9 @@ describe('InterAgentMessageReceivedEventHandler', () => {
 
   it('handles inter-agent messages', async () => {
     const handler = new InterAgentMessageReceivedEventHandler();
-    const { context, inputQueues, notifier } = makeContext();
+    const { context, inputQueues, notifier } = makeContext({
+      sender_agent_123: 'Professor',
+    });
     const senderId = 'sender_agent_123';
     const content = 'This is a test message from another agent.';
     const messageType = InterAgentMessageType.TASK_ASSIGNMENT;
@@ -102,9 +111,33 @@ describe('InterAgentMessageReceivedEventHandler', () => {
     expect(enqueued).toBeInstanceOf(UserMessageReceivedEvent);
     expect(enqueued.agentInputUserMessage).toBeInstanceOf(AgentInputUserMessage);
     const contentSent = enqueued.agentInputUserMessage.content;
-    expect(contentSent).toContain(`Sender Agent ID: ${senderId}`);
-    expect(contentSent).toContain(`Message Type: ${messageType.value}`);
-    expect(contentSent).toContain(`--- Message Content ---\n${content}`);
+    expect(contentSent).toContain(
+      `You received a message from sender name: Professor, sender id: ${senderId}`
+    );
+    expect(contentSent).toContain(`message:\n${content}`);
+    expect(contentSent).not.toContain('Message Type:');
+    expect(contentSent).not.toContain('Recipient Role Name');
+    expect(contentSent).not.toContain('Reply naturally based on this message.');
+  });
+
+  it('keeps the same strict template when sender name cannot be resolved', async () => {
+    const handler = new InterAgentMessageReceivedEventHandler();
+    const { context, inputQueues } = makeContext();
+    const senderId = 'member_1249a255a7c74b9b';
+    const interAgentMsg = new InterAgentMessage(
+      context.config.role,
+      context.agentId,
+      'hello',
+      InterAgentMessageType.CLARIFICATION,
+      senderId
+    );
+
+    await handler.handle(new InterAgentMessageReceivedEvent(interAgentMsg), context);
+
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    expect(enqueued.agentInputUserMessage.content).toContain(
+      `You received a message from sender name: ${senderId}, sender id: ${senderId}\nmessage:\nhello`
+    );
   });
 
   it('skips invalid event types', async () => {

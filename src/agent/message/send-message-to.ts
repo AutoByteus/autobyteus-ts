@@ -6,6 +6,9 @@ import type { ToolConfig } from '../../tools/tool-config.js';
 
 type SendMessageContext = {
   agentId?: string;
+  config?: {
+    name?: string;
+  };
   customData?: {
     teamContext?: {
       teamManager?: {
@@ -52,8 +55,8 @@ export class SendMessageTo extends BaseTool {
     schema.addParameter(new ParameterDefinition({
       name: 'message_type',
       type: ParameterType.STRING,
-      description: 'Type of the message (e.g., TASK_ASSIGNMENT, CLARIFICATION). Custom types allowed.',
-      required: true
+      description: 'Optional category for internal routing/analytics (defaults to direct_message).',
+      required: false
     }));
     return schema;
   }
@@ -74,7 +77,7 @@ export class SendMessageTo extends BaseTool {
 
     const recipientName = (kwargs as { recipient_name?: string }).recipient_name;
     const content = (kwargs as { content?: string }).content;
-    const messageType = (kwargs as { message_type?: string }).message_type;
+    const rawMessageType = (kwargs as { message_type?: string }).message_type;
 
     if (typeof recipientName !== 'string' || !recipientName.trim()) {
       return 'Error: `recipient_name` must be a non-empty string.';
@@ -82,9 +85,10 @@ export class SendMessageTo extends BaseTool {
     if (typeof content !== 'string' || !content.trim()) {
       return 'Error: `content` must be a non-empty string.';
     }
-    if (typeof messageType !== 'string' || !messageType.trim()) {
-      return 'Error: `message_type` must be a non-empty string.';
-    }
+    const messageType =
+      typeof rawMessageType === 'string' && rawMessageType.trim().length > 0
+        ? rawMessageType.trim()
+        : 'direct_message';
 
     const senderAgentId = context?.agentId ?? 'unknown';
 

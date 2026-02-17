@@ -197,10 +197,25 @@ export class AgentFactory extends Singleton {
       agentId = `${config.name}_${config.role}_${Math.floor(Math.random() * 9000) + 1000}`;
     }
 
-    const runtime = this.createRuntimeWithId(agentId, config);
+    return this.createAgentWithId(agentId, config);
+  }
+
+  createAgentWithId(agentId: string, config: AgentConfig): Agent {
+    if (!(config instanceof AgentConfig)) {
+      throw new TypeError(`Expected AgentConfig instance, got ${String(config)}`);
+    }
+    if (!agentId || typeof agentId !== 'string' || !agentId.trim()) {
+      throw new Error('createAgentWithId requires a non-empty string agentId.');
+    }
+    const normalizedAgentId = agentId.trim();
+    if (this.activeAgents.has(normalizedAgentId)) {
+      throw new Error(`Agent '${normalizedAgentId}' is already active.`);
+    }
+
+    const runtime = this.createRuntimeWithId(normalizedAgentId, config);
     const agent = new Agent(runtime);
-    this.activeAgents.set(agentId, agent);
-    console.info(`Agent '${agentId}' created and stored successfully.`);
+    this.activeAgents.set(normalizedAgentId, agent);
+    console.info(`Agent '${normalizedAgentId}' created and stored successfully.`);
     return agent;
   }
 

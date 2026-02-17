@@ -61,18 +61,30 @@ export class AgentTeamFactory extends Singleton {
       teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
     }
 
-    const state = new AgentTeamRuntimeState({ teamId });
-    const context = new AgentTeamContext(teamId, config, state);
+    return this.createTeamWithId(teamId, config);
+  }
+
+  createTeamWithId(teamId: string, config: AgentTeamConfig): AgentTeam {
+    if (!teamId || typeof teamId !== 'string' || !teamId.trim()) {
+      throw new Error("createTeamWithId requires a non-empty string teamId.");
+    }
+    const normalizedTeamId = teamId.trim();
+    if (this.activeTeams.has(normalizedTeamId)) {
+      throw new Error(`Agent team '${normalizedTeamId}' is already active.`);
+    }
+
+    const state = new AgentTeamRuntimeState({ teamId: normalizedTeamId });
+    const context = new AgentTeamContext(normalizedTeamId, config, state);
 
     const handlerRegistry = this.getDefaultEventHandlerRegistry();
     const runtime = new AgentTeamRuntime(context, handlerRegistry);
 
-    const teamManager = new TeamManager(teamId, runtime, runtime.multiplexer);
+    const teamManager = new TeamManager(normalizedTeamId, runtime, runtime.multiplexer);
     context.state.teamManager = teamManager;
 
     const team = new AgentTeam(runtime);
-    this.activeTeams.set(teamId, team);
-    console.info(`Agent Team '${teamId}' created and stored successfully.`);
+    this.activeTeams.set(normalizedTeamId, team);
+    console.info(`Agent Team '${normalizedTeamId}' created and stored successfully.`);
     return team;
   }
 

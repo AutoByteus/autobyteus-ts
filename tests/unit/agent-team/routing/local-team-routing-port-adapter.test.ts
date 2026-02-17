@@ -78,6 +78,35 @@ describe('createLocalTeamRoutingPortAdapter', () => {
     expect(targetNode.postToolExecutionApproval).toHaveBeenCalledWith('tool-1', true, 'approved');
   });
 
+  it('preserves target method binding when dispatching tool approval to agents', async () => {
+    class BoundAgentTarget {
+      agentId = 'recipient-id';
+      approvals: Array<{ toolInvocationId: string; isApproved: boolean; reason?: string }> = [];
+
+      async postToolExecutionApproval(
+        toolInvocationId: string,
+        isApproved: boolean,
+        reason?: string,
+      ): Promise<void> {
+        // This assertion fails if dispatch calls an unbound function.
+        this.approvals.push({ toolInvocationId, isApproved, reason });
+      }
+    }
+
+    const targetNode = new BoundAgentTarget();
+    const port = createLocalTeamRoutingPortAdapter({
+      ensureNodeIsReady: vi.fn(async () => targetNode),
+    });
+    const event = new ToolApprovalTeamEvent('recipient', 'tool-2', true, 'approved');
+
+    const result = await port.dispatchToolApproval(event);
+
+    expect(result).toEqual({ accepted: true });
+    expect(targetNode.approvals).toEqual([
+      { toolInvocationId: 'tool-2', isApproved: true, reason: 'approved' },
+    ]);
+  });
+
   it('dispatches tool approval to sub-team proxy targets', async () => {
     const targetNode = {
       postToolExecutionApproval: vi.fn(async () => undefined),
