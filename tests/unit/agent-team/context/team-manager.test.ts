@@ -360,6 +360,34 @@ describe('TeamManager', () => {
     );
   });
 
+  it('forbids local startup when node is assigned to a different home node', async () => {
+    const previousNodeId = process.env.AUTOBYTEUS_NODE_ID;
+    process.env.AUTOBYTEUS_NODE_ID = 'node-host-8000';
+    try {
+      const runtime = makeRuntime();
+      const multiplexer = makeMultiplexer();
+      const manager = new TeamManager('test_team', runtime, multiplexer as any);
+
+      const nodeName = 'student';
+      const premadeConfig = makeAgentConfig(nodeName);
+      premadeConfig.initialCustomData = {
+        teamMemberHomeNodeId: 'node-docker-8001'
+      };
+      runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
+      runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+
+      await expect(manager.ensureNodeIsReady(nodeName)).rejects.toThrow(
+        'REMOTE_MEMBER_LOCAL_START_FORBIDDEN'
+      );
+    } finally {
+      if (previousNodeId === undefined) {
+        delete process.env.AUTOBYTEUS_NODE_ID;
+      } else {
+        process.env.AUTOBYTEUS_NODE_ID = previousNodeId;
+      }
+    }
+  });
+
   it('routes inter-agent messages via routing port when configured', async () => {
     const runtime = makeRuntime();
     const multiplexer = makeMultiplexer();

@@ -140,6 +140,42 @@ describe('InterAgentMessageReceivedEventHandler', () => {
     );
   });
 
+  it('resolves sender name when teamManager method requires bound this context', async () => {
+    const handler = new InterAgentMessageReceivedEventHandler();
+    const { context, inputQueues } = makeContext();
+    const senderId = 'member_sender_1';
+
+    const teamManagerWithState = {
+      senderById: {
+        [senderId]: 'Professor',
+      } as Record<string, string>,
+      resolveMemberNameByAgentId(agentId: string): string | null {
+        return this.senderById[agentId] ?? null;
+      },
+    };
+    context.state.customData = {
+      ...(context.customData ?? {}),
+      teamContext: {
+        teamManager: teamManagerWithState,
+      },
+    };
+
+    const interAgentMsg = new InterAgentMessage(
+      context.config.role,
+      context.agentId,
+      'hello from teammate',
+      InterAgentMessageType.CLARIFICATION,
+      senderId
+    );
+
+    await expect(handler.handle(new InterAgentMessageReceivedEvent(interAgentMsg), context)).resolves.toBeUndefined();
+
+    const enqueued = inputQueues.enqueueUserMessage.mock.calls[0][0];
+    expect(enqueued.agentInputUserMessage.content).toContain(
+      `You received a message from sender name: Professor, sender id: ${senderId}\nmessage:\nhello from teammate`
+    );
+  });
+
   it('skips invalid event types', async () => {
     const handler = new InterAgentMessageReceivedEventHandler();
     const { context, inputQueues } = makeContext();

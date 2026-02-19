@@ -23,6 +23,16 @@ type TeamRestoreMemberMetadata = {
   memoryDir: string | null;
 };
 
+const EMBEDDED_LOCAL_NODE_ID = 'embedded-local';
+
+const normalizeOptionalString = (value: unknown): string | null => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+};
+
 export class TeamManager {
   teamId: string;
   private runtime: AgentTeamRuntime;
@@ -107,6 +117,8 @@ export class TeamManager {
             `No pre-prepared agent configuration found for '${uniqueName}'. Bootstrap step may have failed or skipped this agent.`
           );
         }
+
+        this.assertLocalStartAllowed(uniqueName, finalConfig);
 
         const restoreMemberMetadata = this.resolveRestoreMemberMetadata(uniqueName, finalConfig);
         if (restoreMemberMetadata) {
@@ -241,6 +253,27 @@ export class TeamManager {
       return null;
     }
     return memberAgentId.trim();
+  }
+
+  private assertLocalStartAllowed(uniqueName: string, finalConfig: AgentConfig): void {
+    const customData = finalConfig.initialCustomData;
+    if (!customData || typeof customData !== 'object') {
+      return;
+    }
+
+    const memberHomeNodeId = normalizeOptionalString(
+      (customData as Record<string, unknown>).teamMemberHomeNodeId
+    );
+    if (!memberHomeNodeId || memberHomeNodeId === EMBEDDED_LOCAL_NODE_ID) {
+      return;
+    }
+
+    const localNodeId = normalizeOptionalString(process.env.AUTOBYTEUS_NODE_ID);
+    if (!localNodeId || localNodeId !== memberHomeNodeId) {
+      throw new Error(
+        `REMOTE_MEMBER_LOCAL_START_FORBIDDEN: Node '${uniqueName}' is assigned to '${memberHomeNodeId}' but local node is '${localNodeId ?? 'unknown'}'.`
+      );
+    }
   }
 
   private async startNode(node: ManagedNode, name: string): Promise<void> {

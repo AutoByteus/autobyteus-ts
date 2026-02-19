@@ -13,11 +13,11 @@ type TeamContextLike = {
 
 const resolveSenderDisplayName = (context: AgentContext, senderAgentId: string): string | null => {
   const teamContext = context.customData?.teamContext as TeamContextLike | undefined;
-  const resolver = teamContext?.teamManager?.resolveMemberNameByAgentId;
-  if (typeof resolver !== 'function') {
+  const teamManager = teamContext?.teamManager;
+  if (!teamManager || typeof teamManager.resolveMemberNameByAgentId !== 'function') {
     return null;
   }
-  const resolved = resolver(senderAgentId);
+  const resolved = teamManager.resolveMemberNameByAgentId(senderAgentId);
   if (typeof resolved !== 'string' || !resolved.trim()) {
     return null;
   }
