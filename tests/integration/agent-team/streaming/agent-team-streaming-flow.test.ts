@@ -198,5 +198,5 @@ runIntegration('Agent team streaming integration (LM Studio, api_tool_call)', ()
     ).toBe(true);
 
     expect(agentEvents.length).toBeGreaterThan(0);
-  });
+  }, 180000);
 });

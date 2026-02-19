@@ -23,16 +23,6 @@ type TeamRestoreMemberMetadata = {
   memoryDir: string | null;
 };
 
-const EMBEDDED_LOCAL_NODE_ID = 'embedded-local';
-
-const normalizeOptionalString = (value: unknown): string | null => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-};
-
 export class TeamManager {
   teamId: string;
   private runtime: AgentTeamRuntime;
@@ -118,8 +108,6 @@ export class TeamManager {
           );
         }
 
-        this.assertLocalStartAllowed(uniqueName, finalConfig);
-
         const restoreMemberMetadata = this.resolveRestoreMemberMetadata(uniqueName, finalConfig);
         if (restoreMemberMetadata) {
           console.info(
@@ -131,7 +119,7 @@ export class TeamManager {
             restoreMemberMetadata.memoryDir
           );
         } else {
-          const preferredMemberAgentId = this.resolvePreferredMemberAgentId(uniqueName, finalConfig);
+          const preferredMemberAgentId = this.resolvePreferredMemberAgentId(finalConfig);
           if (preferredMemberAgentId) {
             console.info(
               `Lazily creating agent node '${uniqueName}' with deterministic memberAgentId='${preferredMemberAgentId}'.`
@@ -230,18 +218,10 @@ export class TeamManager {
     };
   }
 
-  private resolvePreferredMemberAgentId(uniqueName: string, finalConfig: AgentConfig): string | null {
+  private resolvePreferredMemberAgentId(finalConfig: AgentConfig): string | null {
     const customData = finalConfig.initialCustomData;
     if (!customData || typeof customData !== 'object') {
       return null;
-    }
-
-    const byNodeName = this.toRecord((customData as Record<string, unknown>).memberAgentIdsByNodeName);
-    if (byNodeName) {
-      const fromMap = byNodeName[uniqueName];
-      if (typeof fromMap === 'string' && fromMap.trim().length > 0) {
-        return fromMap.trim();
-      }
     }
 
     const identity = this.toRecord((customData as Record<string, unknown>).teamMemberIdentity);
@@ -253,27 +233,6 @@ export class TeamManager {
       return null;
     }
     return memberAgentId.trim();
-  }
-
-  private assertLocalStartAllowed(uniqueName: string, finalConfig: AgentConfig): void {
-    const customData = finalConfig.initialCustomData;
-    if (!customData || typeof customData !== 'object') {
-      return;
-    }
-
-    const memberHomeNodeId = normalizeOptionalString(
-      (customData as Record<string, unknown>).teamMemberHomeNodeId
-    );
-    if (!memberHomeNodeId || memberHomeNodeId === EMBEDDED_LOCAL_NODE_ID) {
-      return;
-    }
-
-    const localNodeId = normalizeOptionalString(process.env.AUTOBYTEUS_NODE_ID);
-    if (!localNodeId || localNodeId !== memberHomeNodeId) {
-      throw new Error(
-        `REMOTE_MEMBER_LOCAL_START_FORBIDDEN: Node '${uniqueName}' is assigned to '${memberHomeNodeId}' but local node is '${localNodeId ?? 'unknown'}'.`
-      );
-    }
   }
 
   private async startNode(node: ManagedNode, name: string): Promise<void> {

@@ -121,9 +121,9 @@ describe('Stream payload factories', () => {
   });
 
   it('creates ErrorEventData', () => {
-    const payload = createErrorEventData({ source: 'test', message: 'error msg' });
+    const payload = createErrorEventData({ code: 'test', message: 'error msg' });
     expect(payload).toBeInstanceOf(ErrorEventData);
-    expect(payload.source).toBe('test');
+    expect(payload.code).toBe('test');
     expect(payload.message).toBe('error msg');
   });
 });

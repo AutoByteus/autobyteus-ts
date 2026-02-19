@@ -4,7 +4,6 @@ import { SenderType, TASK_NOTIFIER_SENDER_ID } from '../../agent/sender-type.js'
 
 type TeamManagerLike = {
   teamId: string;
-  ensureNodeIsReady: (name: string) => Promise<unknown>;
   dispatchUserMessageToAgent: (event: ProcessUserMessageEvent) => Promise<void>;
 };
 
@@ -23,8 +22,6 @@ export class TaskActivator {
     const teamId = this.teamManager.teamId;
     try {
       console.info(`Team '${teamId}': TaskActivator is activating agent '${agentName}'.`);
-
-      await this.teamManager.ensureNodeIsReady(agentName);
 
       const notificationMessage = new AgentInputUserMessage(
         'You have new tasks in your queue. Please review your task list using your tools and begin your work.',

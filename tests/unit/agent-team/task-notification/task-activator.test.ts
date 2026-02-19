@@ -7,7 +7,6 @@ import { TASK_NOTIFIER_SENDER_ID } from '../../../../src/agent/sender-type.js';
 const makeTeamManager = () => {
   return {
     teamId: 'test_activator_team',
-    ensureNodeIsReady: vi.fn(async () => undefined),
     dispatchUserMessageToAgent: vi.fn(async () => undefined)
   };
 };
@@ -29,7 +28,6 @@ describe('TaskActivator', () => {
 
     await activator.activateAgent(agentName);
 
-    expect(manager.ensureNodeIsReady).toHaveBeenCalledWith(agentName);
     expect(manager.dispatchUserMessageToAgent).toHaveBeenCalledTimes(1);
 
     const dispatchedEvent = (manager.dispatchUserMessageToAgent as any).mock.calls[0][0];
@@ -44,7 +42,7 @@ describe('TaskActivator', () => {
 
   it('logs error when team manager throws', async () => {
     const manager = makeTeamManager();
-    manager.ensureNodeIsReady = vi.fn(async () => {
+    manager.dispatchUserMessageToAgent = vi.fn(async () => {
       throw new Error('Node failed to start');
     });
     const activator = new TaskActivator(manager);
@@ -53,7 +51,7 @@ describe('TaskActivator', () => {
     await activator.activateAgent('AgentThatFails');
 
     expect(errorSpy).toHaveBeenCalled();
-    expect(manager.dispatchUserMessageToAgent).not.toHaveBeenCalled();
+    expect(manager.dispatchUserMessageToAgent).toHaveBeenCalledTimes(1);
 
     errorSpy.mockRestore();
   });

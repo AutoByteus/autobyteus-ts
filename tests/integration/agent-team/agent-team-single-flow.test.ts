@@ -155,5 +155,5 @@ runIntegration('Agent team integration (LM Studio, api_tool_call)', () => {
     expect(content.trim()).toBe(toolArgs.content);
 
     await waitForTeamToBeIdle(team, 120.0);
-  });
+  }, 180000);
 });

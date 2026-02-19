@@ -282,6 +282,36 @@ describe('TeamManager', () => {
     expect(mockAgentFactory.restoreAgent).not.toHaveBeenCalled();
   });
 
+  it('ignores node-keyed memberAgentIdsByNodeName metadata for deterministic ids', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
+
+    const createdAgent = makeMockAgentInstance('agent_123');
+    const mockAgentFactory = {
+      createAgent: vi.fn(() => createdAgent),
+      createAgentWithId: vi.fn(),
+      restoreAgent: vi.fn()
+    } as any;
+    (manager as any).agentFactory = mockAgentFactory;
+
+    const nodeName = 'coordinator';
+    const premadeConfig = makeAgentConfig(nodeName);
+    premadeConfig.initialCustomData = {
+      memberAgentIdsByNodeName: {
+        coordinator: 'member_should_be_ignored'
+      }
+    };
+    runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
+    runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+
+    const agent = await manager.ensureNodeIsReady(nodeName);
+
+    expect(agent).toBe(createdAgent);
+    expect(mockAgentFactory.createAgent).toHaveBeenCalledWith(premadeConfig);
+    expect(mockAgentFactory.createAgentWithId).not.toHaveBeenCalled();
+  });
+
   it('creates and starts sub-team nodes', async () => {
     const runtime = makeRuntime();
     const multiplexer = makeMultiplexer();
@@ -360,32 +390,25 @@ describe('TeamManager', () => {
     );
   });
 
-  it('forbids local startup when node is assigned to a different home node', async () => {
-    const previousNodeId = process.env.AUTOBYTEUS_NODE_ID;
-    process.env.AUTOBYTEUS_NODE_ID = 'node-host-8000';
-    try {
-      const runtime = makeRuntime();
-      const multiplexer = makeMultiplexer();
-      const manager = new TeamManager('test_team', runtime, multiplexer as any);
+  it('does not enforce startup admission from home-node metadata in core runtime', async () => {
+    const runtime = makeRuntime();
+    const multiplexer = makeMultiplexer();
+    const manager = new TeamManager('test_team', runtime, multiplexer as any);
 
-      const nodeName = 'student';
-      const premadeConfig = makeAgentConfig(nodeName);
-      premadeConfig.initialCustomData = {
-        teamMemberHomeNodeId: 'node-docker-8001'
-      };
-      runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
-      runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+    const mockAgent = makeMockAgentInstance('agent_123');
+    const mockAgentFactory = { createAgent: vi.fn(() => mockAgent) } as any;
+    (manager as any).agentFactory = mockAgentFactory;
 
-      await expect(manager.ensureNodeIsReady(nodeName)).rejects.toThrow(
-        'REMOTE_MEMBER_LOCAL_START_FORBIDDEN'
-      );
-    } finally {
-      if (previousNodeId === undefined) {
-        delete process.env.AUTOBYTEUS_NODE_ID;
-      } else {
-        process.env.AUTOBYTEUS_NODE_ID = previousNodeId;
-      }
-    }
+    const nodeName = 'student';
+    const premadeConfig = makeAgentConfig(nodeName);
+    premadeConfig.initialCustomData = {
+      teamMemberHomeNodeId: 'node-docker-8001'
+    };
+    runtime.context.state.finalAgentConfigs[nodeName] = premadeConfig;
+    runtime.context.getNodeConfigByName.mockReturnValue(new TeamNodeConfig({ nodeDefinition: premadeConfig }));
+
+    await expect(manager.ensureNodeIsReady(nodeName)).resolves.toBe(mockAgent);
+    expect(mockAgentFactory.createAgent).toHaveBeenCalledWith(premadeConfig);
   });
 
   it('routes inter-agent messages via routing port when configured', async () => {

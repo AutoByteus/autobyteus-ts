@@ -155,8 +155,8 @@ export class AgentExternalEventNotifier extends EventEmitter {
     this.emitEvent(EventType.AGENT_DATA_TODO_LIST_UPDATED, { todos: todoList });
   }
 
-  notifyAgentErrorOutputGeneration(errorSource: string, errorMessage: string, errorDetails?: string): void {
-    const payload = { source: errorSource, message: errorMessage, details: errorDetails };
+  notifyAgentErrorOutputGeneration(errorCode: string, errorMessage: string, errorDetails?: string): void {
+    const payload = { code: errorCode, message: errorMessage, details: errorDetails };
     this.emitEvent(EventType.AGENT_ERROR_OUTPUT_GENERATION, payload);
   }
 

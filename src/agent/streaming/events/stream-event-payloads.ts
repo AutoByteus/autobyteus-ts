@@ -96,14 +96,14 @@ export class AgentStatusUpdateData extends BaseStreamPayload {
 }
 
 export class ErrorEventData extends BaseStreamPayload {
-  source: string;
+  code: string;
   message: string;
   details?: string;
 
   constructor(data: Record<string, any>) {
-    assertRequiredKeys(data, ['source', 'message'], 'ErrorEventData');
+    assertRequiredKeys(data, ['code', 'message'], 'ErrorEventData');
     super(data);
-    this.source = String(data.source ?? '');
+    this.code = String(data.code ?? '');
     this.message = String(data.message ?? '');
     this.details = data.details ?? undefined;
   }

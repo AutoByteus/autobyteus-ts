@@ -135,7 +135,7 @@ describe('AgentEventStream', () => {
     const consumer = collectStreamResults(streamer.allEvents(), streamer, 40);
     const producer = (async () => {
       await delay(5);
-      notifier.notifyAgentErrorOutputGeneration('Test.Source', 'A test error occurred.', 'Detailed traceback.');
+      notifier.notifyAgentErrorOutputGeneration('TEST_SOURCE', 'A test error occurred.', 'Detailed traceback.');
     })();
 
     const [results] = await Promise.all([consumer, producer]);
@@ -144,7 +144,7 @@ describe('AgentEventStream', () => {
     expect(event.event_type).toBe(StreamEventType.ERROR_EVENT);
     expect(event.data).toBeInstanceOf(ErrorEventData);
     const payload = event.data as ErrorEventData;
-    expect(payload.source).toBe('Test.Source');
+    expect(payload.code).toBe('TEST_SOURCE');
     expect(payload.message).toBe('A test error occurred.');
     expect(payload.details).toBe('Detailed traceback.');
   });
