@@ -1,6 +1,7 @@
 import { BaseAgentTeamShutdownStep } from './base-agent-team-shutdown-step.js';
 import type { AgentTeamContext } from '../context/agent-team-context.js';
 import type { TeamManager } from '../context/team-manager.js';
+import { AgentFactory } from '../../agent/factory/agent-factory.js';
 
 export class AgentTeamShutdownStep extends BaseAgentTeamShutdownStep {
   async execute(context: AgentTeamContext): Promise<boolean> {
@@ -31,6 +32,19 @@ export class AgentTeamShutdownStep extends BaseAgentTeamShutdownStep {
         const agent = runningAgents[idx];
         console.error(`Team '${teamId}': Error stopping agent '${agent.agentId}': ${result.reason}`);
         allSuccessful = false;
+      }
+    });
+
+    const agentFactory = new AgentFactory();
+    const removalTasks = allAgents.map((agent) => agentFactory.removeAgent(agent.agentId, 10.0));
+    const removalResults = await Promise.allSettled(removalTasks);
+    removalResults.forEach((result, idx) => {
+      if (result.status === 'rejected') {
+        const agent = allAgents[idx];
+        console.warn(`Team '${teamId}': Failed removing agent '${agent.agentId}' from AgentFactory: ${result.reason}`);
+      } else if (!result.value) {
+        const agent = allAgents[idx];
+        console.warn(`Team '${teamId}': Agent '${agent.agentId}' was not removed from AgentFactory.`);
       }
     });
 

@@ -55,12 +55,7 @@ export class AgentTeamFactory extends Singleton {
     return registry;
   }
 
-  createTeam(config: AgentTeamConfig): AgentTeam {
-    let teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
-    while (this.activeTeams.has(teamId)) {
-      teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
-    }
-
+  private createTeamInternal(teamId: string, config: AgentTeamConfig): AgentTeam {
     const state = new AgentTeamRuntimeState({ teamId });
     const context = new AgentTeamContext(teamId, config, state);
 
@@ -74,6 +69,25 @@ export class AgentTeamFactory extends Singleton {
     this.activeTeams.set(teamId, team);
     console.info(`Agent Team '${teamId}' created and stored successfully.`);
     return team;
+  }
+
+  createTeam(config: AgentTeamConfig): AgentTeam {
+    let teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+    while (this.activeTeams.has(teamId)) {
+      teamId = `team_${randomUUID().replace(/-/g, '').slice(0, 8)}`;
+    }
+    return this.createTeamInternal(teamId, config);
+  }
+
+  createTeamWithId(teamId: string, config: AgentTeamConfig): AgentTeam {
+    const normalizedTeamId = typeof teamId === 'string' ? teamId.trim() : '';
+    if (!normalizedTeamId) {
+      throw new Error('createTeamWithId requires a non-empty teamId.');
+    }
+    if (this.activeTeams.has(normalizedTeamId)) {
+      throw new Error(`Team '${normalizedTeamId}' already exists.`);
+    }
+    return this.createTeamInternal(normalizedTeamId, config);
   }
 
   getTeam(teamId: string): AgentTeam | undefined {
